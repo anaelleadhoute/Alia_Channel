@@ -1,0 +1,95 @@
+version: "3.9"
+
+services:
+
+  # ─── FastAPI Backend ─────────────────────────────────────────────────
+  backend:
+    build: ./backend
+    container_name: alia_backend
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./data:/data
+    networks:
+      - alia_net
+
+  # ─── Validation Dashboard ────────────────────────────────────────────
+  dashboard:
+    image: nginx:alpine
+    container_name: alia_dashboard
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    volumes:
+      - ./dashboard:/usr/share/nginx/html:ro
+      - ./dashboard/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - alia_net
+
+  # ─── n8n Orchestration ───────────────────────────────────────────────
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: alia_n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_USER}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD}
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      - N8N_HOST=${DOMAIN}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=https
+      - WEBHOOK_URL=https://${DOMAIN}/n8n/
+      - GENERIC_TIMEZONE=Asia/Jerusalem
+      - TZ=Asia/Jerusalem
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - alia_net
+
+  # ─── Nginx Reverse Proxy + HTTPS ─────────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: alia_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./scripts/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - certbot_www:/var/www/certbot:ro
+      - certbot_certs:/etc/letsencrypt:ro
+    depends_on:
+      - backend
+      - n8n
+      - dashboard
+    networks:
+      - alia_net
+
+  # ─── Certbot (HTTPS certificates) ────────────────────────────────────
+  certbot:
+    image: certbot/certbot
+    container_name: alia_certbot
+    volumes:
+      - certbot_www:/var/www/certbot
+      - certbot_certs:/etc/letsencrypt
+    entrypoint: >
+      sh -c "trap exit TERM;
+             while :; do
+               certbot renew --webroot -w /var/www/certbot --quiet;
+               sleep 12h & wait $${!};
+             done"
+
+volumes:
+  n8n_data:
+  certbot_www:
+  certbot_certs:
+
+networks:
+  alia_net:
+    driver: bridge
