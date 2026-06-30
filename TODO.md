@@ -7,9 +7,9 @@
 - [x] nginx.conf (reverse proxy)
 - [x] .env.template
 - [x] warmup_whatsapp.md
-- [ ] Create Hetzner account + server
-- [ ] Point domain DNS to server IP
-- [ ] Run setup_server.sh on VPS
+- [x] Create Hetzner account + server (167.233.204.172, CX23, Falkenstein)
+- [x] Point domain DNS to server IP (alia-channel.com → A record)
+- [x] Run setup_server.sh on VPS
 - [ ] Run init_https.sh (SSL certificate)
 - [ ] docker compose up -d (all services running)
 
