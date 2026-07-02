@@ -1,6 +1,8 @@
 import asyncio
+import json
 import logging
 import os
+import re
 from datetime import datetime
 
 import anthropic
@@ -23,6 +25,13 @@ CATEGORIES = [
     "Société",
     "Autre",
 ]
+
+
+def _parse_json(text: str) -> dict:
+    text = text.strip()
+    text = re.sub(r"^```(?:json)?\s*", "", text)
+    text = re.sub(r"\s*```$", "", text)
+    return json.loads(text)
 
 
 async def _generate_fr(title: str, content: str) -> dict:
@@ -52,9 +61,7 @@ Pour le score (0.0 à 1.0) : évalue la pertinence pour des olim francophones.
         max_tokens=1024,
         messages=[{"role": "user", "content": prompt}],
     )
-
-    import json
-    return json.loads(response.content[0].text)
+    return _parse_json(response.content[0].text)
 
 
 async def _generate_ru(title: str, content: str) -> dict:
@@ -77,9 +84,7 @@ async def _generate_ru(title: str, content: str) -> dict:
         max_tokens=1024,
         messages=[{"role": "user", "content": prompt}],
     )
-
-    import json
-    return json.loads(response.content[0].text)
+    return _parse_json(response.content[0].text)
 
 
 async def process_article(article_id: int, title: str, content: str) -> bool:
@@ -144,7 +149,6 @@ async def process_pending_articles() -> dict:
 
     logger.info(f"[ai] Processing {len(pending)} articles...")
 
-    # Process in batches of 5 to avoid rate limits
     results = []
     for i in range(0, len(pending), 5):
         batch = pending[i:i+5]
@@ -154,7 +158,7 @@ async def process_pending_articles() -> dict:
         ])
         results.extend(batch_results)
         if i + 5 < len(pending):
-            await asyncio.sleep(2)  # small pause between batches
+            await asyncio.sleep(2)
 
     success = sum(1 for r in results if r)
     return {"processed": len(pending), "success": success, "failed": len(pending) - success}
