@@ -16,7 +16,7 @@ async def cleanup_old_articles(days: int = 30) -> dict:
             """,
             (f"-{days} days",),
         )
-        deleted = db.total_changes
+        deleted = cursor.rowcount
         await db.commit()
 
     logger.info(f"[cleanup] Deleted {deleted} articles older than {days} days.")
@@ -34,7 +34,7 @@ async def cleanup_rejected_articles(days: int = 7) -> dict:
             """,
             (f"-{days} days",),
         )
-        deleted = db.total_changes
+        deleted = cursor.rowcount
         await db.commit()
 
     logger.info(f"[cleanup] Deleted {deleted} rejected articles older than {days} days.")

@@ -51,14 +51,12 @@ async def manual_tip(body: ManualTip):
         if await existing.fetchone():
             return {"status": "skipped", "reason": "tip already exists for this week"}
 
-        await db.execute(
+        cursor = await db.execute(
             "INSERT INTO tips (source_url, week) VALUES (?, ?)",
             (body.url, week),
         )
         await db.commit()
-        cursor = await db.execute("SELECT id FROM tips WHERE week = ?", (week,))
-        row = await cursor.fetchone()
-        tip_id = row["id"]
+        tip_id = cursor.lastrowid
 
     result = await process_tip(tip_id, body.url, body.content)
     return {"status": "ok" if result else "error", "tip_id": tip_id, "week": week}
