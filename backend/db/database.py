@@ -5,8 +5,7 @@ DB_PATH = os.getenv("DB_PATH", "/data/alia.db")
 
 
 def get_db() -> aiosqlite.Connection:
-    db = aiosqlite.connect(DB_PATH)
-    return db
+    return aiosqlite.connect(DB_PATH, row_factory=aiosqlite.Row)
 
 
 async def init_db():
