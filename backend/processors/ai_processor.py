@@ -90,7 +90,7 @@ async def process_article(article_id: int, title: str, content: str) -> bool:
             _generate_ru(title, content),
         )
 
-        async with await get_db() as db:
+        async with get_db() as db:
             await db.execute(
                 """
                 UPDATE articles SET
@@ -126,7 +126,7 @@ async def process_article(article_id: int, title: str, content: str) -> bool:
 
 async def process_pending_articles() -> dict:
     """Process all articles that haven't been through AI yet."""
-    async with await get_db() as db:
+    async with get_db() as db:
         cursor = await db.execute(
             """
             SELECT id, title_raw, content_raw FROM articles

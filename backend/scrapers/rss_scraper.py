@@ -58,7 +58,7 @@ async def _fetch_feed(client: httpx.AsyncClient, source: dict) -> list[dict]:
 async def _save_new_articles(articles: list[dict]) -> int:
     """Insert articles, skip duplicates. Returns count of new articles."""
     saved = 0
-    async with await get_db() as db:
+    async with get_db() as db:
         for article in articles:
             try:
                 await db.execute(

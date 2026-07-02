@@ -15,7 +15,7 @@ class TipUpdate(BaseModel):
 
 @router.get("")
 async def list_tips(status: str = "pending"):
-    async with await get_db() as db:
+    async with get_db() as db:
         cursor = await db.execute(
             """
             SELECT id, source_url, week, content_fr, content_ru,
@@ -39,7 +39,7 @@ async def update_tip(tip_id: int, update: TipUpdate):
     set_clause = ", ".join(f"{k} = :{k}" for k in fields)
     fields["id"] = tip_id
 
-    async with await get_db() as db:
+    async with get_db() as db:
         await db.execute(
             f"UPDATE tips SET {set_clause} WHERE id = :id", fields
         )

@@ -63,7 +63,7 @@ Réponds uniquement avec le texte du tip, sans JSON, sans titre supplémentaire.
         content_fr = fr_response.content[0].text.strip()
         content_ru = ru_response.content[0].text.strip()
 
-        async with await get_db() as db:
+        async with get_db() as db:
             await db.execute(
                 """
                 UPDATE tips SET
@@ -86,7 +86,7 @@ Réponds uniquement avec le texte du tip, sans JSON, sans titre supplémentaire.
 
 async def process_pending_tips() -> dict:
     """Process all tips that haven't been through AI yet."""
-    async with await get_db() as db:
+    async with get_db() as db:
         cursor = await db.execute(
             """
             SELECT id, source_url FROM tips
