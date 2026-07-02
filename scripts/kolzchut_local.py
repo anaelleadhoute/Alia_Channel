@@ -16,7 +16,7 @@ from datetime import datetime
 SERVER_URL = "https://alia-channel.com/api/scrape/tips/manual"
 
 SEARCH_TERMS = ["עולים חדשים", "דיור", "בריאות", "עבודה"]
-SEARCH_URL = "https://www.kolzchut.org.il/w/he/index.php"
+SEARCH_URL = "https://www.kolzchut.org.il/w/api.php"
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
@@ -41,21 +41,28 @@ def run():
     print(f"[kolzchut] Searching for: {term}")
 
     with httpx.Client(headers=HEADERS, follow_redirects=True) as client:
-        # Search
+        # Search via MediaWiki API
         search_resp = client.get(
             SEARCH_URL,
-            params={"search": term, "action": "opensearch"},
+            params={
+                "action": "query",
+                "list": "search",
+                "srsearch": term,
+                "format": "json",
+                "srlimit": 1,
+            },
             timeout=20,
         )
         search_resp.raise_for_status()
-        results = search_resp.json()
-
-        urls = results[3] if len(results) > 3 else []
-        if not urls:
+        data = search_resp.json()
+        hits = data.get("query", {}).get("search", [])
+        if not hits:
             print(f"[kolzchut] No results for '{term}'")
             return
 
-        target_url = urls[0]
+        title = hits[0]["title"]
+        import urllib.parse
+        target_url = f"https://www.kolzchut.org.il/he/{urllib.parse.quote(title)}"
         print(f"[kolzchut] Fetching: {target_url}")
 
         # Fetch page
