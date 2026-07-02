@@ -7,7 +7,8 @@
       "Bash(git push *)",
       "Bash(git commit -m ' *)",
       "Bash(git pull *)",
-      "Bash(git stash *)"
+      "Bash(git stash *)",
+      "Bash(curl -s \"https://www.kolzchut.org.il/w/api.php?action=query&list=search&srsearch=%D7%91%D7%A8%D7%99%D7%90%D7%95%D7%AA&format=json&srlimit=1\")"
     ]
   }
 }
