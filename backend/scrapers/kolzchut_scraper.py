@@ -71,17 +71,12 @@ async def run_kolzchut_scraper() -> dict:
             content = _extract_text(page_resp.text)
 
         async with get_db() as db:
-            await db.execute(
+            cursor = await db.execute(
                 "INSERT INTO tips (source_url, week) VALUES (?, ?)",
                 (target_url, week),
             )
             await db.commit()
-
-            cursor = await db.execute(
-                "SELECT id FROM tips WHERE week = ?", (week,)
-            )
-            row = await cursor.fetchone()
-            tip_id = row["id"]
+            tip_id = cursor.lastrowid
 
         logger.info(f"[kolzchut] Scraped '{term}' → {target_url}")
         return {"status": "ok", "week": week, "url": target_url, "tip_id": tip_id, "term": term}

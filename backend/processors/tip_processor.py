@@ -1,9 +1,11 @@
+import asyncio
 import logging
 import os
 from datetime import datetime
 
 import anthropic
 import httpx
+from bs4 import BeautifulSoup
 
 from db.database import get_db
 
@@ -20,7 +22,6 @@ async def _fetch_content(url: str) -> str:
     async with httpx.AsyncClient(headers=headers, follow_redirects=True) as client:
         resp = await client.get(url, timeout=20)
         resp.raise_for_status()
-        from bs4 import BeautifulSoup
         soup = BeautifulSoup(resp.text, "html.parser")
         for tag in soup(["nav", "header", "footer", "script", "style"]):
             tag.decompose()
@@ -65,7 +66,6 @@ Réponds uniquement avec le texte du tip, sans JSON, sans titre supplémentaire.
 
 Отвечай только текстом совета, без JSON, без дополнительных заголовков."""
 
-        import asyncio
         fr_response, ru_response = await asyncio.gather(
             client.messages.create(
                 model="claude-haiku-4-5-20251001",
