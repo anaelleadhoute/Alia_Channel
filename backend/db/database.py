@@ -1,11 +1,15 @@
 import aiosqlite
 import os
+from contextlib import asynccontextmanager
 
 DB_PATH = os.getenv("DB_PATH", "/data/alia.db")
 
 
-def get_db() -> aiosqlite.Connection:
-    return aiosqlite.connect(DB_PATH, row_factory=aiosqlite.Row)
+@asynccontextmanager
+async def get_db():
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        yield db
 
 
 async def init_db():
@@ -15,13 +19,12 @@ async def init_db():
                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
                 guid        TEXT UNIQUE NOT NULL,
                 source      TEXT NOT NULL,
-                language    TEXT NOT NULL,       -- 'fr', 'ru', 'both'
+                language    TEXT NOT NULL,
                 url         TEXT NOT NULL,
                 title_raw   TEXT,
                 content_raw TEXT,
                 scraped_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
 
-                -- AI generated
                 title_fr    TEXT,
                 summary_fr  TEXT,
                 cta_fr      TEXT,
@@ -36,11 +39,9 @@ async def init_db():
                 category    TEXT,
                 ai_processed_at DATETIME,
 
-                -- Validation
-                status      TEXT DEFAULT 'pending',  -- pending/approved/rejected
+                status      TEXT DEFAULT 'pending',
                 edited_at   DATETIME,
 
-                -- Publication
                 send_at     DATETIME,
                 sent_wa_fr  INTEGER DEFAULT 0,
                 sent_wa_ru  INTEGER DEFAULT 0,
@@ -52,7 +53,7 @@ async def init_db():
                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
                 source_url  TEXT NOT NULL,
                 scraped_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
-                week        TEXT NOT NULL,          -- e.g. '2024-W42'
+                week        TEXT NOT NULL,
 
                 content_fr  TEXT,
                 content_ru  TEXT,
@@ -66,8 +67,8 @@ async def init_db():
 
             CREATE TABLE IF NOT EXISTS logs (
                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
-                level       TEXT NOT NULL,          -- INFO/WARNING/ERROR
-                service     TEXT NOT NULL,          -- scraper/ai/publisher/etc
+                level       TEXT NOT NULL,
+                service     TEXT NOT NULL,
                 message     TEXT NOT NULL,
                 created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
             );
