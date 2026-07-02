@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 
 import anthropic
+import httpx
 
 from db.database import get_db
 
@@ -11,9 +12,27 @@ logger = logging.getLogger(__name__)
 client = anthropic.AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
 
+async def _fetch_content(url: str) -> str:
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept-Language": "he-IL,he;q=0.9,en;q=0.8",
+    }
+    async with httpx.AsyncClient(headers=headers, follow_redirects=True) as client:
+        resp = await client.get(url, timeout=20)
+        resp.raise_for_status()
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(resp.text, "html.parser")
+        for tag in soup(["nav", "header", "footer", "script", "style"]):
+            tag.decompose()
+        main = soup.find("div", class_="mw-parser-output") or soup.body
+        return main.get_text(separator="\n", strip=True)[:4000] if main else ""
+
+
 async def process_tip(tip_id: int, source_url: str, raw_content: str) -> bool:
     """Generate FR + RU versions of a Kol Zchut tip."""
     try:
+        if not raw_content:
+            raw_content = await _fetch_content(source_url)
         fr_prompt = f"""Tu es rédacteur pour AL.IA Channel, un média pour les olim francophones en Israël.
 
 Voici une page de Kol Zchut (guide des droits sociaux en Israël) :
