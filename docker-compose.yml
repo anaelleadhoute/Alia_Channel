@@ -47,6 +47,7 @@ services:
       - WEBHOOK_URL=https://${DOMAIN}/n8n/
       - GENERIC_TIMEZONE=Asia/Jerusalem
       - TZ=Asia/Jerusalem
+      - N8N_SECURE_COOKIE=false
     volumes:
       - n8n_data:/home/node/.n8n
     networks:
