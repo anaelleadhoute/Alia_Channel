@@ -1,0 +1,23 @@
+from fastapi import APIRouter
+from scrapers.rss_scraper import run_scraper
+from scrapers.kolzchut_scraper import run_kolzchut_scraper
+from processors.ai_processor import process_pending_articles
+from processors.tip_processor import process_pending_tips
+
+router = APIRouter()
+
+
+@router.post("/news")
+async def scrape_news():
+    """Fetch all RSS sources and process new articles with AI."""
+    scrape_result = await run_scraper()
+    ai_result = await process_pending_articles()
+    return {"scrape": scrape_result, "ai": ai_result}
+
+
+@router.post("/tips")
+async def scrape_tips():
+    """Scrape Kol Zchut and process tip with AI."""
+    scrape_result = await run_kolzchut_scraper()
+    ai_result = await process_pending_tips()
+    return {"scrape": scrape_result, "ai": ai_result}
