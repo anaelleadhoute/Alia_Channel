@@ -45,10 +45,11 @@ systemctl enable fail2ban
 systemctl start fail2ban
 
 # ─── 6. Clone project ─────────────────────────────────────────────────
-echo "[6/7] Setting up project directory..."
-mkdir -p /opt/alia-channel
+echo "[6/7] Cloning project from GitHub..."
+git clone https://github.com/anaelleadhoute/Alia_Channel.git /opt/alia-channel
 cd /opt/alia-channel
-echo "→ Copy your project files here or git clone your repo"
+cp .env.template .env
+echo "→ Fill in /opt/alia-channel/.env with your credentials before continuing"
 
 # ─── 7. Docker auto-start ─────────────────────────────────────────────
 echo "[7/7] Enabling Docker on boot..."
