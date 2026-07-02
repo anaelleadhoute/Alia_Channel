@@ -29,7 +29,7 @@ async def run_kolzchut_scraper() -> dict:
     """Scrape one Kol Zchut page per week and store raw content."""
     week = _current_week()
 
-    async with await get_db() as db:
+    async with get_db() as db:
         existing = await db.execute(
             "SELECT id FROM tips WHERE week = ?", (week,)
         )
@@ -52,7 +52,7 @@ async def run_kolzchut_scraper() -> dict:
 
         content = _scrape_page(response.text, url)
 
-        async with await get_db() as db:
+        async with get_db() as db:
             await db.execute(
                 """
                 INSERT INTO tips (source_url, week, content_fr, content_ru)

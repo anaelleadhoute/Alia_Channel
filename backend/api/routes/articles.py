@@ -22,7 +22,7 @@ class ArticleUpdate(BaseModel):
 @router.get("")
 async def list_articles(status: str = "pending", limit: int = 50):
     """List articles filtered by status."""
-    async with await get_db() as db:
+    async with get_db() as db:
         cursor = await db.execute(
             """
             SELECT id, source, language, url, title_raw,
@@ -44,7 +44,7 @@ async def list_articles(status: str = "pending", limit: int = 50):
 
 @router.get("/{article_id}")
 async def get_article(article_id: int):
-    async with await get_db() as db:
+    async with get_db() as db:
         cursor = await db.execute(
             "SELECT * FROM articles WHERE id = ?", (article_id,)
         )
@@ -65,7 +65,7 @@ async def update_article(article_id: int, update: ArticleUpdate):
     set_clause = ", ".join(f"{k} = :{k}" for k in fields)
     fields["id"] = article_id
 
-    async with await get_db() as db:
+    async with get_db() as db:
         await db.execute(
             f"UPDATE articles SET {set_clause} WHERE id = :id", fields
         )
