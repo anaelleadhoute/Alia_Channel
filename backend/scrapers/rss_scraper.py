@@ -61,7 +61,7 @@ async def _save_new_articles(articles: list[dict]) -> int:
     async with get_db() as db:
         for article in articles:
             try:
-                await db.execute(
+                cursor = await db.execute(
                     """
                     INSERT OR IGNORE INTO articles
                         (guid, source, language, url, title_raw, content_raw)
@@ -70,7 +70,7 @@ async def _save_new_articles(articles: list[dict]) -> int:
                     """,
                     article,
                 )
-                if db.total_changes > 0:
+                if cursor.rowcount > 0:
                     saved += 1
             except Exception as e:
                 logger.error(f"[scraper] DB insert error for {article['url']}: {e}")

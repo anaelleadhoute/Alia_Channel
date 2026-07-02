@@ -90,10 +90,14 @@ async def _generate_ru(title: str, content: str) -> dict:
 async def process_article(article_id: int, title: str, content: str) -> bool:
     """Generate FR + RU content in parallel for one article."""
     try:
-        fr_result, ru_result = await asyncio.gather(
+        results = await asyncio.gather(
             _generate_fr(title, content),
             _generate_ru(title, content),
+            return_exceptions=True,
         )
+        if isinstance(results[0], Exception) or isinstance(results[1], Exception):
+            raise results[0] if isinstance(results[0], Exception) else results[1]
+        fr_result, ru_result = results
 
         async with get_db() as db:
             await db.execute(
