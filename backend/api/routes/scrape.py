@@ -4,6 +4,7 @@ from scrapers.kolzchut_scraper import run_kolzchut_scraper
 from processors.ai_processor import process_pending_articles
 from processors.tip_processor import process_pending_tips
 from db.database import get_db
+from db.cleanup import run_cleanup
 
 router = APIRouter()
 
@@ -31,3 +32,9 @@ async def reset_ai():
         await db.execute("UPDATE articles SET ai_processed_at = NULL")
         await db.commit()
     return {"ok": True}
+
+
+@router.post("/cleanup")
+async def cleanup():
+    """Delete sent articles older than 30 days and rejected older than 7 days."""
+    return await run_cleanup()
