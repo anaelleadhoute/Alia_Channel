@@ -3,6 +3,7 @@ from scrapers.rss_scraper import run_scraper
 from scrapers.kolzchut_scraper import run_kolzchut_scraper
 from processors.ai_processor import process_pending_articles
 from processors.tip_processor import process_pending_tips
+from db.database import get_db
 
 router = APIRouter()
 
@@ -21,3 +22,12 @@ async def scrape_tips():
     scrape_result = await run_kolzchut_scraper()
     ai_result = await process_pending_tips()
     return {"scrape": scrape_result, "ai": ai_result}
+
+
+@router.post("/reset-ai")
+async def reset_ai():
+    """Reset AI processing status so all articles get reprocessed."""
+    async with get_db() as db:
+        await db.execute("UPDATE articles SET ai_processed_at = NULL")
+        await db.commit()
+    return {"ok": True}
