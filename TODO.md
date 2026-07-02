@@ -10,8 +10,8 @@
 - [x] Create Hetzner account + server (167.233.204.172, CX23, Falkenstein)
 - [x] Point domain DNS to server IP (alia-channel.com → A record)
 - [x] Run setup_server.sh on VPS
-- [ ] Run init_https.sh (SSL certificate)
-- [ ] docker compose up -d (all services running)
+- [x] Run init_https.sh (SSL certificate)
+- [x] docker compose up -d (all services running)
 
 ## Phase 2 — Scrapers
 - [x] SQLite schema (articles, tips, logs)
