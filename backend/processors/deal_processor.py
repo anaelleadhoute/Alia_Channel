@@ -91,15 +91,31 @@ async def _generate_ru(deal: dict) -> str:
 
 async def process_deal(deal_id: int, deal: dict) -> bool:
     try:
-        results = await asyncio.gather(
-            _generate_fr(deal),
-            _generate_ru(deal),
-            return_exceptions=True,
-        )
-        if isinstance(results[0], Exception) or isinstance(results[1], Exception):
-            raise results[0] if isinstance(results[0], Exception) else results[1]
+        audience = deal.get("audience", "both")
+        tasks = []
+        if audience in ("fr", "both"):
+            tasks.append(_generate_fr(deal))
+        else:
+            tasks.append(None)
+        if audience in ("ru", "both"):
+            tasks.append(_generate_ru(deal))
+        else:
+            tasks.append(None)
 
-        content_fr, content_ru = results
+        results = await asyncio.gather(*[t for t in tasks if t is not None], return_exceptions=True)
+
+        idx = 0
+        content_fr = None
+        content_ru = None
+        if tasks[0] is not None:
+            if isinstance(results[idx], Exception):
+                raise results[idx]
+            content_fr = results[idx]
+            idx += 1
+        if tasks[1] is not None:
+            if isinstance(results[idx], Exception):
+                raise results[idx]
+            content_ru = results[idx]
 
         async with get_db() as db:
             await db.execute(

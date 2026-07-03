@@ -35,13 +35,24 @@ Answer in JSON only:
 {{
   "is_relevant": true/false,
   "relevance_score": 1-10,
+  "audience": "fr" | "ru" | "both",
   "reason": "one sentence why relevant or not for olim in Israel (mention if expired)",
   "deal_summary_he": "short deal summary in Hebrew if extractable, else null",
   "deal_price": "price if visible, else null",
   "deal_product": "product or service name if visible, else null"
 }}
 
-Relevant means: useful for someone who recently immigrated to Israel (French or Russian speaker) AND not expired.
+audience: "fr" if only relevant to French speakers (e.g. flights to Paris), "ru" if only relevant to Russian speakers (e.g. flights to Moscow), "both" for everything else.
+
+Relevance scoring hierarchy (apply to BOTH FR and RU audiences unless destination is specific):
+- Flights to France/French-speaking countries (Paris, etc.) → score 10 for FR audience
+- Flights to Russia, Ukraine, or CIS countries → score 10 for RU audience
+- Electronics deals (appliances, TV, phone) → score 8
+- Supermarket / food deals → score 7
+- Hotels in Israel → score 6
+- Anything else useful for olim → score 5
+- Not useful for olim OR expired → score 1-3, is_relevant: false
+
 Score 7+ = worth publishing. Score below 7 = skip."""
 
 
@@ -160,6 +171,7 @@ async def _analyze_deal(message: dict, category: str) -> dict | None:
         result["message_id"] = message["id"]
         result["channel"] = message["username"]
         result["category"] = category
+        result["audience"] = result.get("audience", "both")
         result["raw_text"] = message["text"]
         result["images"] = message["images"]
         return result
@@ -176,8 +188,8 @@ async def _save_deal(deal: dict) -> None:
                 message_id, channel, category,
                 relevance_score, is_relevant,
                 deal_product, deal_price, deal_summary_he,
-                raw_text, images_json, scraped_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                raw_text, images_json, audience, scraped_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 deal["message_id"],
@@ -190,6 +202,7 @@ async def _save_deal(deal: dict) -> None:
                 deal.get("deal_summary_he"),
                 deal.get("raw_text", ""),
                 str(deal.get("images", [])),
+                deal.get("audience", "both"),
                 datetime.utcnow().isoformat(),
             ),
         )

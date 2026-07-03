@@ -79,6 +79,7 @@ async def init_db():
                 content_ru      TEXT,
                 raw_text        TEXT,
                 images_json     TEXT,
+                audience        TEXT DEFAULT 'both',
                 scraped_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
                 ai_processed_at DATETIME,
                 status          TEXT DEFAULT 'pending',
