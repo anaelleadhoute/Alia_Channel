@@ -225,13 +225,16 @@ async def run_telegram_scraper(category_filter: str | None = None) -> dict:
         tasks = [_analyze_deal(msg, category) for msg in new_messages]
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        for result in results:
-            if isinstance(result, Exception) or result is None:
-                continue
-            total_scraped += 1
-            if result.get("is_relevant") and result.get("relevance_score", 0) >= 7:
-                total_relevant += 1
-                await _save_deal(result)
+        candidates = [
+            r for r in results
+            if not isinstance(r, Exception) and r is not None and r.get("is_relevant")
+        ]
+        total_scraped += len(candidates)
+
+        if candidates:
+            best = max(candidates, key=lambda r: r.get("relevance_score", 0))
+            total_relevant += 1
+            await _save_deal(best)
 
     return {
         "scraped": total_scraped,
