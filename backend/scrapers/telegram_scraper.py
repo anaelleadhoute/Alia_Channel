@@ -173,8 +173,12 @@ async def _analyze_deal(message: dict, category: str) -> dict | None:
             max_tokens=300,
             messages=[{"role": "user", "content": content_parts}],
         )
-        import json
-        result = json.loads(response.content[0].text.strip())
+        import json, re
+        raw = response.content[0].text.strip()
+        # Strip markdown code fences if present
+        raw = re.sub(r"^```(?:json)?\s*", "", raw)
+        raw = re.sub(r"\s*```$", "", raw)
+        result = json.loads(raw)
         result["message_id"] = message["id"]
         result["channel"] = message["username"]
         result["category"] = category
