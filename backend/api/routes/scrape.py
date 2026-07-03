@@ -2,6 +2,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 from scrapers.rss_scraper import run_scraper
 from scrapers.kolzchut_scraper import run_kolzchut_scraper
+from scrapers.telegram_scraper import run_telegram_scraper
 from processors.ai_processor import process_pending_articles
 from processors.tip_processor import process_pending_tips, process_tip
 from db.database import get_db
@@ -60,6 +61,12 @@ async def manual_tip(body: ManualTip):
 
     result = await process_tip(tip_id, body.url, body.content)
     return {"status": "ok" if result else "error", "tip_id": tip_id, "week": week}
+
+
+@router.post("/deals")
+async def scrape_deals(category: str | None = None):
+    """Scrape Telegram deal channels and analyze with Claude."""
+    return await run_telegram_scraper(category_filter=category)
 
 
 @router.post("/cleanup")

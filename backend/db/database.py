@@ -65,6 +65,28 @@ async def init_db():
                 sent_wa_ru  INTEGER DEFAULT 0
             );
 
+            CREATE TABLE IF NOT EXISTS deals (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                message_id      TEXT NOT NULL,
+                channel         TEXT NOT NULL,
+                category        TEXT NOT NULL,
+                relevance_score REAL,
+                is_relevant     INTEGER DEFAULT 0,
+                deal_product    TEXT,
+                deal_price      TEXT,
+                deal_summary_he TEXT,
+                content_fr      TEXT,
+                content_ru      TEXT,
+                raw_text        TEXT,
+                images_json     TEXT,
+                scraped_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+                ai_processed_at DATETIME,
+                status          TEXT DEFAULT 'pending',
+                sent_wa_fr      INTEGER DEFAULT 0,
+                sent_wa_ru      INTEGER DEFAULT 0,
+                UNIQUE(message_id, channel)
+            );
+
             CREATE TABLE IF NOT EXISTS logs (
                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
                 level       TEXT NOT NULL,
