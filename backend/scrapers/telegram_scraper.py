@@ -41,42 +41,15 @@ Relevant means: useful for someone who recently immigrated to Israel (French or 
 Score 7+ = worth publishing. Score below 7 = skip."""
 
 
-async def _get_channel_updates(username: str, limit: int = 20) -> list[dict]:
-    """Fetch recent messages from a public Telegram channel via Bot API."""
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getUpdates"
-    # Use forwardFrom trick: get channel posts via channel username
-    chat_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-
-    # Get channel info first
-    async with httpx.AsyncClient() as client:
-        resp = await client.get(
-            f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getChat",
-            params={"chat_id": f"@{username}"},
-            timeout=15,
+async def _get_last_seen_id(username: str) -> int:
+    """Get the last processed message ID for a channel."""
+    async with get_db() as db:
+        cursor = await db.execute(
+            "SELECT MAX(CAST(message_id AS INTEGER)) FROM deals WHERE channel = ?",
+            (username,),
         )
-        if resp.status_code != 200:
-            logger.error(f"[telegram] Cannot access @{username}: {resp.text}")
-            return []
-
-        # Get recent messages from channel
-        msgs_resp = await client.get(
-            f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getChatHistory",
-            params={"chat_id": f"@{username}", "limit": limit},
-            timeout=15,
-        )
-
-        # Try alternative: forward channel messages approach
-        history_resp = await client.post(
-            f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/forwardMessage",
-            json={
-                "chat_id": f"@{username}",
-                "from_chat_id": f"@{username}",
-                "message_id": 1,
-            },
-            timeout=15,
-        )
-
-    return []
+        row = await cursor.fetchone()
+        return row[0] or 0
 
 
 async def _fetch_channel_messages(username: str, limit: int = 30) -> list[dict]:
@@ -235,10 +208,21 @@ async def run_telegram_scraper(category_filter: str | None = None) -> dict:
         category = channel["category"]
         logger.info(f"[telegram] Scraping @{username} ({category})...")
 
-        messages = await _fetch_channel_messages(username)
-        logger.info(f"[telegram] Got {len(messages)} messages from @{username}")
+        last_seen_id = await _get_last_seen_id(username)
+        all_messages = await _fetch_channel_messages(username)
 
-        tasks = [_analyze_deal(msg, category) for msg in messages]
+        # Keep only new messages (after last seen), take last 5
+        new_messages = [
+            m for m in all_messages
+            if int(m["id"]) > last_seen_id
+        ][-5:]
+
+        logger.info(f"[telegram] {len(new_messages)} new messages from @{username} (last seen: {last_seen_id})")
+
+        if not new_messages:
+            continue
+
+        tasks = [_analyze_deal(msg, category) for msg in new_messages]
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         for result in results:
