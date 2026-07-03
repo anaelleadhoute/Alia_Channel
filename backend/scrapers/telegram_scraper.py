@@ -106,7 +106,7 @@ def _parse_tme_html(html: str, username: str) -> list[dict]:
     soup = BeautifulSoup(html, "html.parser")
     messages = []
 
-    for msg in soup.select(".tgme_widget_message"):
+    for msg in soup.find_all("div", attrs={"data-post": True}):
         msg_id = msg.get("data-post", "").split("/")[-1]
         text_el = msg.select_one(".tgme_widget_message_text")
         text = text_el.get_text(separator="\n", strip=True) if text_el else ""
