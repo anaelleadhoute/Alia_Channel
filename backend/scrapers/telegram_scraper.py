@@ -23,21 +23,25 @@ TELEGRAM_CHANNELS = [
 
 RELEVANCE_PROMPT = """You are a content curator for AL.IA Channel, a media platform for French-speaking and Russian-speaking olim (immigrants) in Israel.
 
+Today's date is {today}.
+
 Analyze this deal from a Telegram channel (category: {category}).
 
 {content}
+
+IMPORTANT: If the deal has an expiry date and it has already passed (before today), set is_relevant to false and explain in reason.
 
 Answer in JSON only:
 {{
   "is_relevant": true/false,
   "relevance_score": 1-10,
-  "reason": "one sentence why relevant or not for olim in Israel",
+  "reason": "one sentence why relevant or not for olim in Israel (mention if expired)",
   "deal_summary_he": "short deal summary in Hebrew if extractable, else null",
   "deal_price": "price if visible, else null",
   "deal_product": "product or service name if visible, else null"
 }}
 
-Relevant means: useful for someone who recently immigrated to Israel (French or Russian speaker).
+Relevant means: useful for someone who recently immigrated to Israel (French or Russian speaker) AND not expired.
 Score 7+ = worth publishing. Score below 7 = skip."""
 
 
@@ -135,6 +139,7 @@ async def _analyze_deal(message: dict, category: str) -> dict | None:
     content_parts.append({
         "type": "text",
         "text": RELEVANCE_PROMPT.format(
+            today=datetime.utcnow().strftime("%Y-%m-%d"),
             category=category,
             content=content_description,
         ),
