@@ -14,21 +14,26 @@
 - [x] docker compose up -d (all services running)
 
 ## Phase 2 — Scrapers
-- [x] SQLite schema (articles, tips, logs)
+- [x] SQLite schema (articles, tips, logs, deals)
 - [x] RSS sources list with FR/RU routing
 - [x] RSS scraper (parallel fetch + deduplication)
 - [x] Kol Zchut weekly scraper
-- [ ] Create Anthropic account + API key
-- [ ] Create Whapi.Cloud account
-- [ ] Buy prepaid SIM + start WhatsApp warm-up ⚠️ do today
+- [x] Create Anthropic account + API key
+- [x] Create Whapi.Cloud account
+- [x] Buy prepaid SIM + connect to Whapi.Cloud
+- [x] Telegram deal scraper (4 channels: supermarket, electronics, flights, hotels)
+- [ ] WhatsApp warm-up protocol (gradually increase message volume)
 
 ## Phase 3 — AI Processing
-- [ ] Claude Haiku processor (FR + RU in parallel)
-- [ ] Relevance scoring
-- [ ] Category detection
-- [ ] WhatsApp CTA generation
-- [ ] Instagram caption generation
-- [ ] Kol Zchut tip reformatter (FR + RU)
+- [x] Claude Haiku processor for articles (FR + RU in parallel)
+- [x] Relevance scoring for articles
+- [x] Category detection
+- [x] WhatsApp CTA generation
+- [x] Instagram caption generation
+- [x] Kol Zchut tip reformatter (FR + RU)
+- [x] Deal processor — relevance scoring with expiry check + audience detection (fr/ru/both)
+- [x] Deal content generation (FR + RU, audience-aware)
+- [x] Relevance hierarchy (flights FR/RU > electronics > food > hotels)
 
 ## Phase 4 — Image Generation
 - [ ] Pillow template (logo + title + category)
@@ -36,18 +41,19 @@
 - [ ] Preview in dashboard
 
 ## Phase 5 — Dashboard
-- [ ] FastAPI backend + endpoints
 - [ ] HTML/JS validation dashboard
 - [ ] FR / RU language toggle
-- [ ] Tabs: News / Kol Zchut Tips
+- [ ] Tabs: News / Kol Zchut Tips / Deals
 - [ ] Approve / Reject / Edit actions
 - [ ] Channel selector (WhatsApp FR / RU / Instagram)
 - [ ] Schedule send time per article
 
 ## Phase 6 — WhatsApp Publishing
-- [ ] Whapi.Cloud integration
-- [ ] Send to FR sub-group
-- [ ] Send to RU sub-group
+- [x] Whapi.Cloud integration
+- [x] Send articles to FR group
+- [x] Send articles to RU group
+- [x] Send deals to FR group (audience-aware)
+- [x] Send deals to RU group (audience-aware)
 - [ ] Randomized delays anti-ban
 - [ ] Backup number support
 - [ ] Error alerts on send failure
@@ -60,7 +66,8 @@
 - [ ] Carousel format support
 
 ## Phase 8 — n8n Workflows
-- [ ] Scrape every 3 hours workflow
+- [ ] Scrape news every 3 hours workflow
+- [ ] Scrape deals weekly workflow (per category)
 - [ ] AI processing trigger workflow
 - [ ] Sunday Kol Zchut workflow
 - [ ] Approved article → publish workflow
