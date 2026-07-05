@@ -59,6 +59,42 @@ async def publish_article(article_id: int):
     return {"ok": True, "article_id": article_id, "sent": results}
 
 
+@router.post("/digest/{digest_id}")
+async def publish_digest(digest_id: int):
+    """Publish a daily news digest to WhatsApp FR and RU groups."""
+    async with get_db() as db:
+        cursor = await db.execute(
+            "SELECT * FROM digests WHERE id = ?", (digest_id,)
+        )
+        digest = await cursor.fetchone()
+
+    if not digest:
+        raise HTTPException(status_code=404, detail="Digest not found")
+
+    digest = dict(digest)
+    results = {}
+
+    if digest.get("content_fr") and not digest.get("sent_wa_fr"):
+        await _send_whatsapp(WHAPI_GROUP_FR, digest["content_fr"])
+        results["fr"] = "sent"
+        async with get_db() as db:
+            await db.execute(
+                "UPDATE digests SET sent_wa_fr = 1 WHERE id = ?", (digest_id,)
+            )
+            await db.commit()
+
+    if digest.get("content_ru") and not digest.get("sent_wa_ru"):
+        await _send_whatsapp(WHAPI_GROUP_RU, digest["content_ru"])
+        results["ru"] = "sent"
+        async with get_db() as db:
+            await db.execute(
+                "UPDATE digests SET sent_wa_ru = 1 WHERE id = ?", (digest_id,)
+            )
+            await db.commit()
+
+    return {"ok": True, "digest_id": digest_id, "sent": results}
+
+
 @router.post("/tip/{tip_id}")
 async def publish_tip(tip_id: int):
     """Publish a Kol Zchut tip to WhatsApp FR and RU groups."""
