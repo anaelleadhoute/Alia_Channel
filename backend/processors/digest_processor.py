@@ -62,7 +62,7 @@ async def generate_daily_digest() -> dict:
             FROM articles
             WHERE DATE(COALESCE(published_at, scraped_at)) >= DATE('now', '-1 day')
             AND ai_processed_at IS NOT NULL
-            AND score >= 6
+            AND score >= 0.6
             ORDER BY score DESC, article_date DESC
             LIMIT 20
             """
