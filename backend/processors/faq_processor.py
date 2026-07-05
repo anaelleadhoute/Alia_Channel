@@ -70,16 +70,16 @@ async def generate_weekly_faq() -> dict:
             logger.info(f"[faq] FAQ for {week} already exists, skipping.")
             return {"status": "skipped", "week": week}
 
-        # Fetch last 4 weeks of questions to avoid repetition
+        # Fetch last 8 weeks of questions to avoid repetition
         cursor = await db.execute(
-            "SELECT content_fr FROM faqs ORDER BY generated_at DESC LIMIT 4"
+            "SELECT content_fr FROM faqs ORDER BY generated_at DESC LIMIT 8"
         )
         past_faqs = await cursor.fetchall()
 
     past_topics = ""
     if past_faqs:
-        past_topics = "\nÉvite ces sujets déjà traités récemment :\n" + "\n".join(
-            f"- {row[0][:100]}..." for row in past_faqs
+        past_topics = "\nÉvite absolument ces sujets déjà traités ces 8 dernières semaines :\n" + "\n".join(
+            f"- {row[0][:150]}..." for row in past_faqs
         )
 
     try:

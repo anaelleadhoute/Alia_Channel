@@ -29,18 +29,36 @@ async def _fetch_content(url: str) -> str:
         return main.get_text(separator="\n", strip=True)[:4000] if main else ""
 
 
+async def _get_past_tips(limit: int = 8) -> str:
+    """Return a summary of recently sent tips to avoid repetition."""
+    async with get_db() as db:
+        cursor = await db.execute(
+            "SELECT source_url, content_fr FROM tips WHERE ai_processed_at IS NOT NULL ORDER BY scraped_at DESC LIMIT ?",
+            (limit,)
+        )
+        rows = await cursor.fetchall()
+    if not rows:
+        return ""
+    lines = "\n".join(f"- {row['source_url']} : {row['content_fr'][:120]}..." for row in rows)
+    return f"\nÉvite ces sujets déjà envoyés ces 8 dernières semaines :\n{lines}\n"
+
+
 async def process_tip(tip_id: int, source_url: str, raw_content: str) -> bool:
     """Generate FR + RU versions of a Kol Zchut tip."""
     try:
         if not raw_content:
             raw_content = await _fetch_content(source_url)
+
+        past_tips = await _get_past_tips()
+        past_tips_ru = past_tips.replace("Évite ces sujets déjà envoyés", "Избегай этих тем, уже отправленных")
+
         fr_prompt = f"""Tu es rédacteur pour AL.IA Channel, un média pour les olim francophones en Israël.
 
 Voici une page de Kol Zchut (guide des droits sociaux en Israël) :
 Source : {source_url}
 Contenu : {raw_content[:3000]}
-
-Rédige un tip pratique en français destiné aux nouveaux olim (150-200 mots).
+{past_tips}
+Rédige un tip pratique en français destiné aux nouveaux olim (150-200 mots). Choisis un angle ou un aspect du contenu qui n'a pas encore été couvert.
 Format :
 - Commence par un emoji pertinent et un titre accrocheur
 - Explique le droit ou l'aide en termes simples
@@ -55,8 +73,8 @@ Réponds uniquement avec le texte du tip, sans JSON, sans titre supplémentaire.
 Вот страница Kol Zchut (справочник социальных прав в Израиле) :
 Источник : {source_url}
 Содержание : {raw_content[:3000]}
-
-Напиши практический совет на русском для новых олим (150-200 слов).
+{past_tips_ru}
+Напиши практический совет на русском для новых олим (150-200 слов). Выбери угол или аспект контента, который ещё не был освещён.
 Формат :
 - Начни с подходящего эмодзи и привлекательного заголовка
 - Объясни право или помощь простыми словами
