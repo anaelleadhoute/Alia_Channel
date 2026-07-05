@@ -18,6 +18,7 @@ COMMUNITY_RU_LINK = "wa.me/972549675013"  # TODO: replace with RU group invite l
 PROMPT_FR = """Tu es expert en immigration et droits des olim en Israël.
 
 Génère une FAQ hebdomadaire pour les olim francophones. Choisis une question pratique et courante (logement, santé, travail, Bituach Leumi, banque, école, Misrad Haklita, etc.).
+{past_topics}
 
 Le message DOIT commencer exactement par :
 🔥 Question la plus posée cette semaine :
@@ -38,6 +39,7 @@ Réponds uniquement avec le texte du message, sans JSON."""
 PROMPT_RU = """Ты эксперт по иммиграции и правам олим в Израиле.
 
 Создай еженедельный FAQ для русскоязычных олим. Выбери практический и частый вопрос (жильё, здоровье, работа, Битуах Леуми, банк, школа, Мисрад Аклита и т.д.).
+{past_topics}
 
 Сообщение ДОЛЖНО начинаться точно так:
 🔥 Самый частый вопрос этой недели:
@@ -68,12 +70,25 @@ async def generate_weekly_faq() -> dict:
             logger.info(f"[faq] FAQ for {week} already exists, skipping.")
             return {"status": "skipped", "week": week}
 
+        # Fetch last 4 weeks of questions to avoid repetition
+        cursor = await db.execute(
+            "SELECT content_fr FROM faqs ORDER BY generated_at DESC LIMIT 4"
+        )
+        past_faqs = await cursor.fetchall()
+
+    past_topics = ""
+    if past_faqs:
+        past_topics = "\nÉvite ces sujets déjà traités récemment :\n" + "\n".join(
+            f"- {row[0][:100]}..." for row in past_faqs
+        )
+
     try:
         fr_response, ru_response = await asyncio.gather(
             client.messages.create(
                 model="claude-haiku-4-5-20251001",
                 max_tokens=600,
                 messages=[{"role": "user", "content": PROMPT_FR.format(
+                    past_topics=past_topics,
                     bot_link=WHATSAPP_BOT_LINK,
                     community_link=COMMUNITY_FR_LINK,
                 )}],
@@ -82,6 +97,7 @@ async def generate_weekly_faq() -> dict:
                 model="claude-haiku-4-5-20251001",
                 max_tokens=600,
                 messages=[{"role": "user", "content": PROMPT_RU.format(
+                    past_topics=past_topics.replace("Évite ces sujets", "Избегай этих тем"),
                     bot_link=WHATSAPP_BOT_LINK,
                     community_link=COMMUNITY_RU_LINK,
                 )}],
