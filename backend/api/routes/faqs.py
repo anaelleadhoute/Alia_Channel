@@ -1,19 +1,14 @@
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
 from db.database import get_db
 from processors.faq_processor import generate_weekly_faq
 
 router = APIRouter()
 
 
-class FAQRequest(BaseModel):
-    question: str
-
-
 @router.post("/generate")
-async def generate_faq(body: FAQRequest):
-    """Generate this week's FAQ in FR + RU from a provided question."""
-    return await generate_weekly_faq(body.question)
+async def generate_faq():
+    """Generate this week's FAQ in FR + RU."""
+    return await generate_weekly_faq()
 
 
 @router.get("")

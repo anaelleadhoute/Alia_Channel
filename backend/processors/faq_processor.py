@@ -17,40 +17,46 @@ COMMUNITY_RU_LINK = "wa.me/972549675013"  # TODO: replace with RU group invite l
 
 PROMPT_FR = """Tu es expert en immigration et droits des olim en Israël.
 
-La question la plus fréquemment posée cette semaine par les olim est :
-"{question}"
+Génère une FAQ hebdomadaire pour les olim francophones. Choisis une question pratique et courante (logement, santé, travail, Bituach Leumi, banque, école, Misrad Haklita, etc.).
 
-Rédige une réponse complète et pratique pour les olim francophones en Israël.
+Le message DOIT commencer exactement par :
+🔥 Question la plus posée cette semaine :
 
-Format :
-❓ {question}
+Puis la question, puis la réponse.
+
+Format complet :
+🔥 Question la plus posée cette semaine :
+❓ [ta question]
 
 💡 [Réponse complète en 150-200 mots, avec des étapes concrètes si possible]
 
 🤖 Des questions ? Notre bot WhatsApp est là pour vous aider 👉 {bot_link}
 👥 Rejoignez la communauté AL.IA 👉 {community_link}
 
-Réponds uniquement avec le texte du message, sans JSON, sans titre supplémentaire."""
+Réponds uniquement avec le texte du message, sans JSON."""
 
 PROMPT_RU = """Ты эксперт по иммиграции и правам олим в Израиле.
 
-Самый частый вопрос этой недели среди олим:
-"{question}"
+Создай еженедельный FAQ для русскоязычных олим. Выбери практический и частый вопрос (жильё, здоровье, работа, Битуах Леуми, банк, школа, Мисрад Аклита и т.д.).
 
-Напиши полный и практический ответ для русскоязычных олим в Израиле.
+Сообщение ДОЛЖНО начинаться точно так:
+🔥 Самый частый вопрос этой недели:
 
-Формат :
-❓ {question}
+Затем вопрос, затем ответ.
+
+Полный формат:
+🔥 Самый частый вопрос этой недели:
+❓ [твой вопрос]
 
 💡 [Полный ответ 150-200 слов, с конкретными шагами если возможно]
 
 🤖 Есть вопросы? Наш WhatsApp бот готов помочь 👉 {bot_link}
 👥 Присоединяйтесь к сообществу AL.IA 👉 {community_link}
 
-Отвечай только текстом сообщения, без JSON, без дополнительных заголовков."""
+Отвечай только текстом сообщения, без JSON."""
 
 
-async def generate_weekly_faq(question: str) -> dict:
+async def generate_weekly_faq() -> dict:
     """Generate a weekly FAQ for olim in FR + RU and save to DB."""
     week = datetime.utcnow().strftime("%Y-W%W")
 
@@ -68,7 +74,6 @@ async def generate_weekly_faq(question: str) -> dict:
                 model="claude-haiku-4-5-20251001",
                 max_tokens=600,
                 messages=[{"role": "user", "content": PROMPT_FR.format(
-                    question=question,
                     bot_link=WHATSAPP_BOT_LINK,
                     community_link=COMMUNITY_FR_LINK,
                 )}],
@@ -77,7 +82,6 @@ async def generate_weekly_faq(question: str) -> dict:
                 model="claude-haiku-4-5-20251001",
                 max_tokens=600,
                 messages=[{"role": "user", "content": PROMPT_RU.format(
-                    question=question,
                     bot_link=WHATSAPP_BOT_LINK,
                     community_link=COMMUNITY_RU_LINK,
                 )}],
