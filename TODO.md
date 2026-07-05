@@ -69,7 +69,7 @@
 - [ ] Scrape news every 3 hours workflow
 - [ ] Scrape deals weekly workflow (per category)
 - [ ] AI processing trigger workflow
-- [ ] Sunday Kol Zchut workflow
+- [ ] Sunday Kol Zchut workflow (automate kolzchut_local.py on Mac via cron)
 - [ ] Approved article → publish workflow
 
 ## Phase 9 — Monitoring

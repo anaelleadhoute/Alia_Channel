@@ -59,6 +59,42 @@ async def publish_article(article_id: int):
     return {"ok": True, "article_id": article_id, "sent": results}
 
 
+@router.post("/tip/{tip_id}")
+async def publish_tip(tip_id: int):
+    """Publish a Kol Zchut tip to WhatsApp FR and RU groups."""
+    async with get_db() as db:
+        cursor = await db.execute(
+            "SELECT * FROM tips WHERE id = ?", (tip_id,)
+        )
+        tip = await cursor.fetchone()
+
+    if not tip:
+        raise HTTPException(status_code=404, detail="Tip not found")
+
+    tip = dict(tip)
+    results = {}
+
+    if tip.get("content_fr") and not tip.get("sent_wa_fr"):
+        await _send_whatsapp(WHAPI_GROUP_FR, tip["content_fr"])
+        results["fr"] = "sent"
+        async with get_db() as db:
+            await db.execute(
+                "UPDATE tips SET sent_wa_fr = 1 WHERE id = ?", (tip_id,)
+            )
+            await db.commit()
+
+    if tip.get("content_ru") and not tip.get("sent_wa_ru"):
+        await _send_whatsapp(WHAPI_GROUP_RU, tip["content_ru"])
+        results["ru"] = "sent"
+        async with get_db() as db:
+            await db.execute(
+                "UPDATE tips SET sent_wa_ru = 1 WHERE id = ?", (tip_id,)
+            )
+            await db.commit()
+
+    return {"ok": True, "tip_id": tip_id, "sent": results}
+
+
 @router.post("/deal/{deal_id}")
 async def publish_deal(deal_id: int):
     """Publish a deal to WhatsApp FR and/or RU groups based on audience."""
