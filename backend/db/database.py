@@ -35,6 +35,7 @@ async def init_db():
                 cta_ru      TEXT,
                 caption_ig_ru TEXT,
 
+                published_at DATETIME,
                 score       REAL,
                 category    TEXT,
                 ai_processed_at DATETIME,
@@ -120,3 +121,13 @@ async def init_db():
             );
         """)
         await db.commit()
+
+        # Migrations for existing DBs
+        for migration in [
+            "ALTER TABLE articles ADD COLUMN published_at DATETIME",
+        ]:
+            try:
+                await db.execute(migration)
+                await db.commit()
+            except Exception:
+                pass  # column already exists

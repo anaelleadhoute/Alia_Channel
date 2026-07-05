@@ -54,14 +54,16 @@ async def generate_daily_digest() -> dict:
             logger.info(f"[digest] Digest for {today} already exists, skipping.")
             return {"status": "skipped", "date": today}
 
-        # Fetch today's articles
+        # Fetch today's articles — prefer published_at when available, fall back to scraped_at
         cursor = await db.execute(
             """
-            SELECT title_raw, summary_fr, summary_ru, source, language
+            SELECT title_raw, summary_fr, summary_ru, source, language, score,
+                   COALESCE(published_at, scraped_at) AS article_date
             FROM articles
-            WHERE DATE(scraped_at) = DATE('now')
+            WHERE DATE(COALESCE(published_at, scraped_at)) >= DATE('now', '-1 day')
             AND ai_processed_at IS NOT NULL
-            ORDER BY score DESC
+            AND score >= 6
+            ORDER BY score DESC, article_date DESC
             LIMIT 20
             """
         )

@@ -2,6 +2,7 @@ import asyncio
 import hashlib
 import logging
 from datetime import datetime
+from time import mktime
 
 import feedparser
 import httpx
@@ -15,6 +16,16 @@ logger = logging.getLogger(__name__)
 def _make_guid(source_name: str, url: str) -> str:
     """Stable unique ID for deduplication."""
     return hashlib.sha256(f"{source_name}:{url}".encode()).hexdigest()
+
+
+def _parse_published(entry) -> str | None:
+    """Extract ISO publication date from a feedparser entry, or None."""
+    if entry.get("published_parsed"):
+        try:
+            return datetime.utcfromtimestamp(mktime(entry["published_parsed"])).strftime("%Y-%m-%d %H:%M:%S")
+        except Exception:
+            pass
+    return None
 
 
 def _parse_feed(raw: str, source: dict) -> list[dict]:
@@ -40,6 +51,7 @@ def _parse_feed(raw: str, source: dict) -> list[dict]:
             "url": url,
             "title_raw": title,
             "content_raw": content,
+            "published_at": _parse_published(entry),
         })
 
     return articles
@@ -64,9 +76,9 @@ async def _save_new_articles(articles: list[dict]) -> int:
                 cursor = await db.execute(
                     """
                     INSERT OR IGNORE INTO articles
-                        (guid, source, language, url, title_raw, content_raw)
+                        (guid, source, language, url, title_raw, content_raw, published_at)
                     VALUES
-                        (:guid, :source, :language, :url, :title_raw, :content_raw)
+                        (:guid, :source, :language, :url, :title_raw, :content_raw, :published_at)
                     """,
                     article,
                 )
