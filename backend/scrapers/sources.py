@@ -8,12 +8,6 @@ language: 'fr' → AL.IA FR group only
 SOURCES = [
     # ─── French sources ───────────────────────────────────────────────
     {
-        "name": "Times of Israel FR",
-        "url": "https://fr.timesofisrael.com/feed/",
-        "type": "rss",
-        "language": "fr",
-    },
-    {
         "name": "i24news FR",
         "url": "https://www.i24news.tv/fr/rss",
         "type": "rss",
@@ -21,7 +15,7 @@ SOURCES = [
     },
     {
         "name": "JForum",
-        "url": "https://www.jforum.fr/feed/",
+        "url": "https://www.jforum.fr/feed",
         "type": "rss",
         "language": "fr",
     },
@@ -34,22 +28,34 @@ SOURCES = [
         "language": "ru",
     },
 
-    # ─── Both groups (AI translates to FR + RU) ───────────────────────
+    # ─── English/Hebrew → AI translates to FR + RU ────────────────────
     {
-        "name": "Misrad Haaliya",
-        "url": "https://www.gov.il/he/api/DataGovProxy/GetOdataRss?RssUrl=he/rss/ministryofaliyanabsorption",
+        "name": "Times of Israel",
+        "url": "https://www.timesofisrael.com/feed/",
         "type": "rss",
         "language": "both",
     },
     {
-        "name": "Bituach Leumi",
-        "url": "https://www.btl.gov.il/rss/Pages/rss.aspx",
+        "name": "Jerusalem Post",
+        "url": "https://www.jpost.com/rss/rssfeedsisraelnews.aspx",
         "type": "rss",
         "language": "both",
     },
     {
-        "name": "Gov IL",
-        "url": "https://www.gov.il/he/api/DataGovProxy/GetOdataRss?RssUrl=he/rss/govil",
+        "name": "Ynet News",
+        "url": "https://www.ynet.co.il/Integration/StoryRss2.xml",
+        "type": "rss",
+        "language": "both",
+    },
+    {
+        "name": "Israel Hayom",
+        "url": "https://www.israelhayom.co.il/rss.xml",
+        "type": "rss",
+        "language": "both",
+    },
+    {
+        "name": "Walla News",
+        "url": "https://rss.walla.co.il/feed/1",
         "type": "rss",
         "language": "both",
     },
