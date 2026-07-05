@@ -47,6 +47,8 @@
 - [ ] Approve / Reject / Edit actions
 - [ ] Channel selector (WhatsApp FR / RU / Instagram)
 - [ ] Schedule send time per article
+- [ ] Auto/Manual mode toggle — in manual mode: browse pending content from DB, choose what to send and when
+- [ ] Manual mode: list pending articles/deals/tips, preview FR + RU, publish with one click
 
 ## Phase 6 — WhatsApp Publishing
 - [x] Whapi.Cloud integration
