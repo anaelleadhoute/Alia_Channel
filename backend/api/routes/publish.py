@@ -59,6 +59,20 @@ async def publish_article(article_id: int):
     return {"ok": True, "article_id": article_id, "sent": results}
 
 
+@router.post("/digest/latest")
+async def publish_latest_digest():
+    """Publish the most recent digest to WhatsApp FR and RU groups."""
+    async with get_db() as db:
+        cursor = await db.execute(
+            "SELECT id FROM digests ORDER BY generated_at DESC LIMIT 1"
+        )
+        row = await cursor.fetchone()
+    if not row:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="No digest found")
+    return await publish_digest(row["id"])
+
+
 @router.post("/digest/{digest_id}")
 async def publish_digest(digest_id: int):
     """Publish a daily news digest to WhatsApp FR and RU groups."""
