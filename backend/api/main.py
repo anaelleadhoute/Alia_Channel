@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from db.database import init_db
-from api.routes import articles, tips, publish, scrape, deals
+from api.routes import articles, tips, publish, scrape, deals, faqs
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 
@@ -29,6 +29,7 @@ app.include_router(articles.router, prefix="/api/articles", tags=["articles"])
 app.include_router(tips.router,     prefix="/api/tips",     tags=["tips"])
 app.include_router(publish.router,  prefix="/api/publish",  tags=["publish"])
 app.include_router(deals.router,    prefix="/api/deals",    tags=["deals"])
+app.include_router(faqs.router,     prefix="/api/faqs",     tags=["faqs"])
 
 
 @app.get("/api/health")

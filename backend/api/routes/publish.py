@@ -95,6 +95,42 @@ async def publish_tip(tip_id: int):
     return {"ok": True, "tip_id": tip_id, "sent": results}
 
 
+@router.post("/faq/{faq_id}")
+async def publish_faq(faq_id: int):
+    """Publish a weekly FAQ to WhatsApp FR and RU groups."""
+    async with get_db() as db:
+        cursor = await db.execute(
+            "SELECT * FROM faqs WHERE id = ?", (faq_id,)
+        )
+        faq = await cursor.fetchone()
+
+    if not faq:
+        raise HTTPException(status_code=404, detail="FAQ not found")
+
+    faq = dict(faq)
+    results = {}
+
+    if faq.get("content_fr") and not faq.get("sent_wa_fr"):
+        await _send_whatsapp(WHAPI_GROUP_FR, faq["content_fr"])
+        results["fr"] = "sent"
+        async with get_db() as db:
+            await db.execute(
+                "UPDATE faqs SET sent_wa_fr = 1 WHERE id = ?", (faq_id,)
+            )
+            await db.commit()
+
+    if faq.get("content_ru") and not faq.get("sent_wa_ru"):
+        await _send_whatsapp(WHAPI_GROUP_RU, faq["content_ru"])
+        results["ru"] = "sent"
+        async with get_db() as db:
+            await db.execute(
+                "UPDATE faqs SET sent_wa_ru = 1 WHERE id = ?", (faq_id,)
+            )
+            await db.commit()
+
+    return {"ok": True, "faq_id": faq_id, "sent": results}
+
+
 @router.post("/deal/{deal_id}")
 async def publish_deal(deal_id: int):
     """Publish a deal to WhatsApp FR and/or RU groups based on audience."""

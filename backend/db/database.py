@@ -88,6 +88,17 @@ async def init_db():
                 UNIQUE(message_id, channel)
             );
 
+            CREATE TABLE IF NOT EXISTS faqs (
+                id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                week         TEXT UNIQUE NOT NULL,
+                content_fr   TEXT,
+                content_ru   TEXT,
+                generated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                status       TEXT DEFAULT 'pending',
+                sent_wa_fr   INTEGER DEFAULT 0,
+                sent_wa_ru   INTEGER DEFAULT 0
+            );
+
             CREATE TABLE IF NOT EXISTS logs (
                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
                 level       TEXT NOT NULL,
