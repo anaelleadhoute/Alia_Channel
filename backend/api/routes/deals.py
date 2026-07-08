@@ -35,7 +35,7 @@ async def list_deals(category: str | None = None, limit: int = 50):
                 SELECT id, channel, category, relevance_score,
                        deal_product, deal_price, deal_summary_he,
                        raw_text, content_fr, content_ru,
-                       audience, status, scraped_at
+                       audience, status, sent_wa_fr, sent_wa_ru, scraped_at
                 FROM deals
                 WHERE is_relevant = 1 AND category = ?
                 ORDER BY relevance_score DESC, scraped_at DESC
@@ -49,7 +49,7 @@ async def list_deals(category: str | None = None, limit: int = 50):
                 SELECT id, channel, category, relevance_score,
                        deal_product, deal_price, deal_summary_he,
                        raw_text, content_fr, content_ru,
-                       audience, status, scraped_at
+                       audience, status, sent_wa_fr, sent_wa_ru, scraped_at
                 FROM deals
                 WHERE is_relevant = 1
                 ORDER BY relevance_score DESC, scraped_at DESC
