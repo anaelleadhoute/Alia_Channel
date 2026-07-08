@@ -65,6 +65,7 @@ services:
       - ./scripts/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ./certbot_www:/var/www/certbot:ro
       - ./certbot_certs:/etc/letsencrypt:ro
+      - ./scripts/dashboard.htpasswd:/etc/nginx/dashboard.htpasswd:ro
     depends_on:
       - backend
       - n8n
