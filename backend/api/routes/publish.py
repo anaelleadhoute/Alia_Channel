@@ -1,6 +1,8 @@
 import os
 import httpx
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+from typing import Literal
 from db.database import get_db
 from datetime import datetime
 
@@ -21,6 +23,24 @@ async def _send_whatsapp(group_id: str, text: str) -> dict:
         )
         resp.raise_for_status()
         return resp.json()
+
+
+class ManualMessage(BaseModel):
+    text: str
+    audience: Literal["fr", "ru", "both"] = "both"
+
+
+@router.post("/manual")
+async def publish_manual(msg: ManualMessage):
+    """Send a custom text message to FR and/or RU WhatsApp groups."""
+    results = {}
+    if msg.audience in ("fr", "both"):
+        await _send_whatsapp(WHAPI_GROUP_FR, msg.text)
+        results["fr"] = "sent"
+    if msg.audience in ("ru", "both"):
+        await _send_whatsapp(WHAPI_GROUP_RU, msg.text)
+        results["ru"] = "sent"
+    return {"ok": True, "sent": results}
 
 
 @router.post("/article/{article_id}")

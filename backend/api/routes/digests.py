@@ -1,8 +1,29 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+from typing import Optional
 from db.database import get_db
 from processors.digest_processor import generate_daily_digest
 
 router = APIRouter()
+
+
+class DigestUpdate(BaseModel):
+    status: Optional[str] = None
+    content_fr: Optional[str] = None
+    content_ru: Optional[str] = None
+
+
+@router.patch("/{digest_id}")
+async def update_digest(digest_id: int, update: DigestUpdate):
+    fields = update.model_dump(exclude_none=True)
+    if not fields:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    set_clause = ", ".join(f"{k} = :{k}" for k in fields)
+    fields["id"] = digest_id
+    async with get_db() as db:
+        await db.execute(f"UPDATE digests SET {set_clause} WHERE id = :id", fields)
+        await db.commit()
+    return {"ok": True}
 
 
 @router.post("/generate")

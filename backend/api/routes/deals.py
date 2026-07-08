@@ -1,7 +1,28 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+from typing import Optional
 from db.database import get_db
 
 router = APIRouter()
+
+
+class DealUpdate(BaseModel):
+    status: Optional[str] = None
+    content_fr: Optional[str] = None
+    content_ru: Optional[str] = None
+
+
+@router.patch("/{deal_id}")
+async def update_deal(deal_id: int, update: DealUpdate):
+    fields = update.model_dump(exclude_none=True)
+    if not fields:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    set_clause = ", ".join(f"{k} = :{k}" for k in fields)
+    fields["id"] = deal_id
+    async with get_db() as db:
+        await db.execute(f"UPDATE deals SET {set_clause} WHERE id = :id", fields)
+        await db.commit()
+    return {"ok": True}
 
 
 @router.get("")

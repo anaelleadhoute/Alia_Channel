@@ -6,6 +6,7 @@ from scrapers.telegram_scraper import run_telegram_scraper
 from processors.deal_processor import process_pending_deals
 from processors.ai_processor import process_pending_articles
 from processors.tip_processor import process_pending_tips, process_tip
+from processors.digest_processor import generate_daily_digest
 from db.database import get_db
 from db.cleanup import run_cleanup
 from datetime import datetime
@@ -13,20 +14,73 @@ from datetime import datetime
 router = APIRouter()
 
 
+async def _is_auto_publish() -> bool:
+    async with get_db() as db:
+        cursor = await db.execute("SELECT value FROM settings WHERE key = 'auto_publish'")
+        row = await cursor.fetchone()
+    return row and row["value"] == "true"
+
+
+async def _auto_publish_item(table: str, id_col: str, item_id: int, audience: str = "both"):
+    """Auto-publish a single item if auto_publish is enabled."""
+    from api.routes.publish import _send_whatsapp
+    import os
+    WHAPI_GROUP_FR = os.getenv("WHAPI_GROUP_FR")
+    WHAPI_GROUP_RU = os.getenv("WHAPI_GROUP_RU")
+
+    async with get_db() as db:
+        cursor = await db.execute(
+            f"SELECT content_fr, content_ru, sent_wa_fr, sent_wa_ru FROM {table} WHERE {id_col} = ?",
+            (item_id,)
+        )
+        row = await cursor.fetchone()
+    if not row:
+        return
+
+    updates = []
+    if audience in ("fr", "both") and row["content_fr"] and not row["sent_wa_fr"]:
+        await _send_whatsapp(WHAPI_GROUP_FR, row["content_fr"])
+        updates.append("sent_wa_fr = 1")
+    if audience in ("ru", "both") and row["content_ru"] and not row["sent_wa_ru"]:
+        await _send_whatsapp(WHAPI_GROUP_RU, row["content_ru"])
+        updates.append("sent_wa_ru = 1")
+
+    if updates:
+        async with get_db() as db:
+            await db.execute(
+                f"UPDATE {table} SET {', '.join(updates)} WHERE {id_col} = ?", (item_id,)
+            )
+            await db.commit()
+
+
 @router.post("/news")
 async def scrape_news():
-    """Fetch all RSS sources and process new articles with AI."""
+    """Fetch all RSS sources and process new articles with AI. Auto-publishes digest if enabled."""
     scrape_result = await run_scraper()
     ai_result = await process_pending_articles()
-    return {"scrape": scrape_result, "ai": ai_result}
+
+    auto = await _is_auto_publish()
+    digest_result = None
+    if auto:
+        digest_result = await generate_daily_digest()
+        if digest_result.get("digest_id"):
+            await _auto_publish_item("digests", "id", digest_result["digest_id"])
+
+    return {"scrape": scrape_result, "ai": ai_result, "digest": digest_result, "auto_published": auto}
 
 
 @router.post("/tips")
 async def scrape_tips():
-    """Scrape Kol Zchut and process tip with AI."""
+    """Scrape Kol Zchut and process tip with AI. Auto-publishes if enabled."""
     scrape_result = await run_kolzchut_scraper()
     ai_result = await process_pending_tips()
-    return {"scrape": scrape_result, "ai": ai_result}
+
+    auto = await _is_auto_publish()
+    if auto and ai_result.get("tip_ids"):
+        for tip_id in ai_result["tip_ids"]:
+            await _auto_publish_item("tips", "id", tip_id)
+
+    return {"scrape": scrape_result, "ai": ai_result, "auto_published": auto}
 
 
 @router.post("/reset-ai")
@@ -61,7 +115,12 @@ async def manual_tip(body: ManualTip):
         tip_id = cursor.lastrowid
 
     result = await process_tip(tip_id, body.url, body.content)
-    return {"status": "ok" if result else "error", "tip_id": tip_id, "week": week}
+
+    auto = await _is_auto_publish()
+    if auto and result:
+        await _auto_publish_item("tips", "id", tip_id)
+
+    return {"status": "ok" if result else "error", "tip_id": tip_id, "week": week, "auto_published": auto}
 
 
 @router.post("/deals")
