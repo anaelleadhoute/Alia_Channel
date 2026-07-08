@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AL.IA Dashboard</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; color: #1a1a2e; }
+
+  .topbar {
+    background: #1a1a2e; color: white; padding: 14px 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+  .topbar h1 { font-size: 20px; font-weight: 700; letter-spacing: 1px; }
+  .topbar h1 span { color: #4fc3f7; }
+
+  .mode-toggle {
+    display: flex; align-items: center; gap: 10px; font-size: 14px;
+  }
+  .toggle-switch {
+    position: relative; width: 52px; height: 28px; cursor: pointer;
+  }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute; inset: 0; background: #4caf50; border-radius: 28px;
+    transition: .3s;
+  }
+  .slider:before {
+    content: ''; position: absolute; height: 20px; width: 20px;
+    left: 4px; bottom: 4px; background: white; border-radius: 50%; transition: .3s;
+  }
+  input:not(:checked) + .slider { background: #f44336; }
+  input:checked + .slider:before { transform: translateX(24px); }
+  .mode-label { font-weight: 600; min-width: 80px; }
+
+  .tabs {
+    display: flex; gap: 4px; padding: 16px 24px 0;
+    border-bottom: 2px solid #ddd; background: white;
+  }
+  .tab {
+    padding: 10px 20px; border: none; background: none; cursor: pointer;
+    font-size: 14px; font-weight: 500; color: #666; border-radius: 8px 8px 0 0;
+    transition: all .2s;
+  }
+  .tab:hover { background: #f0f2f5; color: #1a1a2e; }
+  .tab.active { background: #1a1a2e; color: white; }
+  .tab .badge {
+    display: inline-block; background: #f44336; color: white;
+    border-radius: 10px; padding: 1px 6px; font-size: 11px; margin-left: 6px;
+  }
+
+  .content { padding: 24px; max-width: 1200px; margin: 0 auto; }
+
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* Manual send panel */
+  .manual-panel {
+    background: white; border-radius: 12px; padding: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 24px;
+  }
+  .manual-panel h2 { font-size: 16px; margin-bottom: 16px; color: #1a1a2e; }
+  .manual-panel textarea {
+    width: 100%; height: 120px; border: 1px solid #ddd; border-radius: 8px;
+    padding: 12px; font-size: 14px; resize: vertical; font-family: inherit;
+  }
+  .manual-panel textarea:focus { outline: none; border-color: #4fc3f7; }
+  .manual-actions {
+    display: flex; gap: 10px; margin-top: 12px; align-items: center; flex-wrap: wrap;
+  }
+  .audience-select {
+    padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px;
+    font-size: 14px; background: white; cursor: pointer;
+  }
+
+  /* Queue / cards */
+  .queue-header {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;
+  }
+  .queue-header h2 { font-size: 18px; font-weight: 600; }
+  .filter-bar { display: flex; gap: 8px; }
+  .filter-btn {
+    padding: 6px 14px; border: 1px solid #ddd; border-radius: 20px;
+    background: white; cursor: pointer; font-size: 13px; transition: all .2s;
+  }
+  .filter-btn.active { background: #1a1a2e; color: white; border-color: #1a1a2e; }
+
+  .cards { display: grid; gap: 16px; }
+
+  .card {
+    background: white; border-radius: 12px; padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-left: 4px solid #4fc3f7;
+  }
+  .card.rejected { border-left-color: #f44336; opacity: 0.6; }
+  .card.sent { border-left-color: #4caf50; }
+
+  .card-meta {
+    display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; align-items: center;
+  }
+  .card-meta .source { font-weight: 600; font-size: 13px; color: #1a1a2e; }
+  .score {
+    background: #e3f2fd; color: #1976d2; padding: 2px 8px;
+    border-radius: 10px; font-size: 12px; font-weight: 600;
+  }
+  .score.high { background: #e8f5e9; color: #2e7d32; }
+  .score.low { background: #fff3e0; color: #e65100; }
+  .category { background: #f3e5f5; color: #7b1fa2; padding: 2px 8px; border-radius: 10px; font-size: 12px; }
+  .audience-tag { background: #fff8e1; color: #f57f17; padding: 2px 8px; border-radius: 10px; font-size: 12px; }
+  .sent-tag { background: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 10px; font-size: 12px; }
+  .date { color: #999; font-size: 12px; margin-left: auto; }
+
+  .card-body { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 700px) { .card-body { grid-template-columns: 1fr; } }
+
+  .lang-block { background: #f8f9fa; border-radius: 8px; padding: 14px; }
+  .lang-label {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; color: #999; margin-bottom: 8px;
+  }
+  .lang-text { font-size: 13px; line-height: 1.6; white-space: pre-wrap; max-height: 200px; overflow-y: auto; }
+
+  .card-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+
+  /* Buttons */
+  .btn {
+    padding: 8px 16px; border: none; border-radius: 8px; cursor: pointer;
+    font-size: 13px; font-weight: 600; transition: all .2s; display: inline-flex;
+    align-items: center; gap: 6px;
+  }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-fr { background: #1565c0; color: white; }
+  .btn-fr:hover:not(:disabled) { background: #0d47a1; }
+  .btn-ru { background: #b71c1c; color: white; }
+  .btn-ru:hover:not(:disabled) { background: #7f0000; }
+  .btn-both { background: #1a1a2e; color: white; }
+  .btn-both:hover:not(:disabled) { background: #2d2d4e; }
+  .btn-reject { background: #fff; color: #f44336; border: 1px solid #f44336; }
+  .btn-reject:hover:not(:disabled) { background: #ffebee; }
+  .btn-success { background: #2e7d32; color: white; }
+  .btn-primary { background: #4fc3f7; color: #1a1a2e; }
+  .btn-primary:hover { background: #29b6f6; }
+
+  .empty { text-align: center; padding: 60px 20px; color: #999; font-size: 15px; }
+  .empty .icon { font-size: 48px; margin-bottom: 12px; }
+
+  .toast {
+    position: fixed; bottom: 24px; right: 24px; background: #1a1a2e; color: white;
+    padding: 12px 20px; border-radius: 8px; font-size: 14px; z-index: 1000;
+    transform: translateY(100px); opacity: 0; transition: all .3s;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.error { background: #f44336; }
+
+  .loading { text-align: center; padding: 40px; color: #999; }
+
+  /* Scrape actions bar */
+  .actions-bar {
+    background: white; border-radius: 12px; padding: 16px 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 20px;
+    display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+  }
+  .actions-bar span { color: #666; font-size: 13px; margin-right: 4px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>AL.IA <span>Dashboard</span></h1>
+  <div class="mode-toggle">
+    <span>Auto-publish</span>
+    <label class="toggle-switch">
+      <input type="checkbox" id="autoToggle" checked onchange="toggleAutoPublish()">
+      <span class="slider"></span>
+    </label>
+    <span class="mode-label" id="modeLabel">ON</span>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('queue')">Queue <span class="badge" id="queueBadge">0</span></button>
+  <button class="tab" onclick="switchTab('digests')">Digests</button>
+  <button class="tab" onclick="switchTab('faqs')">FAQs</button>
+  <button class="tab" onclick="switchTab('tips')">Tips</button>
+  <button class="tab" onclick="switchTab('deals')">Deals</button>
+  <button class="tab" onclick="switchTab('send')">✏️ Send</button>
+</div>
+
+<div class="content">
+
+  <!-- QUEUE -->
+  <div class="section active" id="section-queue">
+    <div class="actions-bar">
+      <span>Actions:</span>
+      <button class="btn btn-primary" onclick="runScrape()">🔄 Scrape News</button>
+      <button class="btn btn-primary" onclick="generateDigest()">📰 Generate Digest</button>
+      <button class="btn btn-primary" onclick="generateFaq()">❓ Generate FAQ</button>
+    </div>
+    <div class="queue-header">
+      <h2>Pending Queue</h2>
+      <div class="filter-bar">
+        <button class="filter-btn active" onclick="setQueueFilter('pending', this)">Pending</button>
+        <button class="filter-btn" onclick="setQueueFilter('sent', this)">Sent</button>
+        <button class="filter-btn" onclick="setQueueFilter('rejected', this)">Rejected</button>
+      </div>
+    </div>
+    <div class="cards" id="queueCards"><div class="loading">Loading…</div></div>
+  </div>
+
+  <!-- DIGESTS -->
+  <div class="section" id="section-digests">
+    <div class="queue-header"><h2>Daily Digests</h2></div>
+    <div class="cards" id="digestCards"><div class="loading">Loading…</div></div>
+  </div>
+
+  <!-- FAQS -->
+  <div class="section" id="section-faqs">
+    <div class="queue-header"><h2>Weekly FAQs</h2></div>
+    <div class="cards" id="faqCards"><div class="loading">Loading…</div></div>
+  </div>
+
+  <!-- TIPS -->
+  <div class="section" id="section-tips">
+    <div class="queue-header"><h2>Kol Zchut Tips</h2></div>
+    <div class="cards" id="tipCards"><div class="loading">Loading…</div></div>
+  </div>
+
+  <!-- DEALS -->
+  <div class="section" id="section-deals">
+    <div class="queue-header"><h2>Telegram Deals</h2></div>
+    <div class="cards" id="dealCards"><div class="loading">Loading…</div></div>
+  </div>
+
+  <!-- MANUAL SEND -->
+  <div class="section" id="section-send">
+    <div class="manual-panel">
+      <h2>✏️ Send Custom Message</h2>
+      <textarea id="manualText" placeholder="Type your message here…"></textarea>
+      <div class="manual-actions">
+        <select class="audience-select" id="manualAudience">
+          <option value="both">🌍 Both groups (FR + RU)</option>
+          <option value="fr">🇫🇷 French group only</option>
+          <option value="ru">🇷🇺 Russian group only</option>
+        </select>
+        <button class="btn btn-both" onclick="sendManual()">Send to WhatsApp</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '';
+let queueFilter = 'pending';
+
+// ── Init ────────────────────────────────────────────────────────────────────
+async function init() {
+  await loadSettings();
+  await loadQueue();
+  loadDigests();
+  loadFaqs();
+  loadTips();
+  loadDeals();
+}
+
+// ── Settings ────────────────────────────────────────────────────────────────
+async function loadSettings() {
+  const res = await fetch(`${API}/api/settings`);
+  const data = await res.json();
+  const auto = data.auto_publish === 'true';
+  document.getElementById('autoToggle').checked = auto;
+  document.getElementById('modeLabel').textContent = auto ? 'ON' : 'OFF';
+}
+
+async function toggleAutoPublish() {
+  const checked = document.getElementById('autoToggle').checked;
+  document.getElementById('modeLabel').textContent = checked ? 'ON' : 'OFF';
+  await fetch(`${API}/api/settings/auto_publish`, {
+    method: 'PATCH',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({value: checked ? 'true' : 'false'})
+  });
+  toast(checked ? '✅ Auto-publish enabled' : '⏸ Manual mode — content goes to queue');
+}
+
+// ── Tabs ────────────────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(`section-${name}`).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ── Queue (all pending content) ──────────────────────────────────────────────
+async function loadQueue() {
+  const [digests, faqs, tips, deals] = await Promise.all([
+    fetch(`${API}/api/digests`).then(r => r.json()),
+    fetch(`${API}/api/faqs`).then(r => r.json()),
+    fetch(`${API}/api/tips?status=${queueFilter}`).then(r => r.json()),
+    fetch(`${API}/api/deals`).then(r => r.json()),
+  ]);
+
+  const allItems = [
+    ...digests.filter(d => matchesFilter(d)).map(d => ({...d, _type: 'digest'})),
+    ...faqs.filter(f => matchesFilter(f)).map(f => ({...f, _type: 'faq'})),
+    ...tips.map(t => ({...t, _type: 'tip'})),
+    ...deals.filter(d => matchesFilter(d)).map(d => ({...d, _type: 'deal'})),
+  ];
+
+  const pending = allItems.filter(i => i.status === 'pending' || (!i.status && !i.sent_wa_fr && !i.sent_wa_ru));
+  document.getElementById('queueBadge').textContent = pending.length;
+
+  const container = document.getElementById('queueCards');
+  if (!allItems.length) {
+    container.innerHTML = '<div class="empty"><div class="icon">📭</div>Queue is empty</div>';
+    return;
+  }
+  container.innerHTML = allItems.map(item => renderCard(item)).join('');
+}
+
+function matchesFilter(item) {
+  if (queueFilter === 'pending') return item.status === 'pending' || (!item.status);
+  if (queueFilter === 'sent') return item.sent_wa_fr || item.sent_wa_ru;
+  if (queueFilter === 'rejected') return item.status === 'rejected';
+  return true;
+}
+
+function setQueueFilter(f, btn) {
+  queueFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  loadQueue();
+}
+
+// ── Individual loaders ───────────────────────────────────────────────────────
+async function loadDigests() {
+  const data = await fetch(`${API}/api/digests`).then(r => r.json());
+  document.getElementById('digestCards').innerHTML = data.length
+    ? data.map(d => renderCard({...d, _type: 'digest'})).join('')
+    : '<div class="empty"><div class="icon">📰</div>No digests yet</div>';
+}
+
+async function loadFaqs() {
+  const data = await fetch(`${API}/api/faqs`).then(r => r.json());
+  document.getElementById('faqCards').innerHTML = data.length
+    ? data.map(f => renderCard({...f, _type: 'faq'})).join('')
+    : '<div class="empty"><div class="icon">❓</div>No FAQs yet</div>';
+}
+
+async function loadTips() {
+  const data = await fetch(`${API}/api/tips?status=pending`).then(r => r.json());
+  document.getElementById('tipCards').innerHTML = data.length
+    ? data.map(t => renderCard({...t, _type: 'tip'})).join('')
+    : '<div class="empty"><div class="icon">💡</div>No tips yet</div>';
+}
+
+async function loadDeals() {
+  const data = await fetch(`${API}/api/deals`).then(r => r.json());
+  document.getElementById('dealCards').innerHTML = data.length
+    ? data.map(d => renderCard({...d, _type: 'deal'})).join('')
+    : '<div class="empty"><div class="icon">🛍️</div>No deals yet</div>';
+}
+
+// ── Card renderer ────────────────────────────────────────────────────────────
+function renderCard(item) {
+  const type = item._type;
+  const id = item.id;
+  const isSent = item.sent_wa_fr || item.sent_wa_ru;
+  const isRejected = item.status === 'rejected';
+  const cardClass = isRejected ? 'rejected' : isSent ? 'sent' : '';
+
+  const fr = item.content_fr || item.cta_fr || '';
+  const ru = item.content_ru || item.cta_ru || '';
+
+  let meta = '';
+  if (type === 'digest') meta = `<span class="source">📰 Digest</span><span class="category">${item.digest_date || ''}</span><span class="category">${item.article_count} articles</span>`;
+  if (type === 'faq') meta = `<span class="source">❓ FAQ</span><span class="category">${item.week || ''}</span>`;
+  if (type === 'tip') meta = `<span class="source">💡 Kol Zchut</span><span class="category">${item.week || ''}</span>`;
+  if (type === 'deal') {
+    const score = item.relevance_score || 0;
+    const scoreClass = score >= 8 ? 'high' : score >= 5 ? '' : 'low';
+    meta = `<span class="source">🛍️ ${item.channel || ''}</span><span class="category">${item.category || ''}</span><span class="score ${scoreClass}">${score}/10</span><span class="audience-tag">${item.audience || 'both'}</span>`;
+  }
+  if (item.source) meta += `<span class="source">${item.source}</span>`;
+  if (item.score) {
+    const s = parseFloat(item.score);
+    meta += `<span class="score ${s >= 0.7 ? 'high' : s >= 0.5 ? '' : 'low'}">${(s * 10).toFixed(0)}/10</span>`;
+  }
+
+  const sentInfo = isSent
+    ? `<span class="sent-tag">✓ FR${item.sent_wa_fr ? '' : ' pending'}</span><span class="sent-tag">✓ RU${item.sent_wa_ru ? '' : ' pending'}</span>`
+    : '';
+
+  const date = item.generated_at || item.scraped_at || item.digest_date || '';
+
+  const publishButtons = !isSent && !isRejected ? `
+    <button class="btn btn-fr" onclick="publish('${type}', ${id}, 'fr')" ${item.sent_wa_fr ? 'disabled' : ''}>🇫🇷 FR</button>
+    <button class="btn btn-ru" onclick="publish('${type}', ${id}, 'ru')" ${item.sent_wa_ru ? 'disabled' : ''}>🇷🇺 RU</button>
+    <button class="btn btn-both" onclick="publish('${type}', ${id}, 'both')">Send Both</button>
+    <button class="btn btn-reject" onclick="reject('${type}', ${id})">✕ Reject</button>
+  ` : sentInfo;
+
+  return `
+    <div class="card ${cardClass}" id="card-${type}-${id}">
+      <div class="card-meta">
+        ${meta}
+        <span class="date">${date ? new Date(date).toLocaleDateString('fr-FR') : ''}</span>
+      </div>
+      <div class="card-body">
+        <div class="lang-block">
+          <div class="lang-label">🇫🇷 Français</div>
+          <div class="lang-text">${escHtml(fr) || '<em style="color:#bbb">No content</em>'}</div>
+        </div>
+        <div class="lang-block">
+          <div class="lang-label">🇷🇺 Русский</div>
+          <div class="lang-text">${escHtml(ru) || '<em style="color:#bbb">No content</em>'}</div>
+        </div>
+      </div>
+      <div class="card-actions">${publishButtons}</div>
+    </div>`;
+}
+
+// ── Actions ──────────────────────────────────────────────────────────────────
+async function publish(type, id, audience) {
+  const endpoints = { digest: 'digest', faq: 'faq', tip: 'tip', deal: 'deal', article: 'article' };
+  const ep = endpoints[type];
+  if (!ep) return;
+
+  // For audience-specific, call FR or RU publish then mark on server
+  const res = await fetch(`${API}/api/publish/${ep}/${id}`, { method: 'POST' });
+  if (res.ok) {
+    toast(`✅ ${type} published!`);
+    await loadQueue();
+    loadDigests(); loadFaqs(); loadTips(); loadDeals();
+  } else {
+    toast(`❌ Failed to publish`, true);
+  }
+}
+
+async function reject(type, id) {
+  const endpoints = { digest: 'digests', faq: 'faqs', tip: 'tips', deal: 'deals', article: 'articles' };
+  const ep = endpoints[type];
+  await fetch(`${API}/api/${ep}/${id}`, {
+    method: 'PATCH',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({status: 'rejected'})
+  });
+  toast('🗑 Rejected');
+  await loadQueue();
+}
+
+async function sendManual() {
+  const text = document.getElementById('manualText').value.trim();
+  const audience = document.getElementById('manualAudience').value;
+  if (!text) { toast('Please enter a message', true); return; }
+  const res = await fetch(`${API}/api/publish/manual`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({text, audience})
+  });
+  if (res.ok) {
+    toast('✅ Message sent!');
+    document.getElementById('manualText').value = '';
+  } else {
+    toast('❌ Failed to send', true);
+  }
+}
+
+async function runScrape() {
+  toast('🔄 Scraping news…');
+  const res = await fetch(`${API}/api/scrape/news`, {method: 'POST'});
+  const data = await res.json();
+  toast(`✅ Fetched ${data.scrape?.fetched || 0}, ${data.scrape?.new || 0} new`);
+  await loadQueue();
+}
+
+async function generateDigest() {
+  toast('📰 Generating digest…');
+  const res = await fetch(`${API}/api/digests/generate`, {method: 'POST'});
+  const data = await res.json();
+  if (data.status === 'ok') toast(`✅ Digest ready (${data.articles_used} articles)`);
+  else if (data.status === 'skipped') toast('ℹ️ Digest already exists for today');
+  else toast('❌ Failed', true);
+  await loadQueue(); loadDigests();
+}
+
+async function generateFaq() {
+  toast('❓ Generating FAQ…');
+  const res = await fetch(`${API}/api/faqs/generate`, {method: 'POST'});
+  const data = await res.json();
+  if (data.status === 'ok') toast('✅ FAQ ready!');
+  else if (data.status === 'skipped') toast('ℹ️ FAQ already exists for this week');
+  else toast('❌ Failed', true);
+  await loadQueue(); loadFaqs();
+}
+
+// ── Utils ────────────────────────────────────────────────────────────────────
+function escHtml(str) {
+  return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function toast(msg, isError = false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+init();
+</script>
+</body>
+</html>
