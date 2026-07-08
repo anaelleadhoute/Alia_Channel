@@ -120,6 +120,17 @@ async def init_db():
                 created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
             );
 
+            CREATE TABLE IF NOT EXISTS contests (
+                id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                title        TEXT NOT NULL,
+                content_fr   TEXT,
+                content_ru   TEXT,
+                created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+                status       TEXT DEFAULT 'pending',
+                sent_wa_fr   INTEGER DEFAULT 0,
+                sent_wa_ru   INTEGER DEFAULT 0
+            );
+
             CREATE TABLE IF NOT EXISTS settings (
                 key   TEXT PRIMARY KEY,
                 value TEXT NOT NULL

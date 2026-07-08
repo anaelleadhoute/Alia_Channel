@@ -201,6 +201,31 @@ async def publish_faq(faq_id: int):
     return {"ok": True, "faq_id": faq_id, "sent": results}
 
 
+@router.post("/contest/{contest_id}")
+async def publish_contest(contest_id: int):
+    """Publish a contest to WhatsApp FR and RU groups."""
+    async with get_db() as db:
+        cursor = await db.execute("SELECT * FROM contests WHERE id = ?", (contest_id,))
+        contest = await cursor.fetchone()
+    if not contest:
+        raise HTTPException(status_code=404, detail="Contest not found")
+    contest = dict(contest)
+    results = {}
+    if contest.get("content_fr") and not contest.get("sent_wa_fr"):
+        await _send_whatsapp(WHAPI_GROUP_FR, contest["content_fr"])
+        results["fr"] = "sent"
+        async with get_db() as db:
+            await db.execute("UPDATE contests SET sent_wa_fr = 1 WHERE id = ?", (contest_id,))
+            await db.commit()
+    if contest.get("content_ru") and not contest.get("sent_wa_ru"):
+        await _send_whatsapp(WHAPI_GROUP_RU, contest["content_ru"])
+        results["ru"] = "sent"
+        async with get_db() as db:
+            await db.execute("UPDATE contests SET sent_wa_ru = 1 WHERE id = ?", (contest_id,))
+            await db.commit()
+    return {"ok": True, "contest_id": contest_id, "sent": results}
+
+
 @router.post("/deal/{deal_id}")
 async def publish_deal(deal_id: int):
     """Publish a deal to WhatsApp FR and/or RU groups based on audience."""

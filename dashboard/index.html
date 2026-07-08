@@ -184,6 +184,7 @@
   <button class="tab" onclick="switchTab('faqs')">FAQs</button>
   <button class="tab" onclick="switchTab('tips')">Tips</button>
   <button class="tab" onclick="switchTab('deals')">Deals</button>
+  <button class="tab" onclick="switchTab('contests')">🎁 Concours</button>
   <button class="tab" onclick="switchTab('send')">✏️ Send</button>
 </div>
 
@@ -233,6 +234,24 @@
     <div class="cards" id="dealCards"><div class="loading">Loading…</div></div>
   </div>
 
+  <!-- CONTESTS -->
+  <div class="section" id="section-contests">
+    <div class="manual-panel">
+      <h2>🎁 Nouveau concours / cadeau</h2>
+      <input type="text" id="contestTitle" placeholder="Titre (ex: Concours été 2026)" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;margin-bottom:12px;font-family:inherit;">
+      <label style="font-size:13px;font-weight:600;color:#666;display:block;margin-bottom:6px;">🇫🇷 Message français</label>
+      <textarea id="contestFr" placeholder="Écris le message en français…" style="width:100%;height:140px;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:14px;resize:vertical;font-family:inherit;margin-bottom:12px;"></textarea>
+      <label style="font-size:13px;font-weight:600;color:#666;display:block;margin-bottom:6px;">🇷🇺 Message russe <span style="font-weight:400;color:#aaa">(laisser vide pour traduction automatique)</span></label>
+      <textarea id="contestRu" placeholder="Traduction automatique si vide…" style="width:100%;height:140px;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:14px;resize:vertical;font-family:inherit;margin-bottom:12px;"></textarea>
+      <div class="manual-actions">
+        <button class="btn btn-both" onclick="createContest()">✨ Créer</button>
+        <span style="color:#999;font-size:13px;">Le RU sera auto-traduit si laissé vide</span>
+      </div>
+    </div>
+    <div class="queue-header"><h2>Concours & Cadeaux</h2></div>
+    <div class="cards" id="contestCards"><div class="loading">Loading…</div></div>
+  </div>
+
   <!-- MANUAL SEND -->
   <div class="section" id="section-send">
     <div class="manual-panel">
@@ -265,6 +284,7 @@ async function init() {
   loadFaqs();
   loadTips();
   loadDeals();
+  loadContests();
 }
 
 // ── Settings ────────────────────────────────────────────────────────────────
@@ -380,6 +400,7 @@ function renderCard(item) {
   if (type === 'digest') meta = `<span class="source">📰 Digest</span><span class="category">${item.digest_date || ''}</span><span class="category">${item.article_count} articles</span>`;
   if (type === 'faq') meta = `<span class="source">❓ FAQ</span><span class="category">${item.week || ''}</span>`;
   if (type === 'tip') meta = `<span class="source">💡 Kol Zchut</span><span class="category">${item.week || ''}</span>`;
+  if (type === 'contest') meta = `<span class="source">🎁 ${item.title || 'Concours'}</span>`;
   if (type === 'deal') {
     const score = item.relevance_score || 0;
     const scoreClass = score >= 8 ? 'high' : score >= 5 ? '' : 'low';
@@ -397,12 +418,14 @@ function renderCard(item) {
 
   const date = item.generated_at || item.scraped_at || item.digest_date || '';
 
+  const deleteBtn = type === 'contest' ? `<button class="btn btn-reject" onclick="deleteContest(${id})">🗑 Supprimer</button>` : '';
   const publishButtons = !isSent && !isRejected ? `
     <button class="btn btn-fr" onclick="publish('${type}', ${id}, 'fr')" ${item.sent_wa_fr ? 'disabled' : ''}>🇫🇷 FR</button>
     <button class="btn btn-ru" onclick="publish('${type}', ${id}, 'ru')" ${item.sent_wa_ru ? 'disabled' : ''}>🇷🇺 RU</button>
     <button class="btn btn-both" onclick="publish('${type}', ${id}, 'both')">Send Both</button>
-    <button class="btn btn-reject" onclick="reject('${type}', ${id})">✕ Reject</button>
-  ` : sentInfo;
+    ${type !== 'contest' ? `<button class="btn btn-reject" onclick="reject('${type}', ${id})">✕ Reject</button>` : ''}
+    ${deleteBtn}
+  ` : sentInfo + (type === 'contest' ? ` ${deleteBtn}` : '');
 
   return `
     <div class="card ${cardClass}" id="card-${type}-${id}">
@@ -426,7 +449,7 @@ function renderCard(item) {
 
 // ── Actions ──────────────────────────────────────────────────────────────────
 async function publish(type, id, audience) {
-  const endpoints = { digest: 'digest', faq: 'faq', tip: 'tip', deal: 'deal', article: 'article' };
+  const endpoints = { digest: 'digest', faq: 'faq', tip: 'tip', deal: 'deal', article: 'article', contest: 'contest' };
   const ep = endpoints[type];
   if (!ep) return;
 
@@ -448,6 +471,12 @@ async function publish(type, id, audience) {
   }
 }
 
+async function deleteContest(id) {
+  await fetch(`${API}/api/contests/${id}`, {method: 'DELETE'});
+  toast('🗑 Supprimé');
+  document.getElementById(`card-contest-${id}`)?.remove();
+}
+
 async function reject(type, id) {
   const endpoints = { digest: 'digests', faq: 'faqs', tip: 'tips', deal: 'deals', article: 'articles' };
   const ep = endpoints[type];
@@ -458,6 +487,38 @@ async function reject(type, id) {
   });
   toast('🗑 Rejected');
   await loadQueue();
+}
+
+async function loadContests() {
+  const data = await fetch(`${API}/api/contests`).then(r => r.json());
+  document.getElementById('contestCards').innerHTML = data.length
+    ? data.map(c => renderCard({...c, _type: 'contest'})).join('')
+    : '<div class="empty"><div class="icon">🎁</div>Aucun concours pour le moment</div>';
+}
+
+async function createContest() {
+  const btn = event.target;
+  const title = document.getElementById('contestTitle').value.trim();
+  const fr = document.getElementById('contestFr').value.trim();
+  const ru = document.getElementById('contestRu').value.trim();
+  if (!title || !fr) { toast('Titre et message FR requis', true); return; }
+  await withLoading(btn, async () => {
+    toast('✨ Création en cours…');
+    const res = await fetch(`${API}/api/contests`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({title, content_fr: fr, content_ru: ru || null, auto_translate: !ru})
+    });
+    if (res.ok) {
+      toast('✅ Concours créé !');
+      document.getElementById('contestTitle').value = '';
+      document.getElementById('contestFr').value = '';
+      document.getElementById('contestRu').value = '';
+      await loadContests();
+    } else {
+      toast('❌ Erreur', true);
+    }
+  });
 }
 
 async function sendManual() {
