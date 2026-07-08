@@ -22,37 +22,49 @@ CATEGORY_LABELS = {
 
 PROMPT_FR = """Tu es rédacteur pour AL.IA Channel, un média pour les olim francophones en Israël.
 
-Voici un bon plan trouvé en Israël :
+Voici un bon plan dénichée pour les olim :
 Catégorie : {category_label}
 Produit/Service : {product}
 Prix : {price}
 Résumé : {summary}
 Texte original : {raw_text}
+Lien direct : {deal_link}
 
-Rédige un message WhatsApp en français (80-120 mots) pour présenter ce bon plan aux olim.
-- Commence par l'emoji de catégorie et un titre accrocheur
-- Explique le bon plan clairement (produit, prix, économie réalisée)
-- Ajoute une phrase d'appel à l'action
+Rédige un message WhatsApp en français (80-100 mots) naturel et bienveillant, comme si un ami partageait une bonne affaire.
+- Commence par l'emoji de catégorie
+- Ton : "AL.IA a trouvé pour vous..." — chaleureux, pas publicitaire
+- Mentionne le produit et le prix clairement
+- Inclus le lien direct : {deal_link}
 - Termine par : "AL.IA Community 👉 wa.me/972549675013"
 
 Réponds uniquement avec le texte du message, sans JSON."""
 
 PROMPT_RU = """Ты редактор AL.IA Channel — медиа для русскоязычных олим в Израиле.
 
-Вот акция найденная в Израиле :
+Вот акция, найденная для олим :
 Категория : {category_label}
 Товар/Услуга : {product}
 Цена : {price}
 Описание : {summary}
 Оригинальный текст : {raw_text}
+Прямая ссылка : {deal_link}
 
-Напиши сообщение для WhatsApp на русском (80-120 слов) об этой акции для олим.
-- Начни с эмодзи категории и привлекательного заголовка
-- Объясни акцию чётко (товар, цена, экономия)
-- Добавь призыв к действию
+Напиши сообщение для WhatsApp на русском (80-100 слов) — дружелюбно, как будто друг делится выгодной находкой.
+- Начни с эмодзи категории
+- Тон : "AL.IA нашла для вас..." — тепло, без рекламного пафоса
+- Упомяни товар и цену чётко
+- Включи прямую ссылку : {deal_link}
 - Заверши : "AL.IA Community 👉 wa.me/972549675013"
 
 Отвечай только текстом сообщения, без JSON."""
+
+
+def _deal_link(deal: dict) -> str:
+    channel = deal.get("channel", "")
+    message_id = deal.get("message_id", "")
+    if channel and message_id:
+        return f"https://t.me/{channel}/{message_id}"
+    return ""
 
 
 async def _generate_fr(deal: dict) -> str:
@@ -67,6 +79,7 @@ async def _generate_fr(deal: dict) -> str:
             price=deal.get("deal_price") or "N/A",
             summary=deal.get("deal_summary_he") or "",
             raw_text=deal.get("raw_text") or "",
+            deal_link=_deal_link(deal),
         )}],
     )
     return response.content[0].text.strip()
@@ -84,6 +97,7 @@ async def _generate_ru(deal: dict) -> str:
             price=deal.get("deal_price") or "N/A",
             summary=deal.get("deal_summary_he") or "",
             raw_text=deal.get("raw_text") or "",
+            deal_link=_deal_link(deal),
         )}],
     )
     return response.content[0].text.strip()
@@ -143,8 +157,8 @@ async def process_pending_deals() -> dict:
     async with get_db() as db:
         cursor = await db.execute(
             """
-            SELECT id, category, deal_product, deal_price,
-                   deal_summary_he, raw_text
+            SELECT id, message_id, channel, category, deal_product, deal_price,
+                   deal_summary_he, raw_text, audience
             FROM deals
             WHERE is_relevant = 1 AND ai_processed_at IS NULL
             ORDER BY relevance_score DESC
