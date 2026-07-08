@@ -429,14 +429,21 @@ async function publish(type, id, audience) {
   const ep = endpoints[type];
   if (!ep) return;
 
-  // For audience-specific, call FR or RU publish then mark on server
   const res = await fetch(`${API}/api/publish/${ep}/${id}`, { method: 'POST' });
   if (res.ok) {
-    toast(`✅ ${type} published!`);
+    toast(`✅ Sent!`);
+    // Update the card in place to show sent state
+    const card = document.getElementById(`card-${type}-${id}`);
+    if (card) {
+      card.classList.remove('rejected');
+      card.classList.add('sent');
+      const actions = card.querySelector('.card-actions');
+      if (actions) actions.innerHTML = '<span class="sent-tag">✓ Sent to WhatsApp</span>';
+    }
     await loadQueue();
-    loadDigests(); loadFaqs(); loadTips(); loadDeals();
   } else {
-    toast(`❌ Failed to publish`, true);
+    const err = await res.json().catch(() => ({}));
+    toast(`❌ ${err.detail || 'Failed to publish'}`, true);
   }
 }
 
