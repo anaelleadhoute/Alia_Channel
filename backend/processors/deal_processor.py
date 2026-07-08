@@ -70,10 +70,14 @@ CHANNEL_WEBSITES = {
 def _deal_link(deal: dict) -> str:
     """Extract direct URL from raw text, fall back to channel website."""
     raw = deal.get("raw_text") or ""
-    # Find first http(s) URL in raw text
+    # Full URL with protocol
     match = re.search(r'https?://[^\s\)\]"\']+', raw)
     if match:
         return match.group(0)
+    # Short URL without protocol (e.g. shufersal.club/xxx)
+    match = re.search(r'\b[\w-]+\.\w{2,6}/\S+', raw)
+    if match:
+        return "https://" + match.group(0)
     # Fall back to channel website
     channel = deal.get("channel", "")
     return CHANNEL_WEBSITES.get(channel, f"https://t.me/{channel}")
