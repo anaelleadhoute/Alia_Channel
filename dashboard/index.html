@@ -476,32 +476,51 @@ async function sendManual() {
   }
 }
 
+async function withLoading(btn, fn) {
+  const original = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '⏳ Loading…';
+  try { await fn(); } finally {
+    btn.disabled = false;
+    btn.innerHTML = original;
+  }
+}
+
 async function runScrape() {
-  toast('🔄 Scraping news…');
-  const res = await fetch(`${API}/api/scrape/news`, {method: 'POST'});
-  const data = await res.json();
-  toast(`✅ Fetched ${data.scrape?.fetched || 0}, ${data.scrape?.new || 0} new`);
-  await loadQueue();
+  const btn = event.target;
+  await withLoading(btn, async () => {
+    toast('🔄 Scraping news…');
+    const res = await fetch(`${API}/api/scrape/news`, {method: 'POST'});
+    const data = await res.json();
+    toast(`✅ Fetched ${data.scrape?.fetched || 0}, ${data.scrape?.new || 0} new`);
+    await loadQueue();
+  });
 }
 
 async function generateDigest() {
-  toast('📰 Generating digest…');
-  const res = await fetch(`${API}/api/digests/generate`, {method: 'POST'});
-  const data = await res.json();
-  if (data.status === 'ok') toast(`✅ Digest ready (${data.articles_used} articles)`);
-  else if (data.status === 'skipped') toast('ℹ️ Digest already exists for today');
-  else toast('❌ Failed', true);
-  await loadQueue(); loadDigests();
+  const btn = event.target;
+  await withLoading(btn, async () => {
+    toast('📰 Generating digest…');
+    const res = await fetch(`${API}/api/digests/generate`, {method: 'POST'});
+    const data = await res.json();
+    if (data.status === 'ok') toast(`✅ Digest ready (${data.articles_used} articles)`);
+    else if (data.status === 'skipped') toast('ℹ️ Digest already exists for today');
+    else toast('❌ Failed', true);
+    await loadQueue(); loadDigests();
+  });
 }
 
 async function generateFaq() {
-  toast('❓ Generating FAQ…');
-  const res = await fetch(`${API}/api/faqs/generate`, {method: 'POST'});
-  const data = await res.json();
-  if (data.status === 'ok') toast('✅ FAQ ready!');
-  else if (data.status === 'skipped') toast('ℹ️ FAQ already exists for this week');
-  else toast('❌ Failed', true);
-  await loadQueue(); loadFaqs();
+  const btn = event.target;
+  await withLoading(btn, async () => {
+    toast('❓ Generating FAQ…');
+    const res = await fetch(`${API}/api/faqs/generate`, {method: 'POST'});
+    const data = await res.json();
+    if (data.status === 'ok') toast('✅ FAQ ready!');
+    else if (data.status === 'skipped') toast('ℹ️ FAQ already exists for this week');
+    else toast('❌ Failed', true);
+    await loadQueue(); loadFaqs();
+  });
 }
 
 // ── Utils ────────────────────────────────────────────────────────────────────
