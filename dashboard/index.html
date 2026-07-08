@@ -196,6 +196,7 @@
       <button class="btn btn-primary" onclick="runScrape()">🔄 Scrape News</button>
       <button class="btn btn-primary" onclick="generateDigest()">📰 Generate Digest</button>
       <button class="btn btn-primary" onclick="generateFaq()">❓ Generate FAQ</button>
+      <button class="btn btn-primary" onclick="scrapeDeals()">🛍️ Scrape Deals</button>
     </div>
     <div class="queue-header">
       <h2>Pending Queue</h2>
@@ -484,6 +485,17 @@ async function withLoading(btn, fn) {
     btn.disabled = false;
     btn.innerHTML = original;
   }
+}
+
+async function scrapeDeals() {
+  const btn = event.target;
+  await withLoading(btn, async () => {
+    toast('🛍️ Scraping deals…');
+    const res = await fetch(`${API}/api/scrape/deals`, {method: 'POST'});
+    const data = await res.json();
+    toast(`✅ Deals: ${data.scrape?.saved || 0} new, ${data.ai?.success || 0} processed`);
+    await loadQueue(); loadDeals();
+  });
 }
 
 async function runScrape() {
