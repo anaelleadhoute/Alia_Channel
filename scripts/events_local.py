@@ -88,6 +88,58 @@ def scrape_meetup_city(page, city: dict) -> list[dict]:
     return events
 
 
+def scrape_secret_telaviv(page) -> list[dict]:
+    print("[secret_tlv] Loading tickets page...")
+    events = []
+    try:
+        page.goto("https://www.secrettelaviv.com/tickets", wait_until="commit", timeout=20000)
+    except Exception:
+        pass
+    page.wait_for_timeout(5000)
+    page.evaluate("window.scrollBy(0, 1000)")
+    page.wait_for_timeout(2000)
+
+    raw = page.evaluate("""() => {
+        const results = [];
+        const seen = new Set();
+        const selectors = [
+            'article', '.event', '[class*="event"]', '[class*="ticket"]',
+            '.post', '[class*="card"]',
+        ];
+        for (const sel of selectors) {
+            document.querySelectorAll(sel).forEach(card => {
+                const titleEl = card.querySelector('h2, h3, h4, [class*="title"]');
+                const linkEl = card.querySelector('a[href]') || card.closest('a');
+                const dateEl = card.querySelector('time, [class*="date"], [class*="when"]');
+                const title = titleEl ? titleEl.innerText.trim() : '';
+                const href = linkEl ? linkEl.href : '';
+                const date = dateEl ? (dateEl.getAttribute('datetime') || dateEl.innerText.trim()) : '';
+                if (title && title.length > 3 && !seen.has(title) && href) {
+                    seen.add(title);
+                    results.push({ title, url: href, date });
+                }
+            });
+            if (results.length >= 15) break;
+        }
+        return results.slice(0, 20);
+    }""")
+
+    for e in raw:
+        if e.get("title"):
+            events.append({
+                "name": e["title"],
+                "date": e.get("date", ""),
+                "url": e.get("url", ""),
+                "city": "Tel Aviv",
+                "source": "Secret Tel Aviv",
+            })
+
+    print(f"[secret_tlv] Found {len(events)} events")
+    for e in events[:3]:
+        print(f"  → {e['name'][:80]}")
+    return events
+
+
 def run():
     debug = "--debug" in sys.argv
     force = "--force" in sys.argv
@@ -111,6 +163,13 @@ def run():
                 context.close()
             except Exception as e:
                 print(f"[meetup] {city['name']} failed: {e}")
+
+        try:
+            context = browser.new_context(**ctx_opts)
+            all_events.extend(scrape_secret_telaviv(context.new_page()))
+            context.close()
+        except Exception as e:
+            print(f"[secret_tlv] Failed: {e}")
 
         browser.close()
 
