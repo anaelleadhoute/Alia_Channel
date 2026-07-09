@@ -43,8 +43,11 @@ def scrape_rami_levy(page) -> list[dict]:
                 pass
 
     page.on("response", handle_response)
-    page.goto("https://www.rami-levy.co.il/he/online/sales", wait_until="domcontentloaded", timeout=30000)
-    page.wait_for_timeout(5000)
+    try:
+        page.goto("https://www.rami-levy.co.il/he/online/sales", wait_until="commit", timeout=15000)
+    except Exception:
+        pass
+    page.wait_for_timeout(8000)
 
     # Try to extract from intercepted API responses
     items = []
@@ -128,8 +131,11 @@ def scrape_hazi_hinam(page) -> list[dict]:
 
     page.on("response", handle_response)
     # Homepage already fires getItemsPromoted — no need for campaign URL
-    page.goto("https://shop.hazi-hinam.co.il/", wait_until="domcontentloaded", timeout=30000)
-    page.wait_for_timeout(5000)
+    try:
+        page.goto("https://shop.hazi-hinam.co.il/", wait_until="commit", timeout=15000)
+    except Exception:
+        pass
+    page.wait_for_timeout(8000)
 
     items = []
     for capture in api_data:
@@ -267,8 +273,11 @@ def scrape_shufersal(page) -> list[dict]:
                 pass
 
     page.on("response", handle_response)
-    page.goto("https://www.shufersal.co.il/online/he/promo/A", wait_until="domcontentloaded", timeout=30000)
-    page.wait_for_timeout(5000)
+    try:
+        page.goto("https://www.shufersal.co.il/online/he/promo/A", wait_until="commit", timeout=15000)
+    except Exception:
+        pass  # commit fires on first byte — any further timeout is fine
+    page.wait_for_timeout(8000)
 
     items = []
     for capture in api_data:
@@ -332,9 +341,6 @@ def run():
 
         try:
             shufersal_items = scrape_shufersal(page)
-            if debug and not shufersal_items:
-                page.screenshot(path="/tmp/shufersal_debug.png")
-                print("  [debug] Screenshot saved to /tmp/shufersal_debug.png")
         except Exception as e:
             print(f"[shufersal] Failed: {e}")
             shufersal_items = []
