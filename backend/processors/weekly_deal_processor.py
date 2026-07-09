@@ -143,10 +143,11 @@ async def _pick_best_deal(supermarket_name: str, items: list[dict], db_col: str 
         # Find the URL of the picked item by matching product name against candidates
         if deal.get("product"):
             import re as _re
-            def _words(s): return {w for w in _re.findall(r'[\wא-ת]+', s.lower()) if len(w) > 3}
+            def _words(s): return {w for w in _re.findall(r'[\wא-ת]+', s.lower()) if len(w) > 2}
             pick_words = _words(deal["product"])
+            threshold = 1 if len(pick_words) <= 2 else 2
             for item in candidates:
-                if item.get("url") and len(pick_words & _words(item["text"])) >= 2:
+                if item.get("url") and len(pick_words & _words(item["text"])) >= threshold:
                     deal["url"] = item["url"]
                     break
 
