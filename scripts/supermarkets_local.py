@@ -55,8 +55,7 @@ def scrape_rami_levy(page) -> list[dict]:
         body = capture["body"]
         if "/api/sales" not in url:
             continue
-        print(f"  [rami_levy] Parsing sales API: {url[:80]}")
-        print(f"  [rami_levy] Body type: {type(body)}, keys: {list(body.keys()) if isinstance(body, dict) else 'list'}")
+
         # Rami Levy sales API: {"data": [...products...]}
         products = body.get("data") or (body if isinstance(body, list) else [])
         if isinstance(products, list):
