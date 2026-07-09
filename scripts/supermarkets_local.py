@@ -318,12 +318,21 @@ def scrape_shufersal(page) -> list[dict]:
                 '[class*="ProductItem"]', '[class*="product-item"]',
                 '[data-product]', 'article',
             ];
+            const getUrl = (el) => {
+                const a = el.closest('a') || el.querySelector('a');
+                if (a && a.href && a.href.includes('shufersal.co.il')) return a.href;
+                return null;
+            };
+
             for (const sel of cardSelectors) {
                 document.querySelectorAll(sel).forEach(card => {
                     const text = card.innerText.replace(/\\s+/g, ' ').trim();
                     if (text.length > 15 && text.length < 400 && text.includes('₪') && !seen.has(text)) {
                         seen.add(text);
-                        results.push({ text });
+                        const item = { text };
+                        const url = getUrl(card);
+                        if (url) item.url = url;
+                        results.push(item);
                     }
                 });
                 if (results.length >= 5) break;
@@ -335,15 +344,16 @@ def scrape_shufersal(page) -> list[dict]:
                     if (el.children.length > 0) return;
                     const t = el.innerText ? el.innerText.trim() : '';
                     if (!t.includes('₪')) return;
-                    // Walk up at most 6 levels to find a parent that has meaningful text (name + price)
                     let parent = el.parentElement;
                     for (let i = 0; i < 6; i++) {
                         if (!parent || parent === document.body) break;
                         const pt = parent.innerText ? parent.innerText.replace(/\\s+/g, ' ').trim() : '';
-                        // Good parent: longer than just the price, short enough to be a card
                         if (pt.length > t.length + 3 && pt.length < 400 && !seen.has(pt)) {
                             seen.add(pt);
-                            results.push({ text: pt });
+                            const item = { text: pt };
+                            const url = getUrl(parent);
+                            if (url) item.url = url;
+                            results.push(item);
                             break;
                         }
                         parent = parent.parentElement;
