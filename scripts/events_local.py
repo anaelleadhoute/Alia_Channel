@@ -99,28 +99,20 @@ def scrape_secret_telaviv(page) -> list[dict]:
     page.evaluate("window.scrollBy(0, 1000)")
     page.wait_for_timeout(2000)
 
-    raw = page.evaluate("""() => {
+raw = page.evaluate("""() => {
         const results = [];
         const seen = new Set();
-        const selectors = [
-            'article', '.event', '[class*="event"]', '[class*="ticket"]',
-            '.post', '[class*="card"]',
-        ];
-        for (const sel of selectors) {
-            document.querySelectorAll(sel).forEach(card => {
-                const titleEl = card.querySelector('h2, h3, h4, [class*="title"]');
-                const linkEl = card.querySelector('a[href]') || card.closest('a');
-                const dateEl = card.querySelector('time, [class*="date"], [class*="when"]');
-                const title = titleEl ? titleEl.innerText.trim() : '';
-                const href = linkEl ? linkEl.href : '';
-                const date = dateEl ? (dateEl.getAttribute('datetime') || dateEl.innerText.trim()) : '';
-                if (title && title.length > 3 && !seen.has(title) && href) {
-                    seen.add(title);
-                    results.push({ title, url: href, date });
-                }
-            });
-            if (results.length >= 15) break;
-        }
+        document.querySelectorAll('li[class*="event-"]').forEach(card => {
+            const linkEl = card.querySelector('a[href]');
+            const title = card.innerText.trim().split('\\n')[0].trim();
+            const href = linkEl ? linkEl.href : '';
+            const dateEl = card.querySelector('time, [class*="date"]');
+            const date = dateEl ? (dateEl.getAttribute('datetime') || dateEl.innerText.trim()) : '';
+            if (title && title.length > 3 && !seen.has(title)) {
+                seen.add(title);
+                results.push({ title, url: href, date });
+            }
+        });
         return results.slice(0, 20);
     }""")
 
