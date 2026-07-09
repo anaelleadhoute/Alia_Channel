@@ -137,6 +137,20 @@ async def init_db():
             );
 
             INSERT OR IGNORE INTO settings (key, value) VALUES ('auto_publish', 'true');
+
+            CREATE TABLE IF NOT EXISTS weekly_deals (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                week            TEXT UNIQUE NOT NULL,
+                shufersal_json  TEXT,
+                rami_levy_json  TEXT,
+                carrefour_json  TEXT,
+                content_fr      TEXT,
+                content_ru      TEXT,
+                created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+                status          TEXT DEFAULT 'pending',
+                sent_wa_fr      INTEGER DEFAULT 0,
+                sent_wa_ru      INTEGER DEFAULT 0
+            );
         """)
         await db.commit()
 

@@ -230,7 +230,11 @@
 
   <!-- DEALS -->
   <div class="section" id="section-deals">
-    <div class="queue-header"><h2>Telegram Deals</h2></div>
+    <div class="actions-bar">
+      <span>Actions:</span>
+      <button class="btn btn-primary" onclick="scrapeDeals()">🛒 Générer Deals Semaine</button>
+    </div>
+    <div class="queue-header"><h2>🛒 Deals Supermarché — Semaine</h2></div>
     <div class="cards" id="dealCards"><div class="loading">Loading…</div></div>
   </div>
 
@@ -317,18 +321,18 @@ function switchTab(name) {
 
 // ── Queue (all pending content) ──────────────────────────────────────────────
 async function loadQueue() {
-  const [digests, faqs, tips, deals] = await Promise.all([
+  const [digests, faqs, tips, weeklyDeals] = await Promise.all([
     fetch(`${API}/api/digests`).then(r => r.json()),
     fetch(`${API}/api/faqs`).then(r => r.json()),
     fetch(`${API}/api/tips?status=${queueFilter}`).then(r => r.json()),
-    fetch(`${API}/api/deals`).then(r => r.json()),
+    fetch(`${API}/api/weekly-deals`).then(r => r.json()),
   ]);
 
   const allItems = [
     ...digests.filter(d => matchesFilter(d)).map(d => ({...d, _type: 'digest'})),
     ...faqs.filter(f => matchesFilter(f)).map(f => ({...f, _type: 'faq'})),
     ...tips.map(t => ({...t, _type: 'tip'})),
-    ...deals.filter(d => matchesFilter(d)).map(d => ({...d, _type: 'deal'})),
+    ...weeklyDeals.filter(d => matchesFilter(d)).map(d => ({...d, _type: 'weekly_deal'})),
   ];
 
   const pending = allItems.filter(i => i.status === 'pending' || (!i.status && !i.sent_wa_fr && !i.sent_wa_ru));
@@ -379,10 +383,10 @@ async function loadTips() {
 }
 
 async function loadDeals() {
-  const data = await fetch(`${API}/api/deals`).then(r => r.json());
+  const data = await fetch(`${API}/api/weekly-deals`).then(r => r.json());
   document.getElementById('dealCards').innerHTML = data.length
-    ? data.map(d => renderCard({...d, _type: 'deal'})).join('')
-    : '<div class="empty"><div class="icon">🛍️</div>No deals yet</div>';
+    ? data.map(d => renderCard({...d, _type: 'weekly_deal'})).join('')
+    : '<div class="empty"><div class="icon">🛒</div>Pas encore de deals cette semaine — clique "Générer Deals Semaine"</div>';
 }
 
 // ── Card renderer ────────────────────────────────────────────────────────────
@@ -401,10 +405,8 @@ function renderCard(item) {
   if (type === 'faq') meta = `<span class="source">❓ FAQ</span><span class="category">${item.week || ''}</span>`;
   if (type === 'tip') meta = `<span class="source">💡 Kol Zchut</span><span class="category">${item.week || ''}</span>`;
   if (type === 'contest') meta = `<span class="source">🎁 ${item.title || 'Concours'}</span>`;
-  if (type === 'deal') {
-    const score = item.relevance_score || 0;
-    const scoreClass = score >= 8 ? 'high' : score >= 5 ? '' : 'low';
-    meta = `<span class="source">🛍️ ${item.channel || ''}</span><span class="category">${item.category || ''}</span><span class="score ${scoreClass}">${score}/10</span><span class="audience-tag">${item.audience || 'both'}</span>`;
+  if (type === 'weekly_deal') {
+    meta = `<span class="source">🛒 Deals Supermarché</span><span class="category">${item.week || ''}</span>`;
   }
   if (item.source) meta += `<span class="source">${item.source}</span>`;
   if (item.score) {
@@ -449,7 +451,7 @@ function renderCard(item) {
 
 // ── Actions ──────────────────────────────────────────────────────────────────
 async function publish(type, id, audience) {
-  const endpoints = { digest: 'digest', faq: 'faq', tip: 'tip', deal: 'deal', article: 'article', contest: 'contest' };
+  const endpoints = { digest: 'digest', faq: 'faq', tip: 'tip', article: 'article', contest: 'contest', weekly_deal: 'weekly-deal' };
   const ep = endpoints[type];
   if (!ep) return;
 
@@ -551,10 +553,12 @@ async function withLoading(btn, fn) {
 async function scrapeDeals() {
   const btn = event.target;
   await withLoading(btn, async () => {
-    toast('🛍️ Scraping deals…');
+    toast('🛒 Génération des deals en cours… (30s)');
     const res = await fetch(`${API}/api/scrape/deals`, {method: 'POST'});
     const data = await res.json();
-    toast(`✅ Deals: ${data.scrape?.saved || 0} new, ${data.ai?.success || 0} processed`);
+    if (data.status === 'skipped') toast('ℹ️ Deals déjà générés cette semaine');
+    else if (data.status === 'generated') toast(`✅ Deals semaine ${data.week} générés !`);
+    else toast('❌ Erreur', true);
     await loadQueue(); loadDeals();
   });
 }

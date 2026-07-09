@@ -124,11 +124,17 @@ async def manual_tip(body: ManualTip):
 
 
 @router.post("/deals")
-async def scrape_deals(category: str | None = None):
-    """Scrape Telegram deal channels, analyze with Claude, generate FR + RU."""
-    scrape_result = await run_telegram_scraper(category_filter=category)
-    ai_result = await process_pending_deals()
-    return {"scrape": scrape_result, "ai": ai_result}
+async def scrape_deals():
+    """Scrape all 3 supermarkets and generate the weekly combined deal message."""
+    from processors.weekly_deal_processor import generate_weekly_deals
+    result = await generate_weekly_deals()
+
+    auto = await _is_auto_publish()
+    if auto and result.get("weekly_deal_id") and result.get("status") == "generated":
+        await _auto_publish_item("weekly_deals", "id", result["weekly_deal_id"])
+        result["auto_published"] = True
+
+    return result
 
 
 @router.post("/cleanup")
