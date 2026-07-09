@@ -49,67 +49,30 @@ def scrape_rami_levy(page) -> list[dict]:
         pass
     page.wait_for_timeout(8000)
 
-    # Try to extract from intercepted API responses
     items = []
     for capture in api_data:
+        url = capture["url"]
         body = capture["body"]
-        # Common patterns in Israeli supermarket APIs
-        products = (
-            body.get("data") or body.get("items") or body.get("products") or
-            body.get("result") or (body if isinstance(body, list) else [])
-        )
+        if "/api/sales" not in url:
+            continue
+        print(f"  [rami_levy] Parsing sales API: {url[:80]}")
+        print(f"  [rami_levy] Body type: {type(body)}, keys: {list(body.keys()) if isinstance(body, dict) else 'list'}")
+        # Rami Levy sales API: {"data": [...products...]}
+        products = body.get("data") or (body if isinstance(body, list) else [])
         if isinstance(products, list):
             for p in products[:30]:
-                if isinstance(p, dict):
-                    name = p.get("name") or p.get("Name") or p.get("title") or ""
-                    price = p.get("price") or p.get("Price") or p.get("salePrice") or ""
-                    if name:
-                        items.append({"text": f"{name} - {price}₪".strip(" -₪") + ("₪" if price else "")})
+                if not isinstance(p, dict):
+                    continue
+                name = p.get("name") or p.get("Name") or ""
+                price = (p.get("price") or {})
+                price_val = price.get("price") or price.get("sale_price") or price if not isinstance(price, dict) else ""
+                if name:
+                    items.append({"text": f"{name} - {price_val}₪" if price_val else name})
+        if items:
+            break
 
-    # Fallback: parse the rendered DOM
     if not items:
-        items = page.evaluate("""() => {
-            const results = [];
-            // Rami Levy uses data-testid or specific class patterns
-            const selectors = [
-                '[data-testid*="product"]',
-                '[class*="ProductCard"]',
-                '[class*="product-card"]',
-                '[class*="ProductItem"]',
-                '.product',
-            ];
-            for (const sel of selectors) {
-                document.querySelectorAll(sel).forEach(card => {
-                    const text = card.innerText.replace(/\\s+/g, ' ').trim();
-                    if (text.length > 10 && text.length < 300 && (text.includes('₪') || text.includes('%'))) {
-                        results.push({ text });
-                    }
-                });
-                if (results.length > 0) break;
-            }
-            // Last resort: all text nodes with prices
-            if (results.length === 0) {
-                const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-                let node;
-                const seen = new Set();
-                while ((node = walker.nextNode()) && results.length < 30) {
-                    const t = node.textContent.trim();
-                    if (t.length > 5 && t.length < 150 && t.includes('₪') && !seen.has(t)) {
-                        seen.add(t);
-                        results.push({ text: t });
-                    }
-                }
-            }
-            return results.slice(0, 30);
-        }""")
-
-    # Debug: dump page title and URL if still empty
-    if not items:
-        title = page.title()
-        print(f"  [rami_levy] Page title: {title} | URL: {page.url}")
-        print(f"  [rami_levy] API calls captured: {len(api_data)}")
-        for c in api_data[:3]:
-            print(f"    → {c['url'][:100]}")
+        print(f"  [rami_levy] API calls: {[c['url'] for c in api_data]}")
 
     print(f"[rami_levy] Found {len(items)} items")
     return items
@@ -264,7 +227,7 @@ def scrape_shufersal(page) -> list[dict]:
 
     def handle_response(response):
         url = response.url
-        if "shufersal.co.il" in url and any(k in url for k in ["/api/", "product", "promo", "sale", "catalog", "search"]):
+        if "shufersal.co.il" in url and ("json" in response.headers.get("content-type", "") or any(k in url for k in ["/api/", "product", "promo", "sale", "catalog", "search", "online"])):
             try:
                 body = response.json()
                 api_data.append({"url": url, "body": body})
@@ -274,10 +237,14 @@ def scrape_shufersal(page) -> list[dict]:
 
     page.on("response", handle_response)
     try:
-        page.goto("https://www.shufersal.co.il/online/he/promo/A", wait_until="commit", timeout=15000)
+        page.goto("https://www.shufersal.co.il/online/he/promo/A", wait_until="commit", timeout=20000)
     except Exception:
-        pass  # commit fires on first byte — any further timeout is fine
-    page.wait_for_timeout(8000)
+        pass
+    page.wait_for_timeout(4000)
+    # Scroll to trigger lazy-loaded product catalog
+    for _ in range(6):
+        page.evaluate("window.scrollBy(0, 800)")
+        page.wait_for_timeout(800)
 
     items = []
     for capture in api_data:
@@ -330,35 +297,38 @@ def run():
     force = "--force" in sys.argv
     print("=== AL.IA Supermarket Deal Scraper ===")
 
+    def new_page(context):
+        """Fresh page with no leftover listeners."""
+        return context.new_page()
+
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=not debug)
-        context = browser.new_context(
+        ctx_opts = dict(
             user_agent=HEADERS["User-Agent"],
             locale="he-IL",
             extra_http_headers={"Accept-Language": "he-IL,he;q=0.9"},
         )
-        page = context.new_page()
 
         try:
-            shufersal_items = scrape_shufersal(page)
+            context = browser.new_context(**ctx_opts)
+            shufersal_items = scrape_shufersal(context.new_page())
+            context.close()
         except Exception as e:
             print(f"[shufersal] Failed: {e}")
             shufersal_items = []
 
         try:
-            rami_levy_items = scrape_rami_levy(page)
-            if debug and not rami_levy_items:
-                page.screenshot(path="/tmp/rami_levy_debug.png")
-                print("  [debug] Screenshot saved to /tmp/rami_levy_debug.png")
+            context = browser.new_context(**ctx_opts)
+            rami_levy_items = scrape_rami_levy(context.new_page())
+            context.close()
         except Exception as e:
             print(f"[rami_levy] Failed: {e}")
             rami_levy_items = []
 
         try:
-            hazi_hinam_items = scrape_hazi_hinam(page)
-            if debug and not hazi_hinam_items:
-                page.screenshot(path="/tmp/hazi_hinam_debug.png")
-                print("  [debug] Screenshot saved to /tmp/hazi_hinam_debug.png")
+            context = browser.new_context(**ctx_opts)
+            hazi_hinam_items = scrape_hazi_hinam(context.new_page())
+            context.close()
         except Exception as e:
             print(f"[hazi_hinam] Failed: {e}")
             hazi_hinam_items = []
