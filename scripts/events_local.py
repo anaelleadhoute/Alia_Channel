@@ -89,59 +89,75 @@ def scrape_meetup_city(page, city: dict) -> list[dict]:
 
 
 def scrape_secret_telaviv(page) -> list[dict]:
-    print("[secret_tlv] Loading calendar...")
+    print("[secret_tlv] Loading calendar (intercepting API)...")
+    api_data = []
     events = []
+
+    def handle_response(response):
+        url = response.url
+        if "secrettelaviv.com" in url and url != "https://www.secrettelaviv.com/tickets/":
+            ct = response.headers.get("content-type", "")
+            if "json" in ct or "javascript" in ct or any(k in url for k in ["event", "calendar", "api", "wp-json", "tribe"]):
+                try:
+                    body = response.json()
+                    api_data.append({"url": url, "body": body})
+                    print(f"  [secret_tlv] API: {url[:100]}")
+                except Exception:
+                    pass
+
+    page.on("response", handle_response)
     try:
-        page.goto("https://www.secrettelaviv.com/tickets", wait_until="domcontentloaded", timeout=25000)
+        page.goto("https://www.secrettelaviv.com/tickets/", wait_until="domcontentloaded", timeout=25000)
     except Exception:
         pass
-    page.wait_for_timeout(8000)
-    for _ in range(5):
-        page.evaluate("window.scrollBy(0, 600)")
-        page.wait_for_timeout(800)
+    page.wait_for_timeout(10000)
 
-    # Get raw HTML and parse event links from it
-    import re
-    html = page.content()
-    # Find all event links: secrettelaviv.com/event/... or /tickets/event-name patterns
-    links = re.findall(r'href="(https://www\.secrettelaviv\.com/(?:event|tickets/[^"#?]+?)[^"#?]*)"', html)
-    # Get anchor text near those links
-    raw = page.evaluate("""() => {
-        const results = [];
-        const seen = new Set();
-        document.querySelectorAll('li[class*="event-"]').forEach(li => {
-            const a = li.querySelector('a');
-            if (!a) return;
-            const href = a.href;
-            const title = a.title || a.getAttribute('data-event-title') || li.getAttribute('data-title') || li.getAttribute('title') || '';
-            const tooltip = li.getAttribute('data-tooltip') || li.getAttribute('data-content') || '';
-            const allAttrs = {};
-            for (const attr of li.attributes) allAttrs[attr.name] = attr.value;
-            if (!seen.has(href)) {
-                seen.add(href);
-                results.push({ href, title, tooltip, attrs: JSON.stringify(allAttrs) });
-            }
-        });
-        return results.slice(0, 20);
-    }""")
+    print(f"  [secret_tlv] {len(api_data)} API calls captured")
+    for c in api_data:
+        print(f"    → {c['url'][:100]}")
 
-    print(f"  [secret_tlv] Calendar items: {len(raw)}")
-    for item in raw[:3]:
-        print(f"  [secret_tlv] Item: {item}")
+    # Try to parse events from API responses
+    for capture in api_data:
+        body = capture["body"]
+        # WordPress / The Events Calendar plugin format
+        items = []
+        if isinstance(body, list):
+            items = body
+        elif isinstance(body, dict):
+            items = (body.get("events") or body.get("data") or
+                     body.get("posts") or body.get("items") or [])
+        for item in items[:20]:
+            if not isinstance(item, dict):
+                continue
+            name = (item.get("title") or item.get("name") or
+                    (item.get("title", {}) or {}).get("rendered", "") or "")
+            url = item.get("url") or item.get("link") or item.get("permalink") or ""
+            date = item.get("start_date") or item.get("date") or item.get("start") or ""
+            if name and url:
+                events.append({"name": name, "date": date, "url": url,
+                               "city": "Tel Aviv", "source": "Secret Tel Aviv"})
+        if events:
+            break
 
-    for item in raw:
-        name = item.get("title") or item.get("tooltip") or ""
-        url = item.get("href", "")
-        if url and not name:
-            # Extract name from URL slug
-            slug = url.rstrip("/").split("/")[-1]
-            name = slug.replace("-", " ").title()
-        if name and url:
-            events.append({"name": name, "date": "", "url": url, "city": "Tel Aviv", "source": "Secret Tel Aviv"})
+    # Fallback: parse all links from rendered HTML
+    if not events:
+        import re
+        html = page.content()
+        matches = re.findall(
+            r'href="(https://www\.secrettelaviv\.com/tickets/[^/"#?][^"#?]+)"[^>]*>([^<]{5,80})',
+            html
+        )
+        seen = set()
+        for url, text in matches:
+            text = text.strip()
+            if url not in seen and not any(skip in url for skip in ["/categories/", "/page/"]):
+                seen.add(url)
+                events.append({"name": text, "date": "", "url": url,
+                               "city": "Tel Aviv", "source": "Secret Tel Aviv"})
 
     print(f"[secret_tlv] Found {len(events)} events")
-    for e in events[:3]:
-        print(f"  → {e['name'][:80]} | {e['url'][:80]}")
+    for e in events[:5]:
+        print(f"  → {e['name'][:80]}")
     return events
 
 
