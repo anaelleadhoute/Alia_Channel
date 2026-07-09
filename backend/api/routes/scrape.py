@@ -173,6 +173,32 @@ async def scrape_supermarkets_manual(body: SupermarketPayload):
     return result
 
 
+@router.post("/events")
+async def scrape_events():
+    """Fetch events from Eventbrite for IL cities and generate weekly FR+RU message."""
+    from processors.events_processor import generate_weekly_events
+
+    result = await generate_weekly_events()
+
+    auto = await _is_auto_publish()
+    if auto and result.get("weekly_event_id") and result.get("status") == "generated":
+        try:
+            await _auto_publish_item("weekly_events", "id", result["weekly_event_id"])
+            result["auto_published"] = True
+        except Exception as e:
+            result["auto_published"] = False
+            result["auto_publish_error"] = str(e)
+
+    return result
+
+
+@router.post("/events/force")
+async def scrape_events_force():
+    """Force-regenerate weekly events even if already generated this week."""
+    from processors.events_processor import generate_weekly_events
+    return await generate_weekly_events(force=True)
+
+
 @router.post("/cleanup")
 async def cleanup():
     """Delete sent articles older than 30 days and rejected older than 7 days."""
