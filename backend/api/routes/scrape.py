@@ -137,6 +137,42 @@ async def scrape_deals():
     return result
 
 
+class SupermarketPayload(BaseModel):
+    shufersal: list[dict] = []
+    rami_levy: list[dict] = []
+    carrefour: list[dict] = []
+    force: bool = False  # regenerate even if this week already exists
+
+
+@router.post("/supermarkets/manual")
+async def scrape_supermarkets_manual(body: SupermarketPayload):
+    """Receive pre-scraped supermarket items from local Mac scraper and generate weekly deal."""
+    from processors.weekly_deal_processor import generate_weekly_deals
+    from datetime import datetime
+
+    week = datetime.utcnow().strftime("%Y-W%W")
+
+    if body.force:
+        async with get_db() as db:
+            await db.execute("DELETE FROM weekly_deals WHERE week = ?", (week,))
+            await db.commit()
+
+    raw_data = {
+        "shufersal": body.shufersal,
+        "rami_levy": body.rami_levy,
+        "carrefour": body.carrefour,
+    }
+
+    result = await generate_weekly_deals(raw_data=raw_data)
+
+    auto = await _is_auto_publish()
+    if auto and result.get("weekly_deal_id") and result.get("status") == "generated":
+        await _auto_publish_item("weekly_deals", "id", result["weekly_deal_id"])
+        result["auto_published"] = True
+
+    return result
+
+
 @router.post("/cleanup")
 async def cleanup():
     """Delete sent articles older than 30 days and rejected older than 7 days."""

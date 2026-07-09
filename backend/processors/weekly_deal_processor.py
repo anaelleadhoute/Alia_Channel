@@ -112,8 +112,11 @@ def _format_deal(deal: dict) -> str:
     return " ".join(parts)
 
 
-async def generate_weekly_deals() -> dict:
-    """Full pipeline: scrape → pick best deal per super → generate combined FR+RU message."""
+async def generate_weekly_deals(raw_data: dict | None = None) -> dict:
+    """Full pipeline: scrape → pick best deal per super → generate combined FR+RU message.
+
+    raw_data: pre-scraped items dict (from local Mac scraper). If None, scrapes automatically.
+    """
     week = datetime.utcnow().strftime("%Y-W%W")
 
     # Check if already generated this week
@@ -123,9 +126,9 @@ async def generate_weekly_deals() -> dict:
     if existing:
         return {"status": "skipped", "week": week, "weekly_deal_id": existing["id"]}
 
-    # Scrape all supermarkets
-    logger.info("[weekly_deal] Scraping supermarkets...")
-    raw_data = await fetch_all_supermarket_data()
+    if raw_data is None:
+        logger.info("[weekly_deal] Scraping supermarkets automatically...")
+        raw_data = await fetch_all_supermarket_data()
 
     # Pick best deal per supermarket (in parallel)
     import asyncio
