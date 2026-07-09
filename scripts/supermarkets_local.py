@@ -285,7 +285,37 @@ def scrape_shufersal(page) -> list[dict]:
         }""")
 
     if not items:
-        print(f"  [shufersal] 0 items. API calls: {[c['url'] for c in api_data]}")
+        # Shufersal renders products in HTML — parse DOM directly
+        items = page.evaluate("""() => {
+            const results = [];
+            // Shufersal product cards
+            const cards = document.querySelectorAll('.product_box, .miglog-prod, [class*="productBox"], [class*="product-box"], li.item');
+            cards.forEach(card => {
+                const name = card.querySelector('.miglog-prod-name, .product_name, [class*="prodName"], h3, h4');
+                const price = card.querySelector('.miglog-prod-price, .price, [class*="Price"]');
+                if (name) {
+                    const t = (name.innerText + (price ? ' - ' + price.innerText : '')).replace(/\\s+/g, ' ').trim();
+                    if (t.length > 3) results.push({ text: t });
+                }
+            });
+            // Fallback: any element containing ₪
+            if (results.length === 0) {
+                const all = document.querySelectorAll('*');
+                const seen = new Set();
+                all.forEach(el => {
+                    if (el.children.length === 0 && el.innerText && el.innerText.includes('₪')) {
+                        const t = el.innerText.trim();
+                        if (t.length > 5 && t.length < 150 && !seen.has(t)) {
+                            seen.add(t);
+                            results.push({ text: t });
+                        }
+                    }
+                });
+            }
+            return results.slice(0, 30);
+        }""")
+        if not items:
+            print(f"  [shufersal] 0 items. APIs: {[c['url'] for c in api_data]}")
 
     print(f"[shufersal] Found {len(items)} items")
     return items
