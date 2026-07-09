@@ -88,43 +88,58 @@ def scrape_meetup_city(page, city: dict) -> list[dict]:
     return events
 
 
+SECRET_CATEGORIES = [
+    "https://www.secrettelaviv.com/tickets/categories/parties/",
+    "https://www.secrettelaviv.com/tickets/categories/live-music",
+    "https://www.secrettelaviv.com/tickets/categories/culture-highlights/",
+]
+
 def scrape_secret_telaviv(page) -> list[dict]:
-    print("[secret_tlv] Loading tickets page...")
+    print("[secret_tlv] Scraping categories...")
     events = []
-    try:
-        page.goto("https://www.secrettelaviv.com/tickets", wait_until="commit", timeout=20000)
-    except Exception:
-        pass
-    page.wait_for_timeout(5000)
-    page.evaluate("window.scrollBy(0, 1000)")
-    page.wait_for_timeout(2000)
+    seen = set()
 
-    raw = page.evaluate("""() => {
-        const results = [];
-        const seen = new Set();
-        document.querySelectorAll('li[class*="event-"]').forEach(card => {
-            const linkEl = card.querySelector('a[href]');
-            const title = card.innerText.trim().split('\\n')[0].trim();
-            const href = linkEl ? linkEl.href : '';
-            const dateEl = card.querySelector('time, [class*="date"]');
-            const date = dateEl ? (dateEl.getAttribute('datetime') || dateEl.innerText.trim()) : '';
-            if (title && title.length > 3 && !seen.has(title)) {
-                seen.add(title);
-                results.push({ title, url: href, date });
-            }
-        });
-        return results.slice(0, 20);
-    }""")
+    for cat_url in SECRET_CATEGORIES:
+        try:
+            page.goto(cat_url, wait_until="domcontentloaded", timeout=25000)
+        except Exception:
+            pass
+        page.wait_for_timeout(6000)
+        for _ in range(3):
+            page.evaluate("window.scrollBy(0, 800)")
+            page.wait_for_timeout(1000)
 
-    for e in raw:
-        if e.get("title"):
-            events.append({
-                "name": e["title"],
-                "date": e.get("date", ""),
-                "url": e.get("url", ""),
-                "city": "Tel Aviv",
-                "source": "Secret Tel Aviv",
-            })
+        raw = page.evaluate("""() => {
+            const results = [];
+            const seen = new Set();
+            // All internal event links
+            document.querySelectorAll('a[href*="secrettelaviv.com/event"], a[href*="secrettelaviv.com/tickets/"]').forEach(a => {
+                const href = a.href;
+                // Skip category/navigation pages
+                if (href.includes('/categories/') || href.endsWith('/tickets/')) return;
+                const text = a.innerText.trim() || a.querySelector('h2,h3,h4,[class*="title"]')?.innerText?.trim() || '';
+                if (text.length > 3 && !seen.has(href)) {
+                    seen.add(href);
+                    // Look for date nearby
+                    const parent = a.closest('article') || a.closest('li') || a.parentElement;
+                    const dateEl = parent ? parent.querySelector('time, [class*="date"]') : null;
+                    const date = dateEl ? (dateEl.getAttribute('datetime') || dateEl.innerText.trim()) : '';
+                    results.push({ title: text, url: href, date });
+                }
+            });
+            return results.slice(0, 10);
+        }""")
+
+        for e in raw:
+            if e.get("title") and e["url"] not in seen:
+                seen.add(e["url"])
+                events.append({
+                    "name": e["title"],
+                    "date": e.get("date", ""),
+                    "url": e.get("url", ""),
+                    "city": "Tel Aviv",
+                    "source": "Secret Tel Aviv",
+                })
 
     print(f"[secret_tlv] Found {len(events)} events")
     for e in events[:3]:
