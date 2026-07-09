@@ -132,7 +132,7 @@ async def generate_weekly_deals(raw_data: dict | None = None) -> dict:
 
     # Pick best deal per supermarket (in parallel)
     import asyncio
-    shufersal_deal, rami_deal, carrefour_deal = await asyncio.gather(
+    shufersal_deal, rami_deal, hazi_hinam_deal = await asyncio.gather(
         _pick_best_deal("Shufersal", raw_data["shufersal"]),
         _pick_best_deal("Rami Levy", raw_data["rami_levy"]),
         _pick_best_deal("Hazi Hinam", raw_data["carrefour"]),
@@ -140,7 +140,7 @@ async def generate_weekly_deals(raw_data: dict | None = None) -> dict:
 
     shufersal_str = _format_deal(shufersal_deal)
     rami_str = _format_deal(rami_deal)
-    carrefour_str = _format_deal(carrefour_deal)
+    hazi_hinam_str = _format_deal(hazi_hinam_deal)
 
     # Generate combined messages
     logger.info("[weekly_deal] Generating FR + RU messages...")
@@ -151,7 +151,7 @@ async def generate_weekly_deals(raw_data: dict | None = None) -> dict:
             messages=[{"role": "user", "content": COMBINED_FR_PROMPT.format(
                 shufersal=shufersal_str,
                 rami_levy=rami_str,
-                carrefour=carrefour_str,
+                carrefour=hazi_hinam_str,
                 link_shufersal=SUPERMARKET_LINKS["shufersal"],
                 link_rami=SUPERMARKET_LINKS["rami_levy"],
                 link_carrefour=SUPERMARKET_LINKS["carrefour"],
@@ -163,7 +163,7 @@ async def generate_weekly_deals(raw_data: dict | None = None) -> dict:
             messages=[{"role": "user", "content": COMBINED_RU_PROMPT.format(
                 shufersal=shufersal_str,
                 rami_levy=rami_str,
-                carrefour=carrefour_str,
+                carrefour=hazi_hinam_str,
                 link_shufersal=SUPERMARKET_LINKS["shufersal"],
                 link_rami=SUPERMARKET_LINKS["rami_levy"],
                 link_carrefour=SUPERMARKET_LINKS["carrefour"],
@@ -184,7 +184,7 @@ async def generate_weekly_deals(raw_data: dict | None = None) -> dict:
                 week,
                 json.dumps(shufersal_deal, ensure_ascii=False),
                 json.dumps(rami_deal, ensure_ascii=False),
-                json.dumps(carrefour_deal, ensure_ascii=False),
+                json.dumps(hazi_hinam_deal, ensure_ascii=False),
                 content_fr,
                 content_ru,
                 datetime.utcnow().isoformat(),
@@ -201,6 +201,6 @@ async def generate_weekly_deals(raw_data: dict | None = None) -> dict:
         "deals": {
             "shufersal": shufersal_str,
             "rami_levy": rami_str,
-            "carrefour": carrefour_str,
+            "hazi_hinam": hazi_hinam_str,
         },
     }

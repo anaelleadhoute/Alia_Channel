@@ -113,76 +113,60 @@ def scrape_rami_levy(page) -> list[dict]:
 
 
 def scrape_hazi_hinam(page) -> list[dict]:
-    print("[hazi_hinam] Loading specials page...")
+    print("[hazi_hinam] Loading campaign page...")
     api_data = []
 
     def handle_response(response):
         url = response.url
-        if "hazi-hinam.co.il" in url and any(k in url for k in ["/api/", "catalog", "special", "product", "sale", "promo", "items"]):
+        if "hazi-hinam.co.il" in url and "/proxy/api/" in url:
             try:
                 body = response.json()
                 api_data.append({"url": url, "body": body})
-                print(f"  [hazi_hinam] Captured API: {url[:80]}")
+                print(f"  [hazi_hinam] Captured API: {url[:100]}")
             except Exception:
                 pass
 
     page.on("response", handle_response)
-    page.goto("https://shop.hazi-hinam.co.il/specials", wait_until="domcontentloaded", timeout=30000)
+    # Homepage already fires getItemsPromoted — no need for campaign URL
+    page.goto("https://shop.hazi-hinam.co.il/", wait_until="domcontentloaded", timeout=30000)
     page.wait_for_timeout(5000)
 
     items = []
     for capture in api_data:
+        url = capture["url"]
         body = capture["body"]
-        products = (
-            body.get("data") or body.get("items") or body.get("products") or
-            body.get("result") or (body if isinstance(body, list) else [])
-        )
-        if isinstance(products, list):
-            for p in products[:30]:
-                if isinstance(p, dict):
-                    name = p.get("name") or p.get("title") or ""
-                    price = p.get("price") or p.get("salePrice") or p.get("specialPrice") or ""
-                    if name:
-                        items.append({"text": f"{name} - {price}₪".strip(" -₪") + ("₪" if price else "")})
+        if "getItemsPromoted" not in url and "GetItemsPromoted" not in url:
+            continue
+
+        results = body.get("Results") or body
+        raw = results.get("PromotedItems") or results.get("Items") or results.get("items") or []
+        print(f"  [hazi_hinam] PromotedItems type: {type(raw)}, value preview: {str(raw)[:200]}")
+        # Flatten: if it's a dict of lists, merge them
+        if isinstance(raw, dict):
+            products = []
+            for v in raw.values():
+                if isinstance(v, list):
+                    products.extend(v)
+        elif isinstance(raw, list):
+            products = raw
+        else:
+            products = []
+        for p in products[:30]:
+            if not isinstance(p, dict):
+                continue
+            name = p.get("Name") or p.get("name") or p.get("ShortName") or ""
+            price = p.get("SalePrice") or p.get("Price") or p.get("price") or ""
+            discount = p.get("DiscountPercent") or p.get("Discount") or ""
+            if name:
+                suffix = f" - {price}₪" if price else ""
+                if discount:
+                    suffix += f" (-{discount}%)"
+                items.append({"text": f"{name}{suffix}"})
+        if items:
+            break
 
     if not items:
-        items = page.evaluate("""() => {
-            const results = [];
-            const selectors = [
-                '[data-testid*="product"]', '[class*="ProductCard"]',
-                '[class*="product-card"]', '[class*="ProductItem"]',
-                '[class*="SpecialItem"]', '.product', '.special',
-            ];
-            for (const sel of selectors) {
-                document.querySelectorAll(sel).forEach(card => {
-                    const text = card.innerText.replace(/\\s+/g, ' ').trim();
-                    if (text.length > 10 && text.length < 300 && (text.includes('₪') || text.includes('%'))) {
-                        results.push({ text });
-                    }
-                });
-                if (results.length > 0) break;
-            }
-            if (results.length === 0) {
-                const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-                let node;
-                const seen = new Set();
-                while ((node = walker.nextNode()) && results.length < 30) {
-                    const t = node.textContent.trim();
-                    if (t.length > 5 && t.length < 150 && (t.includes('₪') || t.includes('%')) && !seen.has(t)) {
-                        seen.add(t);
-                        results.push({ text: t });
-                    }
-                }
-            }
-            return results.slice(0, 30);
-        }""")
-
-    if not items:
-        title = page.title()
-        print(f"  [hazi_hinam] Page title: {title} | URL: {page.url}")
-        print(f"  [hazi_hinam] API calls captured: {len(api_data)}")
-        for c in api_data[:3]:
-            print(f"    → {c['url'][:100]}")
+        print(f"  [hazi_hinam] Could not parse items. API calls: {[c['url'] for c in api_data]}")
 
     print(f"[hazi_hinam] Found {len(items)} items")
     return items
@@ -292,6 +276,7 @@ def scrape_shufersal_telegram() -> list[dict]:
 def run():
     import sys
     debug = "--debug" in sys.argv
+    force = "--force" in sys.argv
     print("=== AL.IA Supermarket Deal Scraper ===")
 
     # Shufersal via httpx (no browser needed)
@@ -331,6 +316,7 @@ def run():
         "shufersal": shufersal_items,
         "rami_levy": rami_levy_items,
         "carrefour": hazi_hinam_items,  # reuses carrefour slot in API
+        "force": force,
     }
 
     print(f"\n[send] Shufersal: {len(shufersal_items)} | Rami Levy: {len(rami_levy_items)} | Hazi Hinam: {len(hazi_hinam_items)}")
