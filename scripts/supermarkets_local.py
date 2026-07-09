@@ -251,26 +251,68 @@ def scrape_carrefour(page) -> list[dict]:
     return items
 
 
-def scrape_shufersal_telegram() -> list[dict]:
-    """Shufersal: use plain httpx (Telegram doesn't need JS)."""
-    print("[shufersal] Fetching Telegram channel...")
-    try:
-        resp = httpx.get("https://t.me/s/shufersaloffocial", headers=HEADERS, timeout=15, follow_redirects=True)
-        from bs4 import BeautifulSoup
-        soup = BeautifulSoup(resp.text, "html.parser")
-        items = []
-        for msg in soup.find_all("div", attrs={"data-post": True}):
-            text_el = msg.select_one(".tgme_widget_message_text")
-            if text_el:
-                text = text_el.get_text(separator=" ", strip=True)
-                if text:
-                    items.append({"text": text[:300]})
-        items = items[-10:]
-        print(f"[shufersal] Found {len(items)} messages")
-        return items
-    except Exception as e:
-        print(f"[shufersal] Error: {e}")
-        return []
+def scrape_shufersal(page) -> list[dict]:
+    """Shufersal: scrape promo page via Playwright, intercept API calls."""
+    print("[shufersal] Loading promo page...")
+    api_data = []
+
+    def handle_response(response):
+        url = response.url
+        if "shufersal.co.il" in url and any(k in url for k in ["/api/", "product", "promo", "sale", "catalog", "search"]):
+            try:
+                body = response.json()
+                api_data.append({"url": url, "body": body})
+                print(f"  [shufersal] Captured API: {url[:100]}")
+            except Exception:
+                pass
+
+    page.on("response", handle_response)
+    page.goto("https://www.shufersal.co.il/online/he/promo/A", wait_until="domcontentloaded", timeout=30000)
+    page.wait_for_timeout(5000)
+
+    items = []
+    for capture in api_data:
+        url = capture["url"]
+        body = capture["body"]
+        # Try to find product lists in common response shapes
+        products = None
+        if isinstance(body, dict):
+            products = (
+                body.get("products") or body.get("items") or body.get("results") or
+                body.get("Products") or body.get("Items") or
+                body.get("data", {}).get("products") if isinstance(body.get("data"), dict) else None
+            )
+        elif isinstance(body, list):
+            products = body
+        if isinstance(products, list):
+            for p in products[:30]:
+                if not isinstance(p, dict):
+                    continue
+                name = p.get("name") or p.get("Name") or p.get("title") or ""
+                price = p.get("price") or p.get("Price") or p.get("salePrice") or ""
+                if name and (price or "₪" in str(p)):
+                    items.append({"text": f"{name} - {price}₪" if price else name})
+            if items:
+                break
+
+    # DOM fallback
+    if not items:
+        items = page.evaluate("""() => {
+            const results = [];
+            document.querySelectorAll('[class*="product"], [class*="item"], [data-product]').forEach(card => {
+                const text = card.innerText.replace(/\\s+/g, ' ').trim();
+                if (text.length > 10 && text.length < 300 && text.includes('₪')) {
+                    results.push({ text });
+                }
+            });
+            return results.slice(0, 30);
+        }""")
+
+    if not items:
+        print(f"  [shufersal] 0 items. API calls: {[c['url'] for c in api_data]}")
+
+    print(f"[shufersal] Found {len(items)} items")
+    return items
 
 
 def run():
@@ -279,10 +321,6 @@ def run():
     force = "--force" in sys.argv
     print("=== AL.IA Supermarket Deal Scraper ===")
 
-    # Shufersal via httpx (no browser needed)
-    shufersal_items = scrape_shufersal_telegram()
-
-    # Rami Levy + Carrefour via Playwright
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=not debug)
         context = browser.new_context(
@@ -291,6 +329,15 @@ def run():
             extra_http_headers={"Accept-Language": "he-IL,he;q=0.9"},
         )
         page = context.new_page()
+
+        try:
+            shufersal_items = scrape_shufersal(page)
+            if debug and not shufersal_items:
+                page.screenshot(path="/tmp/shufersal_debug.png")
+                print("  [debug] Screenshot saved to /tmp/shufersal_debug.png")
+        except Exception as e:
+            print(f"[shufersal] Failed: {e}")
+            shufersal_items = []
 
         try:
             rami_levy_items = scrape_rami_levy(page)
