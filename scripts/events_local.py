@@ -84,7 +84,7 @@ def scrape_meetup_city(page, city: dict) -> list[dict]:
 
     print(f"[meetup] {city['name']}: {len(events)} events found")
     for e in events[:3]:
-        print(f"  → {e['title'][:80]}")
+        print(f"  → {e['name'][:80]}")
     return events
 
 
