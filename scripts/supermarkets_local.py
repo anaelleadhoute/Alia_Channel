@@ -72,13 +72,10 @@ def scrape_rami_levy(page) -> list[dict]:
                 name = p.get("name") or p.get("Name") or ""
                 price = (p.get("price") or {})
                 price_val = price.get("price") or price.get("sale_price") or price if not isinstance(price, dict) else ""
-                product_id = p.get("id") or p.get("Id") or ""
-                slug = p.get("slug") or p.get("se_name") or ""
+                product_id = p.get("id") or p.get("Id") or p.get("sale_id") or p.get("SaleId") or ""
                 product_url = ""
                 if product_id:
-                    product_url = f"https://www.rami-levy.co.il/he/online/product/{product_id}"
-                    if slug:
-                        product_url += f"/{slug}"
+                    product_url = f"https://www.rami-levy.co.il/he/online/feed?sale={product_id}"
                 if name:
                     item = {"text": f"{name} - {price_val}₪" if price_val else name}
                     if product_url:
@@ -149,10 +146,10 @@ def scrape_hazi_hinam(page) -> list[dict]:
                 if discount:
                     suffix += f" (-{discount}%)"
                 item = {"text": f"{name}{suffix}"}
-                if product_id:
-                    item["url"] = f"https://shop.hazi-hinam.co.il/item/{product_id}"
-                elif barcode:
-                    item["url"] = f"https://shop.hazi-hinam.co.il/item/{barcode}"
+                if product_id and barcode:
+                    from urllib.parse import quote
+                    name_slug = name.replace(" - ", "-").replace(" ", "-")
+                    item["url"] = f"https://shop.hazi-hinam.co.il/catalog/products/{product_id}/{barcode}/{quote(name_slug, safe='-')}"
                 items.append(item)
         if items:
             break
