@@ -173,6 +173,64 @@ def scrape_eventbrite(page) -> list[dict]:
     return events
 
 
+def scrape_telaviv_municipality(page) -> list[dict]:
+    print("[tlv_city] Loading Tel Aviv municipality events...")
+    events = []
+
+    def _get_field(fields, name):
+        for f in fields:
+            if f.get("InternalName") == name:
+                return f.get("Value") or ""
+        return ""
+
+    with page.expect_response(lambda r: "GetEvBenList" in r.url, timeout=30000) as resp_info:
+        try:
+            page.goto(
+                "https://www.tel-aviv.gov.il/Visitors/Events/Pages/Events.aspx?AudID=1,2,7&DO=false&Free=false&Morning=false&Noon=false&Evening=false&Tickets=false&DtRng=-1",
+                wait_until="domcontentloaded", timeout=25000
+            )
+        except Exception:
+            pass
+
+    try:
+        api_data = resp_info.value.json()
+    except Exception as e:
+        print(f"[tlv_city] API parse error: {e}")
+        return []
+
+    for item in (api_data if isinstance(api_data, list) else [])[:25]:
+        fields = item.get("Fields") or []
+        title = _get_field(fields, "Title")
+        if not title or len(title) < 3:
+            continue
+        date = _get_field(fields, "TlvStartDate")
+        interests = _get_field(fields, "TlvFieldsOfInterests").lower()
+        if "מוסיקה" in interests or "music" in interests:
+            url = "https://www.tel-aviv.gov.il/Visitors/Events/Pages/Music.aspx?IntsID=4"
+        elif "תיאטרון" in interests or "מופעים" in interests:
+            url = "https://www.tel-aviv.gov.il/Visitors/Events/Pages/Theater.aspx?IntsID=3"
+        elif "סיור" in interests or "tour" in interests:
+            url = "https://www.tel-aviv.gov.il/Visitors/Events/Pages/Tours.aspx?IntsID=6"
+        elif "ספורט" in interests or "sport" in interests:
+            url = "https://www.tel-aviv.gov.il/Visitors/Events/Pages/Sport.aspx?IntsID=9,10"
+        elif "פעילות" in interests or "outdoor" in interests:
+            url = "https://www.tel-aviv.gov.il/Visitors/Events/Pages/OutdoorActivities.aspx?IntsID=1"
+        else:
+            url = "https://www.tel-aviv.gov.il/Visitors/Events/Pages/Events.aspx"
+        events.append({
+            "name": title,
+            "date": date,
+            "url": url,
+            "city": "Tel Aviv",
+            "source": "Mairie de Tel Aviv",
+        })
+
+    print(f"[tlv_city] Found {len(events)} events")
+    for e in events[:3]:
+        print(f"  → {e['name'][:80]}")
+    return events
+
+
 def run():
     debug = "--debug" in sys.argv
     force = "--force" in sys.argv
@@ -210,6 +268,13 @@ def run():
             context.close()
         except Exception as e:
             print(f"[eventbrite] Failed: {e}")
+
+        try:
+            context = browser.new_context(**ctx_opts)
+            all_events.extend(scrape_telaviv_municipality(context.new_page()))
+            context.close()
+        except Exception as e:
+            print(f"[tlv_city] Failed: {e}")
 
         browser.close()
 
