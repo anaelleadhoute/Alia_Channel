@@ -72,8 +72,18 @@ def scrape_rami_levy(page) -> list[dict]:
                 name = p.get("name") or p.get("Name") or ""
                 price = (p.get("price") or {})
                 price_val = price.get("price") or price.get("sale_price") or price if not isinstance(price, dict) else ""
+                product_id = p.get("id") or p.get("Id") or ""
+                slug = p.get("slug") or p.get("se_name") or ""
+                product_url = ""
+                if product_id:
+                    product_url = f"https://www.rami-levy.co.il/he/online/product/{product_id}"
+                    if slug:
+                        product_url += f"/{slug}"
                 if name:
-                    items.append({"text": f"{name} - {price_val}₪" if price_val else name})
+                    item = {"text": f"{name} - {price_val}₪" if price_val else name}
+                    if product_url:
+                        item["url"] = product_url
+                    items.append(item)
         if items:
             break
 
@@ -132,11 +142,18 @@ def scrape_hazi_hinam(page) -> list[dict]:
             name = p.get("Name") or p.get("name") or p.get("ShortName") or ""
             price = p.get("SalePrice") or p.get("Price") or p.get("price") or ""
             discount = p.get("DiscountPercent") or p.get("Discount") or ""
+            product_id = p.get("Id") or p.get("id") or ""
+            barcode = p.get("BarKod") or p.get("Barcode") or ""
             if name:
                 suffix = f" - {price}₪" if price else ""
                 if discount:
                     suffix += f" (-{discount}%)"
-                items.append({"text": f"{name}{suffix}"})
+                item = {"text": f"{name}{suffix}"}
+                if product_id:
+                    item["url"] = f"https://shop.hazi-hinam.co.il/item/{product_id}"
+                elif barcode:
+                    item["url"] = f"https://shop.hazi-hinam.co.il/item/{barcode}"
+                items.append(item)
         if items:
             break
 
