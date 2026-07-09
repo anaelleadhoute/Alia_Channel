@@ -110,7 +110,7 @@ def _format_events_text(events: list[dict]) -> str:
     return "\n".join(lines)
 
 
-async def generate_weekly_events(force: bool = False) -> dict:
+async def generate_weekly_events(force: bool = False, raw_events: list[dict] | None = None) -> dict:
     week = datetime.utcnow().strftime("%Y-W%W")
 
     async with get_db() as db:
@@ -119,7 +119,10 @@ async def generate_weekly_events(force: bool = False) -> dict:
     if existing and not force:
         return {"status": "skipped", "week": week, "weekly_event_id": existing["id"]}
 
-    events = await fetch_events()
+    if raw_events is not None:
+        events = raw_events
+    else:
+        events = await fetch_events()
     if not events:
         return {"status": "error", "reason": "no events found"}
 

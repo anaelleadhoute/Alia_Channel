@@ -199,6 +199,30 @@ async def scrape_events_force():
     return await generate_weekly_events(force=True)
 
 
+class EventsPayload(BaseModel):
+    events: list[dict] = []
+    force: bool = False
+
+
+@router.post("/events/manual")
+async def scrape_events_manual(body: EventsPayload):
+    """Receive pre-scraped events from local Mac scraper and generate weekly message."""
+    from processors.events_processor import generate_weekly_events
+
+    result = await generate_weekly_events(force=body.force, raw_events=body.events)
+
+    auto = await _is_auto_publish()
+    if auto and result.get("weekly_event_id") and result.get("status") == "generated":
+        try:
+            await _auto_publish_item("weekly_events", "id", result["weekly_event_id"])
+            result["auto_published"] = True
+        except Exception as e:
+            result["auto_published"] = False
+            result["auto_publish_error"] = str(e)
+
+    return result
+
+
 @router.post("/cleanup")
 async def cleanup():
     """Delete sent articles older than 30 days and rejected older than 7 days."""
