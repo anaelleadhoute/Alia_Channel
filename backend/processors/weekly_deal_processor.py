@@ -101,6 +101,7 @@ async def _pick_best_deal(supermarket_name: str, items: list[dict], db_col: str 
     # Hard-exclude recently picked products by filtering them from the items list
     if db_col:
         recent = await _get_recent_picks(db_col)
+        logger.info(f"[{supermarket_name}] Recent picks: {recent}")
         if recent:
             import re as _re
             def _significant_words(s: str) -> set:
@@ -117,6 +118,7 @@ async def _pick_best_deal(supermarket_name: str, items: list[dict], db_col: str 
                 return False
 
             filtered = [it for it in items if not _was_picked(it["text"])]
+            logger.info(f"[{supermarket_name}] Items before filter: {len(items)}, after: {len(filtered)}")
             if filtered:
                 items = filtered
 
