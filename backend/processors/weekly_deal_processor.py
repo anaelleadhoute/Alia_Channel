@@ -102,11 +102,21 @@ async def _pick_best_deal(supermarket_name: str, items: list[dict], db_col: str 
     if db_col:
         recent = await _get_recent_picks(db_col)
         if recent:
+            import re as _re
+            def _significant_words(s: str) -> set:
+                return {w for w in _re.findall(r'[\wא-ת]+', s.lower()) if len(w) > 3}
+
             def _was_picked(text: str) -> bool:
-                t = text.lower()
-                return any(p.lower()[:20] in t for p in recent if p)
+                item_words = _significant_words(text)
+                for p in recent:
+                    if not p:
+                        continue
+                    pick_words = _significant_words(p)
+                    if pick_words and len(pick_words & item_words) >= 2:
+                        return True
+                return False
+
             filtered = [it for it in items if not _was_picked(it["text"])]
-            # Only apply filter if it leaves at least 1 item
             if filtered:
                 items = filtered
 
