@@ -76,7 +76,7 @@ def scrape_meetup_city(page, city: dict) -> list[dict]:
     for e in raw:
         if e.get("title"):
             events.append({
-                "title": e["title"],
+                "name": e["title"],
                 "date": e.get("date", ""),
                 "url": e.get("url", ""),
                 "city": city["name"],
@@ -114,7 +114,16 @@ def run():
 
         browser.close()
 
-    print(f"\n[send] Total events: {len(all_events)}")
+    # Deduplicate by name across cities
+    seen_names = set()
+    unique_events = []
+    for e in all_events:
+        if e["name"] not in seen_names:
+            seen_names.add(e["name"])
+            unique_events.append(e)
+    all_events = unique_events
+
+    print(f"\n[send] Total unique events: {len(all_events)}")
     if not all_events:
         print("[send] No events found, aborting.")
         return
