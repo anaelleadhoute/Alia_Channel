@@ -152,18 +152,14 @@ async def scrape_supermarkets_manual(body: SupermarketPayload):
 
     week = datetime.utcnow().strftime("%Y-W%W")
 
-    if body.force:
-        async with get_db() as db:
-            await db.execute("DELETE FROM weekly_deals WHERE week = ?", (week,))
-            await db.commit()
-
     raw_data = {
         "shufersal": body.shufersal,
         "rami_levy": body.rami_levy,
         "carrefour": body.carrefour,
     }
 
-    result = await generate_weekly_deals(raw_data=raw_data)
+    # Delete AFTER we've captured previous picks (done inside generate_weekly_deals)
+    result = await generate_weekly_deals(raw_data=raw_data, force=body.force)
 
     auto = await _is_auto_publish()
     if auto and result.get("weekly_deal_id") and result.get("status") == "generated":

@@ -154,10 +154,11 @@ def _format_deal(deal: dict) -> str:
     return " ".join(parts)
 
 
-async def generate_weekly_deals(raw_data: dict | None = None) -> dict:
+async def generate_weekly_deals(raw_data: dict | None = None, force: bool = False) -> dict:
     """Full pipeline: scrape → pick best deal per super → generate combined FR+RU message.
 
     raw_data: pre-scraped items dict (from local Mac scraper). If None, scrapes automatically.
+    force: regenerate even if this week already exists (deletes after picking, so exclusion still works).
     """
     week = datetime.utcnow().strftime("%Y-W%W")
 
@@ -165,7 +166,7 @@ async def generate_weekly_deals(raw_data: dict | None = None) -> dict:
     async with get_db() as db:
         cursor = await db.execute("SELECT id FROM weekly_deals WHERE week = ?", (week,))
         existing = await cursor.fetchone()
-    if existing:
+    if existing and not force:
         return {"status": "skipped", "week": week, "weekly_deal_id": existing["id"]}
 
     if raw_data is None:
@@ -216,8 +217,10 @@ async def generate_weekly_deals(raw_data: dict | None = None) -> dict:
     content_fr = fr_response.content[0].text.strip()
     content_ru = ru_response.content[0].text.strip()
 
-    # Save to DB
+    # Save to DB (delete existing first if force)
     async with get_db() as db:
+        if force:
+            await db.execute("DELETE FROM weekly_deals WHERE week = ?", (week,))
         cursor = await db.execute(
             """INSERT INTO weekly_deals
                (week, shufersal_json, rami_levy_json, carrefour_json, content_fr, content_ru, created_at)
