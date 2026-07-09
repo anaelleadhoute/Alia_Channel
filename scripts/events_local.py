@@ -99,7 +99,7 @@ def scrape_secret_telaviv(page) -> list[dict]:
     page.evaluate("window.scrollBy(0, 1000)")
     page.wait_for_timeout(2000)
 
-raw = page.evaluate("""() => {
+    raw = page.evaluate("""() => {
         const results = [];
         const seen = new Set();
         document.querySelectorAll('li[class*="event-"]').forEach(card => {
