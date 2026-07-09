@@ -311,21 +311,12 @@ def scrape_shufersal(page) -> list[dict]:
                 '[class*="ProductItem"]', '[class*="product-item"]',
                 '[data-product]', 'article',
             ];
-            const getUrl = (el) => {
-                const a = el.closest('a') || el.querySelector('a');
-                if (a && a.href && a.href.includes('shufersal.co.il')) return a.href;
-                return null;
-            };
-
             for (const sel of cardSelectors) {
                 document.querySelectorAll(sel).forEach(card => {
                     const text = card.innerText.replace(/\\s+/g, ' ').trim();
                     if (text.length > 15 && text.length < 400 && text.includes('₪') && !seen.has(text)) {
                         seen.add(text);
-                        const item = { text };
-                        const url = getUrl(card);
-                        if (url) item.url = url;
-                        results.push(item);
+                        results.push({ text });
                     }
                 });
                 if (results.length >= 5) break;
@@ -343,10 +334,7 @@ def scrape_shufersal(page) -> list[dict]:
                         const pt = parent.innerText ? parent.innerText.replace(/\\s+/g, ' ').trim() : '';
                         if (pt.length > t.length + 3 && pt.length < 400 && !seen.has(pt)) {
                             seen.add(pt);
-                            const item = { text: pt };
-                            const url = getUrl(parent);
-                            if (url) item.url = url;
-                            results.push(item);
+                            results.push({ text: pt });
                             break;
                         }
                         parent = parent.parentElement;
