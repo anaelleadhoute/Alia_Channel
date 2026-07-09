@@ -88,62 +88,60 @@ def scrape_meetup_city(page, city: dict) -> list[dict]:
     return events
 
 
-SECRET_CATEGORIES = [
-    "https://www.secrettelaviv.com/tickets/categories/parties/",
-    "https://www.secrettelaviv.com/tickets/categories/live-music",
-    "https://www.secrettelaviv.com/tickets/categories/culture-highlights/",
-]
-
 def scrape_secret_telaviv(page) -> list[dict]:
-    print("[secret_tlv] Scraping categories...")
+    print("[secret_tlv] Loading calendar...")
     events = []
-    seen = set()
+    try:
+        page.goto("https://www.secrettelaviv.com/tickets", wait_until="domcontentloaded", timeout=25000)
+    except Exception:
+        pass
+    page.wait_for_timeout(8000)
+    for _ in range(5):
+        page.evaluate("window.scrollBy(0, 600)")
+        page.wait_for_timeout(800)
 
-    for cat_url in SECRET_CATEGORIES:
-        try:
-            page.goto(cat_url, wait_until="domcontentloaded", timeout=25000)
-        except Exception:
-            pass
-        page.wait_for_timeout(6000)
-        for _ in range(3):
-            page.evaluate("window.scrollBy(0, 800)")
-            page.wait_for_timeout(1000)
+    # Get raw HTML and parse event links from it
+    import re
+    html = page.content()
+    # Find all event links: secrettelaviv.com/event/... or /tickets/event-name patterns
+    links = re.findall(r'href="(https://www\.secrettelaviv\.com/(?:event|tickets/[^"#?]+?)[^"#?]*)"', html)
+    # Get anchor text near those links
+    raw = page.evaluate("""() => {
+        const results = [];
+        const seen = new Set();
+        document.querySelectorAll('li[class*="event-"]').forEach(li => {
+            const a = li.querySelector('a');
+            if (!a) return;
+            const href = a.href;
+            const title = a.title || a.getAttribute('data-event-title') || li.getAttribute('data-title') || li.getAttribute('title') || '';
+            const tooltip = li.getAttribute('data-tooltip') || li.getAttribute('data-content') || '';
+            const allAttrs = {};
+            for (const attr of li.attributes) allAttrs[attr.name] = attr.value;
+            if (!seen.has(href)) {
+                seen.add(href);
+                results.push({ href, title, tooltip, attrs: JSON.stringify(allAttrs) });
+            }
+        });
+        return results.slice(0, 20);
+    }""")
 
-        raw = page.evaluate("""() => {
-            const results = [];
-            const seen = new Set();
-            // All internal event links
-            document.querySelectorAll('a[href*="secrettelaviv.com/event"], a[href*="secrettelaviv.com/tickets/"]').forEach(a => {
-                const href = a.href;
-                // Skip category/navigation pages
-                if (href.includes('/categories/') || href.endsWith('/tickets/')) return;
-                const text = a.innerText.trim() || a.querySelector('h2,h3,h4,[class*="title"]')?.innerText?.trim() || '';
-                if (text.length > 3 && !seen.has(href)) {
-                    seen.add(href);
-                    // Look for date nearby
-                    const parent = a.closest('article') || a.closest('li') || a.parentElement;
-                    const dateEl = parent ? parent.querySelector('time, [class*="date"]') : null;
-                    const date = dateEl ? (dateEl.getAttribute('datetime') || dateEl.innerText.trim()) : '';
-                    results.push({ title: text, url: href, date });
-                }
-            });
-            return results.slice(0, 10);
-        }""")
+    print(f"  [secret_tlv] Calendar items: {len(raw)}")
+    for item in raw[:3]:
+        print(f"  [secret_tlv] Item: {item}")
 
-        for e in raw:
-            if e.get("title") and e["url"] not in seen:
-                seen.add(e["url"])
-                events.append({
-                    "name": e["title"],
-                    "date": e.get("date", ""),
-                    "url": e.get("url", ""),
-                    "city": "Tel Aviv",
-                    "source": "Secret Tel Aviv",
-                })
+    for item in raw:
+        name = item.get("title") or item.get("tooltip") or ""
+        url = item.get("href", "")
+        if url and not name:
+            # Extract name from URL slug
+            slug = url.rstrip("/").split("/")[-1]
+            name = slug.replace("-", " ").title()
+        if name and url:
+            events.append({"name": name, "date": "", "url": url, "city": "Tel Aviv", "source": "Secret Tel Aviv"})
 
     print(f"[secret_tlv] Found {len(events)} events")
     for e in events[:3]:
-        print(f"  → {e['name'][:80]}")
+        print(f"  → {e['name'][:80]} | {e['url'][:80]}")
     return events
 
 
