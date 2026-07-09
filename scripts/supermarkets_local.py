@@ -66,6 +66,8 @@ def scrape_rami_levy(page) -> list[dict]:
         # Rami Levy sales API: {"data": [...products...]}
         products = body.get("data") or (body if isinstance(body, list) else [])
         if isinstance(products, list):
+            if products:
+                print(f"  [rami_levy] First product full: {products[0]}")
             for p in products[:30]:
                 if not isinstance(p, dict):
                     continue

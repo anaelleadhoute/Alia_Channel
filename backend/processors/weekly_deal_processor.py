@@ -143,7 +143,9 @@ async def _pick_best_deal(supermarket_name: str, items: list[dict], db_col: str 
 
         # Look up URL using the index Claude returned
         idx = deal.get("index")
+        logger.info(f"[{supermarket_name}] Claude picked index={idx} product={deal.get('product')}")
         if idx is not None and isinstance(idx, int) and 0 <= idx < len(candidates):
+            logger.info(f"[{supermarket_name}] Candidate at index {idx}: {candidates[idx].get('text','')[:80]} url={candidates[idx].get('url','')}")
             url = candidates[idx].get("url")
             if url:
                 deal["url"] = url
