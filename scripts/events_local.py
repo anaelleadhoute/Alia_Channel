@@ -127,6 +127,52 @@ def scrape_secret_telaviv(page) -> list[dict]:
     return events
 
 
+def scrape_eventbrite(page) -> list[dict]:
+    print("[eventbrite] Loading Israel events...")
+    events = []
+    try:
+        page.goto("https://www.eventbrite.com/d/israel/events/", wait_until="domcontentloaded", timeout=25000)
+    except Exception:
+        pass
+    page.wait_for_timeout(8000)
+    for _ in range(4):
+        page.evaluate("window.scrollBy(0, 800)")
+        page.wait_for_timeout(800)
+
+    raw = page.evaluate("""() => {
+        const results = [];
+        const seen = new Set();
+        document.querySelectorAll('a[href*="eventbrite.com/e/"]').forEach(a => {
+            const href = a.href.split('?')[0];
+            const card = a.closest('article') || a.closest('[class*="card"]') || a.closest('li') || a;
+            const titleEl = card.querySelector('h2, h3, [class*="title"], [class*="name"]') || a;
+            const title = titleEl.innerText.trim().split('\\n')[0].trim();
+            const dateEl = card.querySelector('time, [class*="date"], [class*="when"], p');
+            const date = dateEl ? dateEl.innerText.trim() : '';
+            if (title && title.length > 3 && !seen.has(href)) {
+                seen.add(href);
+                results.push({ title, url: href, date });
+            }
+        });
+        return results.slice(0, 20);
+    }""")
+
+    for e in raw:
+        if e.get("title"):
+            events.append({
+                "name": e["title"],
+                "date": e.get("date", ""),
+                "url": e.get("url", ""),
+                "city": "Israel",
+                "source": "Eventbrite",
+            })
+
+    print(f"[eventbrite] Found {len(events)} events")
+    for e in events[:3]:
+        print(f"  → {e['name'][:80]}")
+    return events
+
+
 def run():
     debug = "--debug" in sys.argv
     force = "--force" in sys.argv
@@ -157,6 +203,13 @@ def run():
             context.close()
         except Exception as e:
             print(f"[secret_tlv] Failed: {e}")
+
+        try:
+            context = browser.new_context(**ctx_opts)
+            all_events.extend(scrape_eventbrite(context.new_page()))
+            context.close()
+        except Exception as e:
+            print(f"[eventbrite] Failed: {e}")
 
         browser.close()
 
