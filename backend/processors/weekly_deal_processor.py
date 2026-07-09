@@ -21,7 +21,7 @@ PICK_DEAL_PROMPT = """Tu es expert en promotions supermarché en Israël pour de
 
 Voici les dernières promotions disponibles chez {supermarket_name} :
 {items_text}
-{exclude_section}
+
 Sélectionne le MEILLEUR deal de la semaine pour des familles d'olim.
 Critères : réduction significative, produit courant (nourriture, hygiène, etc.), pas trop niche.
 
@@ -98,14 +98,19 @@ async def _pick_best_deal(supermarket_name: str, items: list[dict], db_col: str 
     if not items:
         return {"product": None, "price": None, "description": f"Aucune promo trouvée"}
 
-    items_text = "\n".join(f"- {item['text']}" for item in items[:15])
-
-    exclude_section = ""
+    # Hard-exclude recently picked products by filtering them from the items list
     if db_col:
         recent = await _get_recent_picks(db_col)
         if recent:
-            exclude_section = "\nProduits déjà mis en avant récemment (évite de les choisir à nouveau si possible) :\n"
-            exclude_section += "\n".join(f"- {p}" for p in recent) + "\n"
+            def _was_picked(text: str) -> bool:
+                t = text.lower()
+                return any(p.lower()[:20] in t for p in recent if p)
+            filtered = [it for it in items if not _was_picked(it["text"])]
+            # Only apply filter if it leaves at least 1 item
+            if filtered:
+                items = filtered
+
+    items_text = "\n".join(f"- {item['text']}" for item in items[:15])
 
     try:
         response = await client.messages.create(
@@ -114,7 +119,6 @@ async def _pick_best_deal(supermarket_name: str, items: list[dict], db_col: str 
             messages=[{"role": "user", "content": PICK_DEAL_PROMPT.format(
                 supermarket_name=supermarket_name,
                 items_text=items_text,
-                exclude_section=exclude_section,
             )}],
         )
         import re
