@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 client = anthropic.AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
 SUPERMARKET_LINKS = {
-    "shufersal": "https://www.shufersal.co.il/online/he/specials",
+    "shufersal": "https://www.shufersal.co.il/online/he/promo/A",
     "rami_levy": "https://www.rami-levy.co.il/he/online/sales",
     "carrefour": "https://shop.hazi-hinam.co.il/specials",
 }
