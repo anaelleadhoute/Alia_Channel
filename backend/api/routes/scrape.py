@@ -167,8 +167,12 @@ async def scrape_supermarkets_manual(body: SupermarketPayload):
 
     auto = await _is_auto_publish()
     if auto and result.get("weekly_deal_id") and result.get("status") == "generated":
-        await _auto_publish_item("weekly_deals", "id", result["weekly_deal_id"])
-        result["auto_published"] = True
+        try:
+            await _auto_publish_item("weekly_deals", "id", result["weekly_deal_id"])
+            result["auto_published"] = True
+        except Exception as e:
+            result["auto_published"] = False
+            result["auto_publish_error"] = str(e)
 
     return result
 

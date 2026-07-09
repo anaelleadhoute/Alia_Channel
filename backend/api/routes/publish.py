@@ -19,7 +19,7 @@ async def _send_whatsapp(group_id: str, text: str) -> dict:
         resp = await client.post(
             f"{WHAPI_URL}?token={WHAPI_TOKEN}",
             json={"to": group_id, "body": text},
-            timeout=15,
+            timeout=30,
         )
         resp.raise_for_status()
         return resp.json()

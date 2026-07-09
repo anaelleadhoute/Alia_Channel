@@ -34,7 +34,7 @@ def scrape_rami_levy(page) -> list[dict]:
     def handle_response(response):
         url = response.url
         # Rami Levy's React app calls their product API — capture it
-        if "rami-levy.co.il" in url and any(k in url for k in ["/api/", "catalog", "items", "sale", "product"]):
+        if "rami-levy.co.il" in url and any(k in url for k in ["/api/", "catalog", "items", "sale", "product", "www-api"]):
             try:
                 body = response.json()
                 api_data.append({"url": url, "body": body})
@@ -44,10 +44,17 @@ def scrape_rami_levy(page) -> list[dict]:
 
     page.on("response", handle_response)
     try:
-        page.goto("https://www.rami-levy.co.il/he/online/sales", wait_until="commit", timeout=15000)
+        page.goto("https://www.rami-levy.co.il/he/online/sales", wait_until="commit", timeout=20000)
     except Exception:
         pass
     page.wait_for_timeout(8000)
+
+    # If no API calls yet, scroll to trigger lazy load and wait more
+    if not any("/api/sales" in c["url"] for c in api_data):
+        page.evaluate("window.scrollBy(0, 600)")
+        page.wait_for_timeout(5000)
+        page.evaluate("window.scrollBy(0, 600)")
+        page.wait_for_timeout(3000)
 
     items = []
     for capture in api_data:
@@ -83,7 +90,7 @@ def scrape_hazi_hinam(page) -> list[dict]:
 
     def handle_response(response):
         url = response.url
-        if "hazi-hinam.co.il" in url and "/proxy/api/" in url:
+        if "hazi-hinam.co.il" in url:
             try:
                 body = response.json()
                 api_data.append({"url": url, "body": body})
@@ -92,12 +99,12 @@ def scrape_hazi_hinam(page) -> list[dict]:
                 pass
 
     page.on("response", handle_response)
-    # Homepage already fires getItemsPromoted — no need for campaign URL
+    # Homepage fires getItemsPromoted — navigate there
     try:
-        page.goto("https://shop.hazi-hinam.co.il/", wait_until="commit", timeout=15000)
+        page.goto("https://shop.hazi-hinam.co.il/", wait_until="commit", timeout=20000)
     except Exception:
         pass
-    page.wait_for_timeout(8000)
+    page.wait_for_timeout(12000)
 
     items = []
     for capture in api_data:
@@ -287,36 +294,77 @@ def scrape_shufersal(page) -> list[dict]:
         # Shufersal renders products in HTML — parse DOM directly
         items = page.evaluate("""() => {
             const results = [];
-            // Shufersal product cards
-            const cards = document.querySelectorAll('.product_box, .miglog-prod, [class*="productBox"], [class*="product-box"], li.item');
-            cards.forEach(card => {
-                const name = card.querySelector('.miglog-prod-name, .product_name, [class*="prodName"], h3, h4');
-                const price = card.querySelector('.miglog-prod-price, .price, [class*="Price"]');
-                if (name) {
-                    const t = (name.innerText + (price ? ' - ' + price.innerText : '')).replace(/\\s+/g, ' ').trim();
-                    if (t.length > 3) results.push({ text: t });
-                }
-            });
-            // Fallback: any element containing ₪
+            const seen = new Set();
+
+            // Strategy 1: named product card selectors
+            const cardSelectors = [
+                '.product_box', '.miglog-prod', 'li.item', 'li.product',
+                '[class*="productBox"]', '[class*="product-box"]',
+                '[class*="ProductCard"]', '[class*="product-card"]',
+                '[class*="ProductItem"]', '[class*="product-item"]',
+                '[data-product]', 'article',
+            ];
+            for (const sel of cardSelectors) {
+                document.querySelectorAll(sel).forEach(card => {
+                    const text = card.innerText.replace(/\\s+/g, ' ').trim();
+                    if (text.length > 15 && text.length < 400 && text.includes('₪') && !seen.has(text)) {
+                        seen.add(text);
+                        results.push({ text });
+                    }
+                });
+                if (results.length >= 5) break;
+            }
+
+            // Strategy 2: find price leaf nodes, walk UP the DOM to capture name+price together
             if (results.length === 0) {
-                const all = document.querySelectorAll('*');
-                const seen = new Set();
-                all.forEach(el => {
-                    if (el.children.length === 0 && el.innerText && el.innerText.includes('₪')) {
-                        const t = el.innerText.trim();
-                        if (t.length > 5 && t.length < 150 && !seen.has(t)) {
-                            seen.add(t);
-                            results.push({ text: t });
+                document.querySelectorAll('*').forEach(el => {
+                    if (el.children.length > 0) return;
+                    const t = el.innerText ? el.innerText.trim() : '';
+                    if (!t.includes('₪')) return;
+                    // Walk up at most 6 levels to find a parent that has meaningful text (name + price)
+                    let parent = el.parentElement;
+                    for (let i = 0; i < 6; i++) {
+                        if (!parent || parent === document.body) break;
+                        const pt = parent.innerText ? parent.innerText.replace(/\\s+/g, ' ').trim() : '';
+                        // Good parent: longer than just the price, short enough to be a card
+                        if (pt.length > t.length + 3 && pt.length < 400 && !seen.has(pt)) {
+                            seen.add(pt);
+                            results.push({ text: pt });
+                            break;
                         }
+                        parent = parent.parentElement;
                     }
                 });
             }
+
             return results.slice(0, 30);
         }""")
         if not items:
             print(f"  [shufersal] 0 items. APIs: {[c['url'] for c in api_data]}")
 
+    # Filter noise then deduplicate by removing longer variants that contain shorter ones
+    import re as _re
+    filtered = []
+    for it in items:
+        t = it["text"].strip()
+        if "שקלים חדשים" in t and len(t) < 50:
+            continue
+        if _re.match(r'^[\s\d₪.,\'\"\-–—ב-ל"ק]+$', t) and len(t) < 40:
+            continue
+        filtered.append(t)
+
+    # Keep shortest unique representation: drop text B if it contains text A (A is shorter)
+    deduped = []
+    filtered.sort(key=len)
+    for t in filtered:
+        if not any(t != s and s in t for s in deduped):
+            deduped.append(t)
+
+    items = [{"text": t} for t in deduped[:30]]
+
     print(f"[shufersal] Found {len(items)} items")
+    for i in items[:8]:
+        print(f"  → {i['text'][:150]}")
     return items
 
 

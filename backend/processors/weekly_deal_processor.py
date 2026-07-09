@@ -21,7 +21,7 @@ PICK_DEAL_PROMPT = """Tu es expert en promotions supermarché en Israël pour de
 
 Voici les dernières promotions disponibles chez {supermarket_name} :
 {items_text}
-
+{exclude_section}
 Sélectionne le MEILLEUR deal de la semaine pour des familles d'olim.
 Critères : réduction significative, produit courant (nourriture, hygiène, etc.), pas trop niche.
 
@@ -75,12 +75,37 @@ COMBINED_RU_PROMPT = """Ты редактор AL.IA Channel — медиа дл�
 Отвечай только текстом сообщения."""
 
 
-async def _pick_best_deal(supermarket_name: str, items: list[dict]) -> dict:
+async def _get_recent_picks(db_col: str, limit: int = 3) -> list[str]:
+    """Fetch product names from the last N weekly deals for a supermarket."""
+    async with get_db() as db:
+        cursor = await db.execute(
+            f"SELECT {db_col} FROM weekly_deals ORDER BY id DESC LIMIT ?", (limit,)
+        )
+        rows = await cursor.fetchall()
+    products = []
+    for row in rows:
+        try:
+            d = json.loads(row[0] or "{}")
+            if d.get("product"):
+                products.append(d["product"])
+        except Exception:
+            pass
+    return products
+
+
+async def _pick_best_deal(supermarket_name: str, items: list[dict], db_col: str = "") -> dict:
     """Ask Claude to pick the best deal from a list of scraped items."""
     if not items:
         return {"product": None, "price": None, "description": f"Aucune promo trouvée"}
 
     items_text = "\n".join(f"- {item['text']}" for item in items[:15])
+
+    exclude_section = ""
+    if db_col:
+        recent = await _get_recent_picks(db_col)
+        if recent:
+            exclude_section = "\nProduits déjà mis en avant récemment (évite de les choisir à nouveau si possible) :\n"
+            exclude_section += "\n".join(f"- {p}" for p in recent) + "\n"
 
     try:
         response = await client.messages.create(
@@ -89,6 +114,7 @@ async def _pick_best_deal(supermarket_name: str, items: list[dict]) -> dict:
             messages=[{"role": "user", "content": PICK_DEAL_PROMPT.format(
                 supermarket_name=supermarket_name,
                 items_text=items_text,
+                exclude_section=exclude_section,
             )}],
         )
         import re
@@ -133,9 +159,9 @@ async def generate_weekly_deals(raw_data: dict | None = None) -> dict:
     # Pick best deal per supermarket (in parallel)
     import asyncio
     shufersal_deal, rami_deal, hazi_hinam_deal = await asyncio.gather(
-        _pick_best_deal("Shufersal", raw_data["shufersal"]),
-        _pick_best_deal("Rami Levy", raw_data["rami_levy"]),
-        _pick_best_deal("Hazi Hinam", raw_data["carrefour"]),
+        _pick_best_deal("Shufersal", raw_data["shufersal"], db_col="shufersal_json"),
+        _pick_best_deal("Rami Levy", raw_data["rami_levy"], db_col="rami_levy_json"),
+        _pick_best_deal("Hazi Hinam", raw_data["carrefour"], db_col="carrefour_json"),
     )
 
     shufersal_str = _format_deal(shufersal_deal)
