@@ -235,9 +235,10 @@ def scrape_ipo_kids(page) -> dict | None:
         print("[ipo] No upcoming concerts found")
         return None
 
-    # Pick the soonest upcoming concert
+    # Rotate through all upcoming concerts by week number
     concerts.sort(key=lambda c: c["date"])
-    next_concert = concerts[0]
+    week_num = int(datetime.now().strftime("%W"))
+    next_concert = concerts[week_num % len(concerts)]
     date_str = next_concert["date"].strftime("%d.%m.%Y")
     print(f"[ipo] Next concert: {next_concert['title']} | {date_str}")
 
