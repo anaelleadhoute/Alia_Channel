@@ -262,13 +262,13 @@ def scrape_karamel_activity(page) -> dict | None:
         page.goto(pick["url"], wait_until="domcontentloaded", timeout=20000)
         page.wait_for_timeout(2000)
         description = page.evaluate("""() => {
-            const selectors = ['.description', '.content', '.about', 'p'];
-            for (const sel of selectors) {
-                const els = document.querySelectorAll(sel);
-                for (const el of els) {
-                    const t = el.innerText.trim();
-                    if (t.length > 40) return t.slice(0, 300);
-                }
+            // Meta description is specific to this provider page
+            const meta = document.querySelector('meta[name="description"]');
+            if (meta && meta.content && meta.content.length > 20) return meta.content;
+            // Fallback: first substantial paragraph
+            for (const p of document.querySelectorAll('p')) {
+                const t = p.innerText.trim();
+                if (t.length > 40) return t.slice(0, 300);
             }
             return '';
         }""")
