@@ -162,6 +162,18 @@ async def init_db():
                 sent_wa_fr      INTEGER DEFAULT 0,
                 sent_wa_ru      INTEGER DEFAULT 0
             );
+
+            CREATE TABLE IF NOT EXISTS weekly_events_kids (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                week            TEXT UNIQUE NOT NULL,
+                events_json     TEXT,
+                content_fr      TEXT,
+                content_ru      TEXT,
+                created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+                status          TEXT DEFAULT 'pending',
+                sent_wa_fr      INTEGER DEFAULT 0,
+                sent_wa_ru      INTEGER DEFAULT 0
+            );
         """)
         await db.commit()
 

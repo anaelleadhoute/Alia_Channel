@@ -223,6 +223,25 @@ async def scrape_events_manual(body: EventsPayload):
     return result
 
 
+@router.post("/events-kids/manual")
+async def scrape_events_kids_manual(body: EventsPayload):
+    """Receive pre-scraped kids events from local Mac scraper and generate weekly kids message."""
+    from processors.events_kids_processor import generate_weekly_kids_events
+
+    result = await generate_weekly_kids_events(force=body.force, raw_events=body.events)
+
+    auto = await _is_auto_publish()
+    if auto and result.get("weekly_event_kids_id") and result.get("status") == "generated":
+        try:
+            await _auto_publish_item("weekly_events_kids", "id", result["weekly_event_kids_id"])
+            result["auto_published"] = True
+        except Exception as e:
+            result["auto_published"] = False
+            result["auto_publish_error"] = str(e)
+
+    return result
+
+
 @router.post("/cleanup")
 async def cleanup():
     """Delete sent articles older than 30 days and rejected older than 7 days."""
