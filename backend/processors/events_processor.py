@@ -72,9 +72,9 @@ async def generate_weekly_events(force: bool = False, raw_events: list[dict] | N
 
     import asyncio
     fr_resp, ru_resp = await asyncio.gather(
-        claude.messages.create(model="claude-sonnet-4-5-20251001", max_tokens=600,
+        claude.messages.create(model="claude-3-5-sonnet-20241022", max_tokens=600,
             messages=[{"role": "user", "content": EVENTS_FR_PROMPT.format(events_text=events_text)}]),
-        claude.messages.create(model="claude-sonnet-4-5-20251001", max_tokens=600,
+        claude.messages.create(model="claude-3-5-sonnet-20241022", max_tokens=600,
             messages=[{"role": "user", "content": EVENTS_RU_PROMPT.format(events_text=events_text)}]),
     )
 
