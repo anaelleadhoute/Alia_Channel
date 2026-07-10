@@ -15,47 +15,50 @@ WHATSAPP_BOT_LINK = "wa.me/972549675013"  # TODO: replace with actual bot link
 COMMUNITY_FR_LINK = "wa.me/972549675013"  # TODO: replace with FR group invite link
 COMMUNITY_RU_LINK = "wa.me/972549675013"  # TODO: replace with RU group invite link
 
+ALIA_LINK_FR = "https://wa.me/972549675013?text=Avant%20de%20commencer%2C%20pr%C3%A9sente-toi"
+ALIA_LINK_RU = "https://wa.me/972549675013?text=%D0%9F%D1%80%D0%B5%D0%B4%D1%81%D1%82%D0%B0%D0%B2%D1%8C%D1%81%D1%8F"
+
 PROMPT_FR = """Tu es expert en immigration et droits des olim en Israël.
 
-Génère une FAQ hebdomadaire pour les olim francophones. Choisis une question pratique et courante (logement, santé, travail, Bituach Leumi, banque, école, Misrad Haklita, etc.).
+Génère les 3 questions les plus posées cette semaine par les olim francophones (logement, santé, travail, Bituach Leumi, banque, école, Misrad Haklita, fiscalité, etc.).
 {past_topics}
 
-Le message DOIT commencer exactement par :
-🔥 Question la plus posée cette semaine :
+Format EXACT à respecter (sans rien ajouter avant ou après) :
+🔥 Questions les plus posées cette semaine :
 
-Puis la question, puis la réponse.
+❓ [question 1]
+💡 [Réponse concise, 2-3 phrases max]
 
-Format complet :
-🔥 Question la plus posée cette semaine :
-❓ [ta question]
+❓ [question 2]
+💡 [Réponse concise, 2-3 phrases max]
 
-💡 [Réponse complète en 150-200 mots, avec des étapes concrètes si possible]
+❓ [question 3]
+💡 [Réponse concise, 2-3 phrases max]
 
-🤖 Des questions ? Notre bot WhatsApp est là pour vous aider 👉 {bot_link}
-👥 Rejoignez la communauté AL.IA 👉 {community_link}
+Pour plus d'informations ou savoir comment faire, parle à Alia 👉 {alia_link}
 
-Réponds uniquement avec le texte du message, sans JSON."""
+Réponds uniquement avec le texte du message."""
 
 PROMPT_RU = """Ты эксперт по иммиграции и правам олим в Израиле.
 
-Создай еженедельный FAQ для русскоязычных олим. Выбери практический и частый вопрос (жильё, здоровье, работа, Битуах Леуми, банк, школа, Мисрад Аклита и т.д.).
+Составь 3 наиболее часто задаваемых вопроса этой недели от русскоязычных олим (жильё, здоровье, работа, Битуах Леуми, банк, школа, Мисрад Аклита, налоги и т.д.).
 {past_topics}
 
-Сообщение ДОЛЖНО начинаться точно так:
-🔥 Самый частый вопрос этой недели:
+ТОЧНЫЙ формат (ничего не добавлять до или после) :
+🔥 Самые частые вопросы этой недели:
 
-Затем вопрос, затем ответ.
+❓ [вопрос 1]
+💡 [Краткий ответ, 2-3 предложения]
 
-Полный формат:
-🔥 Самый частый вопрос этой недели:
-❓ [твой вопрос]
+❓ [вопрос 2]
+💡 [Краткий ответ, 2-3 предложения]
 
-💡 [Полный ответ 150-200 слов, с конкретными шагами если возможно]
+❓ [вопрос 3]
+💡 [Краткий ответ, 2-3 предложения]
 
-🤖 Есть вопросы? Наш WhatsApp бот готов помочь 👉 {bot_link}
-👥 Присоединяйтесь к сообществу AL.IA 👉 {community_link}
+Для получения дополнительной информации или помощи — напиши Alia 👉 {alia_link}
 
-Отвечай только текстом сообщения, без JSON."""
+Отвечай только текстом сообщения."""
 
 
 async def generate_weekly_faq() -> dict:
@@ -86,20 +89,18 @@ async def generate_weekly_faq() -> dict:
         fr_response, ru_response = await asyncio.gather(
             client.messages.create(
                 model="claude-haiku-4-5-20251001",
-                max_tokens=600,
+                max_tokens=800,
                 messages=[{"role": "user", "content": PROMPT_FR.format(
                     past_topics=past_topics,
-                    bot_link=WHATSAPP_BOT_LINK,
-                    community_link=COMMUNITY_FR_LINK,
+                    alia_link=ALIA_LINK_FR,
                 )}],
             ),
             client.messages.create(
                 model="claude-haiku-4-5-20251001",
-                max_tokens=600,
+                max_tokens=800,
                 messages=[{"role": "user", "content": PROMPT_RU.format(
-                    past_topics=past_topics.replace("Évite ces sujets", "Избегай этих тем"),
-                    bot_link=WHATSAPP_BOT_LINK,
-                    community_link=COMMUNITY_RU_LINK,
+                    past_topics=past_topics.replace("Évite absolument ces sujets", "Избегай этих тем"),
+                    alia_link=ALIA_LINK_RU,
                 )}],
             ),
         )
