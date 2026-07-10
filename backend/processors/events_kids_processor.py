@@ -90,7 +90,7 @@ async def generate_weekly_kids_events(force: bool = False, raw_events: list[dict
     # Step 1: Claude picks the best 3
     events_text = "\n".join(f"{i}. {e['name']} | {e.get('date','')} " for i, e in enumerate(candidates))
     pick_resp = await claude.messages.create(
-        model="claude-haiku-4-5-20251001", max_tokens=60,
+        model="claude-haiku-4-5-20251001", max_tokens=300,
         messages=[{"role": "user", "content": KIDS_PICK_PROMPT.format(events_text=events_text)}]
     )
     titles_fr = []
@@ -103,7 +103,8 @@ async def generate_weekly_kids_events(force: bool = False, raw_events: list[dict
         titles_fr = parsed.get("titles_fr", [])
         titles_ru = parsed.get("titles_ru", [])
         selected = [candidates[i] for i in indexes if 0 <= i < len(candidates)]
-    except Exception:
+    except Exception as ex:
+        logger.warning(f"[events_kids] Pick parse failed: {ex} — raw: {pick_resp.content[0].text[:200]}")
         selected = candidates[:3]
 
     # Attach translated names to each selected event
