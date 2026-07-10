@@ -337,11 +337,13 @@ function switchTab(name) {
 
 // ── Queue (all pending content) ──────────────────────────────────────────────
 async function loadQueue() {
-  const [digests, faqs, tips, weeklyDeals] = await Promise.all([
+  const [digests, faqs, tips, weeklyDeals, events, eventsKids] = await Promise.all([
     fetch(`${API}/api/digests`).then(r => r.json()),
     fetch(`${API}/api/faqs`).then(r => r.json()),
     fetch(`${API}/api/tips?status=${queueFilter}`).then(r => r.json()),
     fetch(`${API}/api/weekly-deals`).then(r => r.json()),
+    fetch(`${API}/api/weekly-events`).then(r => r.json()),
+    fetch(`${API}/api/weekly-events/kids`).then(r => r.json()),
   ]);
 
   const allItems = [
@@ -349,6 +351,8 @@ async function loadQueue() {
     ...faqs.filter(f => matchesFilter(f)).map(f => ({...f, _type: 'faq'})),
     ...tips.map(t => ({...t, _type: 'tip'})),
     ...weeklyDeals.filter(d => matchesFilter(d)).map(d => ({...d, _type: 'weekly_deal'})),
+    ...events.filter(e => matchesFilter(e)).map(e => ({...e, _type: 'weekly_event'})),
+    ...eventsKids.filter(e => matchesFilter(e)).map(e => ({...e, _type: 'weekly_event_kids'})),
   ];
 
   const pending = allItems.filter(i => i.status === 'pending' || (!i.status && !i.sent_wa_fr && !i.sent_wa_ru));
