@@ -184,6 +184,8 @@
   <button class="tab" onclick="switchTab('faqs')">FAQs</button>
   <button class="tab" onclick="switchTab('tips')">Tips</button>
   <button class="tab" onclick="switchTab('deals')">Deals</button>
+  <button class="tab" onclick="switchTab('events')">🎭 Events</button>
+  <button class="tab" onclick="switchTab('events-kids')">👧 Kids</button>
   <button class="tab" onclick="switchTab('contests')">🎁 Concours</button>
   <button class="tab" onclick="switchTab('send')">✏️ Send</button>
 </div>
@@ -238,6 +240,18 @@
     <div class="cards" id="dealCards"><div class="loading">Loading…</div></div>
   </div>
 
+  <!-- EVENTS -->
+  <div class="section" id="section-events">
+    <div class="queue-header"><h2>🎭 Événements de la semaine</h2></div>
+    <div class="cards" id="eventCards"><div class="loading">Loading…</div></div>
+  </div>
+
+  <!-- KIDS EVENTS -->
+  <div class="section" id="section-events-kids">
+    <div class="queue-header"><h2>👧 Événements familles & enfants</h2></div>
+    <div class="cards" id="eventKidsCards"><div class="loading">Loading…</div></div>
+  </div>
+
   <!-- CONTESTS -->
   <div class="section" id="section-contests">
     <div class="manual-panel">
@@ -289,6 +303,8 @@ async function init() {
   loadTips();
   loadDeals();
   loadContests();
+  loadEvents();
+  loadEventsKids();
 }
 
 // ── Settings ────────────────────────────────────────────────────────────────
@@ -408,6 +424,12 @@ function renderCard(item) {
   if (type === 'weekly_deal') {
     meta = `<span class="source">🛒 Deals Supermarché</span><span class="category">${item.week || ''}</span>`;
   }
+  if (type === 'weekly_event') {
+    meta = `<span class="source">🎭 Événements</span><span class="category">${item.week || ''}</span>`;
+  }
+  if (type === 'weekly_event_kids') {
+    meta = `<span class="source">👧 Kids</span><span class="category">${item.week || ''}</span>`;
+  }
   if (item.source) meta += `<span class="source">${item.source}</span>`;
   if (item.score) {
     const s = parseFloat(item.score);
@@ -451,7 +473,7 @@ function renderCard(item) {
 
 // ── Actions ──────────────────────────────────────────────────────────────────
 async function publish(type, id, audience) {
-  const endpoints = { digest: 'digest', faq: 'faq', tip: 'tip', article: 'article', contest: 'contest', weekly_deal: 'weekly-deal' };
+  const endpoints = { digest: 'digest', faq: 'faq', tip: 'tip', article: 'article', contest: 'contest', weekly_deal: 'weekly-deal', weekly_event: 'weekly-event', weekly_event_kids: 'weekly-event-kids' };
   const ep = endpoints[type];
   if (!ep) return;
 
@@ -489,6 +511,20 @@ async function reject(type, id) {
   });
   toast('🗑 Rejected');
   await loadQueue();
+}
+
+async function loadEvents() {
+  const data = await fetch(`${API}/api/weekly-events`).then(r => r.json());
+  document.getElementById('eventCards').innerHTML = data.length
+    ? data.map(e => renderCard({...e, _type: 'weekly_event'})).join('')
+    : '<div class="empty"><div class="icon">🎭</div>Pas encore d\'événements cette semaine</div>';
+}
+
+async function loadEventsKids() {
+  const data = await fetch(`${API}/api/weekly-events/kids`).then(r => r.json());
+  document.getElementById('eventKidsCards').innerHTML = data.length
+    ? data.map(e => renderCard({...e, _type: 'weekly_event_kids'})).join('')
+    : '<div class="empty"><div class="icon">👧</div>Pas encore d\'événements enfants cette semaine</div>';
 }
 
 async function loadContests() {
