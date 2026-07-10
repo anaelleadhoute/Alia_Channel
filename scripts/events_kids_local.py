@@ -76,15 +76,10 @@ def scrape_telaviv_kids(page) -> list[dict]:
         if not _is_kids_event(title):
             continue
         date = _get_field(fields, "TlvStartDate")
-        interests = _get_field(fields, "TlvFieldsOfInterests").lower()
-        if "מוסיקה" in interests:
-            url = "https://www.tel-aviv.gov.il/Visitors/Events/Pages/Music.aspx?IntsID=4"
-        elif "תיאטרון" in interests or "מופעים" in interests:
-            url = "https://www.tel-aviv.gov.il/Visitors/Events/Pages/Theater.aspx?IntsID=3"
-        elif "פעילות" in interests or "outdoor" in interests:
-            url = "https://www.tel-aviv.gov.il/Visitors/Events/Pages/OutdoorActivities.aspx?IntsID=1"
-        else:
-            url = "https://www.tel-aviv.gov.il/Visitors/Events/Pages/Events.aspx"
+        web_id = _get_field(fields, "WebID")
+        list_id = _get_field(fields, "ListID")
+        item_id = _get_field(fields, "ListItemID")
+        url = f"https://www.tel-aviv.gov.il/Pages/MainItemPage.aspx?WebID={web_id}&ListID={list_id}&ItemID={item_id}" if web_id and list_id and item_id else "https://www.tel-aviv.gov.il/Visitors/Events/Pages/Events.aspx"
 
         events.append({
             "name": title,

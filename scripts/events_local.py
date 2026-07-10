@@ -204,19 +204,10 @@ def scrape_telaviv_municipality(page) -> list[dict]:
         if not title or len(title) < 3:
             continue
         date = _get_field(fields, "TlvStartDate")
-        interests = _get_field(fields, "TlvFieldsOfInterests").lower()
-        if "מוסיקה" in interests or "music" in interests:
-            url = "https://www.tel-aviv.gov.il/Visitors/Events/Pages/Music.aspx?IntsID=4"
-        elif "תיאטרון" in interests or "מופעים" in interests:
-            url = "https://www.tel-aviv.gov.il/Visitors/Events/Pages/Theater.aspx?IntsID=3"
-        elif "סיור" in interests or "tour" in interests:
-            url = "https://www.tel-aviv.gov.il/Visitors/Events/Pages/Tours.aspx?IntsID=6"
-        elif "ספורט" in interests or "sport" in interests:
-            url = "https://www.tel-aviv.gov.il/Visitors/Events/Pages/Sport.aspx?IntsID=9,10"
-        elif "פעילות" in interests or "outdoor" in interests:
-            url = "https://www.tel-aviv.gov.il/Visitors/Events/Pages/OutdoorActivities.aspx?IntsID=1"
-        else:
-            url = "https://www.tel-aviv.gov.il/Visitors/Events/Pages/Events.aspx"
+        web_id = _get_field(fields, "WebID")
+        list_id = _get_field(fields, "ListID")
+        item_id = _get_field(fields, "ListItemID")
+        url = f"https://www.tel-aviv.gov.il/Pages/MainItemPage.aspx?WebID={web_id}&ListID={list_id}&ItemID={item_id}" if web_id and list_id and item_id else "https://www.tel-aviv.gov.il/Visitors/Events/Pages/Events.aspx"
         events.append({
             "name": title,
             "date": date,
@@ -268,13 +259,6 @@ def run():
             context.close()
         except Exception as e:
             print(f"[eventbrite] Failed: {e}")
-
-        try:
-            context = browser.new_context(**ctx_opts)
-            all_events.extend(scrape_telaviv_municipality(context.new_page()))
-            context.close()
-        except Exception as e:
-            print(f"[tlv_city] Failed: {e}")
 
         browser.close()
 
