@@ -14,11 +14,11 @@ KIDS_PICK_PROMPT = """Voici une liste d'activités et événements pour enfants 
 
 {events_text}
 
-Choisis les 3 meilleures activités pour des familles avec enfants (variété, intérêt, dates proches).
+Choisis les 2 meilleures activités pour des familles avec enfants (variété, intérêt, dates proches).
 Traduis leur titre en français et en russe.
 
 Réponds UNIQUEMENT avec un JSON :
-{{"indexes": [n, n, n], "titles_fr": ["titre fr", "titre fr", "titre fr"], "titles_ru": ["titre ru", "titre ru", "titre ru"]}}"""
+{{"indexes": [n, n], "titles_fr": ["titre fr", "titre fr"], "titles_ru": ["titre ru", "titre ru"]}}"""
 
 KIDS_INTRO_FR_PROMPT = """Tu es rédacteur pour Alia Channel. Écris 2 phrases chaleureuses d'introduction pour un message WhatsApp parents olim sur ces activités : {summary}. Pas de titre, pas de liste."""
 
@@ -134,7 +134,7 @@ async def generate_weekly_kids_events(force: bool = False, raw_events: list[dict
         selected = [candidates[i] for i in indexes if 0 <= i < len(candidates)]
     except Exception as ex:
         logger.warning(f"[events_kids] Pick parse failed: {ex} — raw: {pick_resp.content[0].text[:200]}")
-        selected = candidates[:3]
+        selected = candidates[:2]
 
     # Attach translated names to each selected event
     for i, e in enumerate(selected):
