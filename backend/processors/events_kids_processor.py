@@ -106,7 +106,16 @@ async def generate_weekly_kids_events(force: bool = False, raw_events: list[dict
 
     karamel = next((e for e in raw_events if e.get("source") == "Karamel"), None)
     ipo = next((e for e in raw_events if e.get("upcoming_highlight")), None)
-    candidates = [e for e in raw_events if e.get("source") != "Karamel" and not e.get("upcoming_highlight")][:20]
+    seen_names = set()
+    candidates = []
+    for e in raw_events:
+        if e.get("source") == "Karamel" or e.get("upcoming_highlight"):
+            continue
+        if e["name"] in seen_names:
+            continue
+        seen_names.add(e["name"])
+        candidates.append(e)
+    candidates = candidates[:20]
 
     # Step 1: Claude picks the best 3 and translates; also translate IPO title if present
     ipo_line = f"\nIPO: {ipo['name']}" if ipo else ""
