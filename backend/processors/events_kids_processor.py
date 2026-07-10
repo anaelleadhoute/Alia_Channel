@@ -10,19 +10,19 @@ from db.database import get_db
 logger = logging.getLogger(__name__)
 claude = anthropic.AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
-KIDS_PICK_PROMPT = """Voici une liste d'activités et événements pour enfants et familles à Tel Aviv cette semaine (titres en hébreu). Chaque ligne a un numéro.
+KIDS_PICK_PROMPT = """Voici une liste d'activités et événements pour enfants et familles (titres en hébreu). Chaque ligne a un numéro.
 
 {events_text}
 
-Choisis les 2 meilleures activités pour des familles avec enfants (variété, intérêt, dates proches).
+Choisis EXACTEMENT 2 activités (pas plus, pas moins) pour des familles avec enfants.
 Traduis leur titre en français et en russe.
 
-Réponds UNIQUEMENT avec un JSON :
+Réponds UNIQUEMENT avec ce JSON (exactement 2 indexes, 2 titres fr, 2 titres ru) :
 {{"indexes": [n, n], "titles_fr": ["titre fr", "titre fr"], "titles_ru": ["titre ru", "titre ru"]}}"""
 
-KIDS_INTRO_FR_PROMPT = """Tu es rédacteur pour Alia Channel. Écris 2 phrases chaleureuses d'introduction pour un message WhatsApp parents olim sur ces activités : {summary}. Pas de titre, pas de liste."""
+KIDS_INTRO_FR_PROMPT = """Tu es rédacteur pour Alia Channel. Écris 1 seule phrase d'introduction chaleureuse pour un message WhatsApp parents olim sur ces activités : {summary}. Pas de titre, pas de liste, pas de hashtag, pas de # au début."""
 
-KIDS_INTRO_RU_PROMPT = """Ты редактор Alia Channel. Напиши 2 тёплых вступительных предложения для WhatsApp-сообщения для родителей-олим об этих мероприятиях: {summary}. Без заголовка, без списка."""
+KIDS_INTRO_RU_PROMPT = """Ты редактор Alia Channel. Напиши 1 тёплое вступительное предложение для WhatsApp-сообщения для родителей-олим об этих мероприятиях: {summary}. Без заголовка, без списка, без решётки в начале."""
 
 
 def _build_message_fr(events: list[dict], intro: str) -> str:
@@ -44,7 +44,8 @@ def _build_message_fr(events: list[dict], intro: str) -> str:
             lines.append(e["url"])
         lines.append("")
     if karamel:
-        lines.append(f"💡 Idée activité : {karamel['name']}")
+        name = karamel.get("name_fr") or karamel["name"]
+        lines.append(f"💡 Idée activité : {name}")
         if karamel.get("url"):
             lines.append(karamel["url"])
         lines.append("")
@@ -77,7 +78,8 @@ def _build_message_ru(events: list[dict], intro: str) -> str:
             lines.append(e["url"])
         lines.append("")
     if karamel:
-        lines.append(f"💡 Идея на неделю : {karamel['name']}")
+        name = karamel.get("name_ru") or karamel["name"]
+        lines.append(f"💡 Идея на неделю : {name}")
         if karamel.get("url"):
             lines.append(karamel["url"])
         lines.append("")
@@ -121,11 +123,17 @@ async def generate_weekly_kids_events(force: bool = False, raw_events: list[dict
     ipo_line = f"\nIPO: {ipo['name']}" if ipo else ""
     events_text = "\n".join(f"{i}. {e['name']} | {e.get('date','')} " for i, e in enumerate(candidates))
     pick_prompt = KIDS_PICK_PROMPT.format(events_text=events_text)
+    extra_titles = {}
     if ipo:
-        pick_prompt += f"\n\nTraduis aussi ce titre en français et russe (pour la section 'à venir') : \"{ipo['name']}\"\nAjoute \"ipo_fr\" et \"ipo_ru\" au JSON."
+        extra_titles["ipo"] = ipo["name"]
+    if karamel:
+        extra_titles["karamel"] = karamel["name"]
+    if extra_titles:
+        extras_str = ", ".join(f'"{k}": "{v}"' for k, v in extra_titles.items())
+        pick_prompt += f"\n\nTraduis aussi ces titres en français et russe et ajoute-les au JSON :\n{{{extras_str}}}\nFormat : \"ipo_fr\", \"ipo_ru\", \"karamel_fr\", \"karamel_ru\""
 
     pick_resp = await claude.messages.create(
-        model="claude-haiku-4-5-20251001", max_tokens=350,
+        model="claude-haiku-4-5-20251001", max_tokens=400,
         messages=[{"role": "user", "content": pick_prompt}]
     )
     titles_fr = []
@@ -134,12 +142,15 @@ async def generate_weekly_kids_events(force: bool = False, raw_events: list[dict
         raw = pick_resp.content[0].text.strip()
         raw = re.sub(r"^```(?:json)?\s*", "", raw); raw = re.sub(r"\s*```$", "", raw)
         parsed = json.loads(raw)
-        indexes = parsed.get("indexes", [])
+        indexes = parsed.get("indexes", [])[:2]
         titles_fr = parsed.get("titles_fr", [])
         titles_ru = parsed.get("titles_ru", [])
         if ipo:
             ipo["name_fr"] = parsed.get("ipo_fr") or ipo["name"]
             ipo["name_ru"] = parsed.get("ipo_ru") or ipo["name"]
+        if karamel:
+            karamel["name_fr"] = parsed.get("karamel_fr") or karamel["name"]
+            karamel["name_ru"] = parsed.get("karamel_ru") or karamel["name"]
         selected = [candidates[i] for i in indexes if 0 <= i < len(candidates)]
     except Exception as ex:
         logger.warning(f"[events_kids] Pick parse failed: {ex} — raw: {pick_resp.content[0].text[:200]}")
@@ -166,8 +177,8 @@ async def generate_weekly_kids_events(force: bool = False, raw_events: list[dict
             messages=[{"role": "user", "content": KIDS_INTRO_RU_PROMPT.format(summary=summary)}]),
     )
 
-    intro_fr = fr_resp.content[0].text.strip()
-    intro_ru = ru_resp.content[0].text.strip()
+    intro_fr = re.sub(r'^#+\s*', '', fr_resp.content[0].text.strip())
+    intro_ru = re.sub(r'^#+\s*', '', ru_resp.content[0].text.strip())
     content_fr = _build_message_fr(selected, intro_fr)
     content_ru = _build_message_ru(selected, intro_ru)
 
