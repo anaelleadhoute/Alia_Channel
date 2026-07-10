@@ -20,8 +20,6 @@ Traduis leur titre en français et en russe.
 Réponds UNIQUEMENT avec ce JSON (exactement 2 indexes, 2 titres fr, 2 titres ru) :
 {{"indexes": [n, n], "titles_fr": ["titre fr", "titre fr"], "titles_ru": ["titre ru", "titre ru"]}}"""
 
-KIDS_INTRO_FR_PROMPT = """Tu es rédacteur pour Alia Channel. Écris 1 seule phrase d'introduction chaleureuse pour un message WhatsApp parents olim sur ces activités : {summary}. Pas de titre, pas de liste, pas de hashtag, pas de # au début."""
-
 KIDS_INTRO_RU_PROMPT = """Ты редактор Alia Channel. Напиши 1 тёплое вступительное предложение для WhatsApp-сообщения для родителей-олим об этих мероприятиях: {summary}. Без заголовка, без списка, без решётки в начале."""
 
 
@@ -179,19 +177,17 @@ async def generate_weekly_kids_events(force: bool = False, raw_events: list[dict
     summary = ", ".join(e["name"] for e in selected if e.get("source") != "Karamel" and not e.get("upcoming_highlight"))
     logger.info(f"[events_kids] Selected {len(selected)} events, generating intros...")
 
-    # Step 2: Claude writes intro text only (URLs come from Python)
-    fr_resp, ru_resp = await asyncio.gather(
-        claude.messages.create(model="claude-haiku-4-5-20251001", max_tokens=100,
-            messages=[{"role": "user", "content": KIDS_INTRO_FR_PROMPT.format(summary=summary)}]),
-        claude.messages.create(model="claude-haiku-4-5-20251001", max_tokens=100,
-            messages=[{"role": "user", "content": KIDS_INTRO_RU_PROMPT.format(summary=summary)}]),
-    )
-
     def _clean_intro(text: str) -> str:
         lines = [l for l in text.strip().splitlines() if not l.strip().startswith('#')]
         return " ".join(" ".join(lines).split())
 
-    intro_fr = _clean_intro(fr_resp.content[0].text)
+    intro_fr = "Shalom à tous les parents ! 🎉 Alia vous a trouvé de bons plans et événements pour passer des moments conviviaux et joyeux en famille !"
+
+    # Step 2: Claude writes RU intro only
+    ru_resp = await claude.messages.create(
+        model="claude-haiku-4-5-20251001", max_tokens=100,
+        messages=[{"role": "user", "content": KIDS_INTRO_RU_PROMPT.format(summary=summary)}]
+    )
     intro_ru = _clean_intro(ru_resp.content[0].text)
     content_fr = _build_message_fr(selected, intro_fr)
     content_ru = _build_message_ru(selected, intro_ru)
