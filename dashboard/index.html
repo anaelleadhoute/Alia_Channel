@@ -221,6 +221,10 @@
 
   <!-- FAQS -->
   <div class="section" id="section-faqs">
+    <div class="actions-bar">
+      <span>Actions:</span>
+      <button class="btn btn-primary" onclick="generateFaqForce()">🔄 Regénérer FAQ</button>
+    </div>
     <div class="queue-header"><h2>Weekly FAQs</h2></div>
     <div class="cards" id="faqCards"><div class="loading">Loading…</div></div>
   </div>
@@ -656,6 +660,18 @@ async function generateFaq() {
     const data = await res.json();
     if (data.status === 'ok') toast('✅ FAQ ready!');
     else if (data.status === 'skipped') toast('ℹ️ FAQ already exists for this week');
+    else toast('❌ Failed', true);
+    await loadQueue(); loadFaqs();
+  });
+}
+
+async function generateFaqForce() {
+  const btn = event.target;
+  await withLoading(btn, async () => {
+    toast('🔄 Regénération FAQ…');
+    const res = await fetch(`${API}/api/faqs/generate/force`, {method: 'POST'});
+    const data = await res.json();
+    if (data.status === 'ok') toast('✅ FAQ regénérée !');
     else toast('❌ Failed', true);
     await loadQueue(); loadFaqs();
   });

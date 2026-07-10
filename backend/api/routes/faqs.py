@@ -8,9 +8,15 @@ router = APIRouter()
 
 
 @router.post("/generate")
-async def generate_faq():
+async def generate_faq(force: bool = False):
     """Generate this week's FAQ in FR + RU."""
-    return await generate_weekly_faq()
+    return await generate_weekly_faq(force=force)
+
+
+@router.post("/generate/force")
+async def generate_faq_force():
+    """Force-regenerate this week's FAQ."""
+    return await generate_weekly_faq(force=True)
 
 
 class FaqUpdate(BaseModel):
