@@ -177,8 +177,12 @@ async def generate_weekly_kids_events(force: bool = False, raw_events: list[dict
             messages=[{"role": "user", "content": KIDS_INTRO_RU_PROMPT.format(summary=summary)}]),
     )
 
-    intro_fr = re.sub(r'^#+\s*', '', fr_resp.content[0].text.strip())
-    intro_ru = re.sub(r'^#+\s*', '', ru_resp.content[0].text.strip())
+    def _clean_intro(text: str) -> str:
+        lines = [l for l in text.strip().splitlines() if not l.strip().startswith('#')]
+        return " ".join(" ".join(lines).split())
+
+    intro_fr = _clean_intro(fr_resp.content[0].text)
+    intro_ru = _clean_intro(ru_resp.content[0].text)
     content_fr = _build_message_fr(selected, intro_fr)
     content_ru = _build_message_ru(selected, intro_ru)
 
