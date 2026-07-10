@@ -199,6 +199,7 @@
       <span>Actions:</span>
       <button class="btn btn-primary" onclick="runScrape()">🔄 Scrape News</button>
       <button class="btn btn-primary" onclick="generateDigest()">📰 Generate Digest</button>
+      <button class="btn btn-primary" onclick="generateDigestForce()">🔄 Regénérer Digest</button>
       <button class="btn btn-primary" onclick="generateFaq()">❓ Generate FAQ</button>
       <button class="btn btn-primary" onclick="scrapeDeals()">🛍️ Scrape Deals</button>
     </div>
@@ -647,6 +648,18 @@ async function generateDigest() {
     const data = await res.json();
     if (data.status === 'ok') toast(`✅ Digest ready (${data.articles_used} articles)`);
     else if (data.status === 'skipped') toast('ℹ️ Digest already exists for today');
+    else toast('❌ Failed', true);
+    await loadQueue(); loadDigests();
+  });
+}
+
+async function generateDigestForce() {
+  const btn = event.target;
+  await withLoading(btn, async () => {
+    toast('🔄 Regénération digest…');
+    const res = await fetch(`${API}/api/digests/generate/force`, {method: 'POST'});
+    const data = await res.json();
+    if (data.status === 'ok') toast(`✅ Digest regénéré (${data.articles_used} articles)`);
     else toast('❌ Failed', true);
     await loadQueue(); loadDigests();
   });

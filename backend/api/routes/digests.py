@@ -32,6 +32,12 @@ async def generate_digest():
     return await generate_daily_digest()
 
 
+@router.post("/generate/force")
+async def generate_digest_force():
+    """Force-regenerate today's digest even if one already exists."""
+    return await generate_daily_digest(force=True)
+
+
 @router.get("")
 async def list_digests(limit: int = 10):
     """List recent digests."""
