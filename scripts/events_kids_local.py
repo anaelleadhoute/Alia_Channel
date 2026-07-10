@@ -13,7 +13,16 @@ Force regenerate:
 import httpx
 import json
 import sys
+from datetime import datetime
 from playwright.sync_api import sync_playwright
+
+KARAMEL_URL = "https://www.karamel.co.il/%D7%90%D7%98%D7%A8%D7%A7%D7%A6%D7%99%D7%95%D7%AA_%D7%9C%D7%99%D7%9C%D7%93%D7%99%D7%9D_%D7%91%D7%9E%D7%A8%D7%9B%D7%96.asp"
+
+SKIP_KARAMEL = {
+    "English", "Русский", "יום הולדת", "יום הולדת לבנים", "יום הולדת לבנות",
+    "יום הולדת למבוגרים", "רעיונות ליום הולדת", "מקומות", "בת מצווה",
+    "יום הולדת ספא", "יום הולדת נסיכות", "יום הולדת כדורגל",
+}
 
 SERVER_URL = "https://alia-channel.com/api/scrape/events-kids/manual"
 
@@ -23,9 +32,9 @@ HEADERS = {
 }
 
 KIDS_KEYWORDS = [
-    "ילד", "ילדים", "ילדות", "משפח", "נוער", "בובה", "סיפור", "משחקייה",
-    "קרקס", "יוגה להורים", "הצגה", "סדנת התפתח", "פעוט", "תינוק",
-    "kids", "children", "family", "enfant",
+    "ילדים", "ילדות", "לילדים", "משחקייה", "משפחות", "למשפחות",
+    "קרקס", "יוגה להורים", "סדנת התפתח", "פעוטות", "תינוקות",
+    "kids", "children", "family",
 ]
 
 
@@ -91,6 +100,54 @@ def scrape_telaviv_kids(page) -> list[dict]:
     return events
 
 
+def scrape_karamel_activity(page) -> dict | None:
+    print("[karamel] Loading activity ideas...")
+    try:
+        page.goto(KARAMEL_URL, wait_until="domcontentloaded", timeout=20000)
+    except Exception:
+        pass
+    page.wait_for_timeout(3000)
+
+    activities = page.evaluate("""() => {
+        const results = [];
+        const seen = new Set();
+        document.querySelectorAll('a[href]').forEach(a => {
+            const text = a.innerText.trim();
+            const href = a.href;
+            if (text.length > 3 && text.length < 40 && href.includes('karamel.co.il') && !seen.has(text)) {
+                seen.add(text);
+                results.push({ name: text, url: href });
+            }
+        });
+        return results;
+    }""")
+
+    # Filter out nav/birthday items
+    skip = {
+        "English", "Русский", "יום הולדת", "יום הולדת לבנים", "יום הולדת לבנות",
+        "יום הולדת למבוגרים", "רעיונות ליום הולדת", "מקומות", "בת מצווה",
+        "יום הולדת ספא", "יום הולדת נסיכות", "יום הולדת כדורגל", "הפעלות לימי הולדת",
+    }
+    activities = [a for a in activities if a["name"] not in skip and "הולדת" not in a["name"]]
+
+    if not activities:
+        print("[karamel] No activities found")
+        return None
+
+    # Pick deterministically by week number so it rotates weekly
+    week_num = int(datetime.utcnow().strftime("%W"))
+    pick = activities[week_num % len(activities)]
+    print(f"[karamel] Activity of the week: {pick['name']} | {pick['url']}")
+    return {
+        "name": pick["name"],
+        "date": "",
+        "url": pick["url"],
+        "city": "Centre d'Israël",
+        "source": "Karamel",
+        "activity_idea": True,
+    }
+
+
 def run():
     force = "--force" in sys.argv
     debug = "--debug" in sys.argv
@@ -110,6 +167,16 @@ def run():
         except Exception as e:
             print(f"[tlv_kids] Failed: {e}")
             events = []
+
+        try:
+            context = browser.new_context(**ctx_opts)
+            activity = scrape_karamel_activity(context.new_page())
+            if activity:
+                events.append(activity)
+            context.close()
+        except Exception as e:
+            print(f"[karamel] Failed: {e}")
+
         browser.close()
 
     if not events:
