@@ -223,6 +223,29 @@ async def scrape_events_manual(body: EventsPayload):
     return result
 
 
+class PrestatairePayload(BaseModel):
+    data: dict
+    force: bool = False
+
+
+@router.post("/prestataire/manual")
+async def scrape_prestataire_manual(body: PrestatairePayload):
+    from processors.prestataire_processor import generate_weekly_prestataire
+
+    result = await generate_weekly_prestataire(force=body.force, data=body.data)
+
+    auto = await _is_auto_publish()
+    if auto and result.get("prestataire_id") and result.get("status") == "generated":
+        try:
+            await _auto_publish_item("weekly_prestataire", "id", result["prestataire_id"])
+            result["auto_published"] = True
+        except Exception as e:
+            result["auto_published"] = False
+            result["auto_publish_error"] = str(e)
+
+    return result
+
+
 @router.post("/events-kids/manual")
 async def scrape_events_kids_manual(body: EventsPayload):
     """Receive pre-scraped kids events from local Mac scraper and generate weekly kids message."""

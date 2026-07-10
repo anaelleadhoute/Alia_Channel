@@ -15,6 +15,17 @@ async def list_weekly_events(limit: int = 10):
     return [dict(row) for row in rows]
 
 
+@router.get("/prestataire")
+async def list_weekly_prestataire(limit: int = 10):
+    async with get_db() as db:
+        cursor = await db.execute(
+            "SELECT id, week, data_json, content_fr, content_ru, status, sent_wa_fr, sent_wa_ru, created_at FROM weekly_prestataire ORDER BY created_at DESC LIMIT ?",
+            (limit,),
+        )
+        rows = await cursor.fetchall()
+    return [dict(row) for row in rows]
+
+
 @router.get("/kids")
 async def list_weekly_events_kids(limit: int = 10):
     async with get_db() as db:

@@ -186,6 +186,7 @@
   <button class="tab" onclick="switchTab('deals')">Deals</button>
   <button class="tab" onclick="switchTab('events')">🎭 Events</button>
   <button class="tab" onclick="switchTab('events-kids')">👧 Kids</button>
+  <button class="tab" onclick="switchTab('prestataire')">🏅 Prestataire</button>
   <button class="tab" onclick="switchTab('contests')">🎁 Concours</button>
   <button class="tab" onclick="switchTab('send')">✏️ Send</button>
 </div>
@@ -252,6 +253,12 @@
     <div class="cards" id="eventKidsCards"><div class="loading">Loading…</div></div>
   </div>
 
+  <!-- PRESTATAIRE -->
+  <div class="section" id="section-prestataire">
+    <div class="queue-header"><h2>🏅 Prestataire de la semaine</h2></div>
+    <div class="cards" id="prestataireCards"><div class="loading">Loading…</div></div>
+  </div>
+
   <!-- CONTESTS -->
   <div class="section" id="section-contests">
     <div class="manual-panel">
@@ -305,6 +312,7 @@ async function init() {
   loadContests();
   loadEvents();
   loadEventsKids();
+  loadPrestataire();
 }
 
 // ── Settings ────────────────────────────────────────────────────────────────
@@ -337,13 +345,14 @@ function switchTab(name) {
 
 // ── Queue (all pending content) ──────────────────────────────────────────────
 async function loadQueue() {
-  const [digests, faqs, tips, weeklyDeals, events, eventsKids] = await Promise.all([
+  const [digests, faqs, tips, weeklyDeals, events, eventsKids, prestataire] = await Promise.all([
     fetch(`${API}/api/digests`).then(r => r.json()),
     fetch(`${API}/api/faqs`).then(r => r.json()),
     fetch(`${API}/api/tips?status=${queueFilter}`).then(r => r.json()),
     fetch(`${API}/api/weekly-deals`).then(r => r.json()),
     fetch(`${API}/api/weekly-events`).then(r => r.json()),
     fetch(`${API}/api/weekly-events/kids`).then(r => r.json()),
+    fetch(`${API}/api/weekly-events/prestataire`).then(r => r.json()),
   ]);
 
   const allItems = [
@@ -353,6 +362,7 @@ async function loadQueue() {
     ...weeklyDeals.filter(d => matchesFilter(d)).map(d => ({...d, _type: 'weekly_deal'})),
     ...events.filter(e => matchesFilter(e)).map(e => ({...e, _type: 'weekly_event'})),
     ...eventsKids.filter(e => matchesFilter(e)).map(e => ({...e, _type: 'weekly_event_kids'})),
+    ...prestataire.filter(e => matchesFilter(e)).map(e => ({...e, _type: 'prestataire'})),
   ];
 
   const pending = allItems.filter(i => i.status === 'pending' || (!i.status && !i.sent_wa_fr && !i.sent_wa_ru));
@@ -434,6 +444,10 @@ function renderCard(item) {
   if (type === 'weekly_event_kids') {
     meta = `<span class="source">👧 Kids</span><span class="category">${item.week || ''}</span>`;
   }
+  if (type === 'prestataire') {
+    const d = item.data_json ? JSON.parse(item.data_json) : {};
+    meta = `<span class="source">🏅 Prestataire</span><span class="category">${item.week || ''}</span><span class="category">${d.name || ''} — ${d.category || ''}</span>`;
+  }
   if (item.source) meta += `<span class="source">${item.source}</span>`;
   if (item.score) {
     const s = parseFloat(item.score);
@@ -477,7 +491,7 @@ function renderCard(item) {
 
 // ── Actions ──────────────────────────────────────────────────────────────────
 async function publish(type, id, audience) {
-  const endpoints = { digest: 'digest', faq: 'faq', tip: 'tip', article: 'article', contest: 'contest', weekly_deal: 'weekly-deal', weekly_event: 'weekly-event', weekly_event_kids: 'weekly-event-kids' };
+  const endpoints = { digest: 'digest', faq: 'faq', tip: 'tip', article: 'article', contest: 'contest', weekly_deal: 'weekly-deal', weekly_event: 'weekly-event', weekly_event_kids: 'weekly-event-kids', prestataire: 'prestataire' };
   const ep = endpoints[type];
   if (!ep) return;
 
@@ -522,6 +536,13 @@ async function loadEvents() {
   document.getElementById('eventCards').innerHTML = data.length
     ? data.map(e => renderCard({...e, _type: 'weekly_event'})).join('')
     : '<div class="empty"><div class="icon">🎭</div>Pas encore d\'événements cette semaine</div>';
+}
+
+async function loadPrestataire() {
+  const data = await fetch(`${API}/api/weekly-events/prestataire`).then(r => r.json());
+  document.getElementById('prestataireCards').innerHTML = data.length
+    ? data.map(e => renderCard({...e, _type: 'prestataire'})).join('')
+    : '<div class="empty"><div class="icon">🏅</div>Pas encore de prestataire cette semaine</div>';
 }
 
 async function loadEventsKids() {
