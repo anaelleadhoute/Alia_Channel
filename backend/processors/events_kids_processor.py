@@ -45,7 +45,10 @@ def _build_message_fr(events: list[dict], intro: str) -> str:
         lines.append("")
     if karamel:
         name = karamel.get("name_fr") or karamel["name"]
+        desc = karamel.get("desc_fr") or ""
         lines.append(f"💡 Idée activité : {name}")
+        if desc:
+            lines.append(desc)
         if karamel.get("url"):
             lines.append(karamel["url"])
         lines.append("")
@@ -79,7 +82,10 @@ def _build_message_ru(events: list[dict], intro: str) -> str:
         lines.append("")
     if karamel:
         name = karamel.get("name_ru") or karamel["name"]
+        desc = karamel.get("desc_ru") or ""
         lines.append(f"💡 Идея на неделю : {name}")
+        if desc:
+            lines.append(desc)
         if karamel.get("url"):
             lines.append(karamel["url"])
         lines.append("")
@@ -131,9 +137,11 @@ async def generate_weekly_kids_events(force: bool = False, raw_events: list[dict
     if extra_titles:
         extras_str = ", ".join(f'"{k}": "{v}"' for k, v in extra_titles.items())
         pick_prompt += f"\n\nTraduis aussi ces titres en français et russe et ajoute-les au JSON :\n{{{extras_str}}}\nFormat : \"ipo_fr\", \"ipo_ru\", \"karamel_fr\", \"karamel_ru\""
+    if karamel and karamel.get("description"):
+        pick_prompt += f"\n\nTraduis aussi cette description de l'activité Karamel en français et russe (max 120 caractères chacune) :\n\"{karamel['description'][:300]}\"\nAjoute \"karamel_desc_fr\" et \"karamel_desc_ru\" au JSON."
 
     pick_resp = await claude.messages.create(
-        model="claude-haiku-4-5-20251001", max_tokens=400,
+        model="claude-haiku-4-5-20251001", max_tokens=500,
         messages=[{"role": "user", "content": pick_prompt}]
     )
     titles_fr = []
@@ -151,6 +159,8 @@ async def generate_weekly_kids_events(force: bool = False, raw_events: list[dict
         if karamel:
             karamel["name_fr"] = parsed.get("karamel_fr") or karamel["name"]
             karamel["name_ru"] = parsed.get("karamel_ru") or karamel["name"]
+            karamel["desc_fr"] = parsed.get("karamel_desc_fr", "")
+            karamel["desc_ru"] = parsed.get("karamel_desc_ru", "")
         selected = [candidates[i] for i in indexes if 0 <= i < len(candidates)]
     except Exception as ex:
         logger.warning(f"[events_kids] Pick parse failed: {ex} — raw: {pick_resp.content[0].text[:200]}")
