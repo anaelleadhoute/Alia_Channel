@@ -10,12 +10,15 @@ from db.database import get_db
 logger = logging.getLogger(__name__)
 claude = anthropic.AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
-KIDS_PICK_PROMPT = """Voici une liste d'activités et événements pour enfants et familles à Tel Aviv cette semaine. Chaque ligne a un numéro.
+KIDS_PICK_PROMPT = """Voici une liste d'activités et événements pour enfants et familles à Tel Aviv cette semaine (titres en hébreu). Chaque ligne a un numéro.
 
 {events_text}
 
 Choisis les 3 meilleures activités pour des familles avec enfants (variété, intérêt, dates proches).
-Réponds UNIQUEMENT avec un JSON : {{"indexes": [n, n, n]}}"""
+Traduis leur titre en français et en russe.
+
+Réponds UNIQUEMENT avec un JSON :
+{{"indexes": [n, n, n], "titles_fr": ["titre fr", "titre fr", "titre fr"], "titles_ru": ["titre ru", "titre ru", "titre ru"]}}"""
 
 KIDS_INTRO_FR_PROMPT = """Tu es rédacteur pour Alia Channel. Écris 2 phrases chaleureuses d'introduction pour un message WhatsApp parents olim sur ces activités : {summary}. Pas de titre, pas de liste."""
 
@@ -29,9 +32,10 @@ def _build_message_fr(events: list[dict], intro: str) -> str:
         if e.get("source") == "Karamel":
             karamel = e
             continue
+        name = e.get("name_fr") or e["name"]
         date = e.get("date", "")
         date_str = f" — {date}" if date else ""
-        lines.append(f"🎈 {e['name']}{date_str}")
+        lines.append(f"🎈 {name}{date_str}")
         if e.get("url"):
             lines.append(e["url"])
         lines.append("")
@@ -51,9 +55,10 @@ def _build_message_ru(events: list[dict], intro: str) -> str:
         if e.get("source") == "Karamel":
             karamel = e
             continue
+        name = e.get("name_ru") or e["name"]
         date = e.get("date", "")
         date_str = f" — {date}" if date else ""
-        lines.append(f"🎈 {e['name']}{date_str}")
+        lines.append(f"🎈 {name}{date_str}")
         if e.get("url"):
             lines.append(e["url"])
         lines.append("")
@@ -88,13 +93,23 @@ async def generate_weekly_kids_events(force: bool = False, raw_events: list[dict
         model="claude-haiku-4-5-20251001", max_tokens=60,
         messages=[{"role": "user", "content": KIDS_PICK_PROMPT.format(events_text=events_text)}]
     )
+    titles_fr = []
+    titles_ru = []
     try:
         raw = pick_resp.content[0].text.strip()
         raw = re.sub(r"^```(?:json)?\s*", "", raw); raw = re.sub(r"\s*```$", "", raw)
-        indexes = json.loads(raw).get("indexes", [])
+        parsed = json.loads(raw)
+        indexes = parsed.get("indexes", [])
+        titles_fr = parsed.get("titles_fr", [])
+        titles_ru = parsed.get("titles_ru", [])
         selected = [candidates[i] for i in indexes if 0 <= i < len(candidates)]
     except Exception:
         selected = candidates[:3]
+
+    # Attach translated names to each selected event
+    for i, e in enumerate(selected):
+        e["name_fr"] = titles_fr[i] if i < len(titles_fr) else e["name"]
+        e["name_ru"] = titles_ru[i] if i < len(titles_ru) else e["name"]
 
     if karamel:
         selected.append(karamel)
