@@ -41,9 +41,11 @@ async def update_schedule(job_key: str, update: ScheduleUpdate):
 async def get_due_jobs(location: str = "server"):
     """Return jobs due within the current 15-minute window."""
     now = datetime.now(timezone.utc)
-    current_hour = now.hour
-    current_minute = now.minute
-    current_dow = now.weekday()
+    from zoneinfo import ZoneInfo
+    now_il = now.astimezone(ZoneInfo("Asia/Jerusalem"))
+    current_hour = now_il.hour
+    current_minute = now_il.minute
+    current_dow = now_il.weekday()
     current_dow_js = (current_dow + 1) % 7
 
     async with get_db() as db:
