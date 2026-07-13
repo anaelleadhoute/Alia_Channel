@@ -115,7 +115,7 @@ def _parse_tme_html(html: str, username: str) -> list[dict]:
         button_links = []
         for a in wrap.find_all("a", href=True):
             href = a["href"]
-            if href.startswith("http") and "t.me" not in href and "telegram" not in href:
+            if href.startswith("http") and "t.me" not in href and not href.startswith("https://telegram"):
                 button_links.append(href)
 
         if button_links:
