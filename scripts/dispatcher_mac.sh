@@ -14,10 +14,12 @@ JOBS=$(echo "$DUE" | python3 -c "import sys,json; [print(j['job_key']) for j in 
 for JOB in $JOBS; do
     echo "[$(date -u '+%Y-%m-%d %H:%M')] Running: $JOB" >> $LOG
     case "$JOB" in
-        kids_events)
+        scrape_kids_events)
             python3 "${DIR}/scripts/events_kids_local.py" >> $LOG 2>&1 ;;
-        prestataire)
+        scrape_prestataire)
             python3 "${DIR}/scripts/prestataire_local.py" >> $LOG 2>&1 ;;
+        scrape_kol_zchut)
+            python3 "${DIR}/scripts/kolzchut_local.py" >> $LOG 2>&1 ;;
     esac
     curl -s -X POST "${BASE}/api/schedules/${JOB}/run" >> /dev/null
     echo "" >> $LOG

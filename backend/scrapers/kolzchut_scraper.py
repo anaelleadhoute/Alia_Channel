@@ -70,10 +70,12 @@ async def run_kolzchut_scraper() -> dict:
             page_resp.raise_for_status()
             content = _extract_text(page_resp.text)
 
+        import json
+        payload = json.dumps({"url": target_url, "content": content})
         async with get_db() as db:
             cursor = await db.execute(
-                "INSERT INTO tips (source_url, week) VALUES (?, ?)",
-                (target_url, week),
+                "INSERT OR IGNORE INTO tips (source_url, week, raw_payload) VALUES (?, ?, ?)",
+                (target_url, week, payload),
             )
             await db.commit()
             tip_id = cursor.lastrowid

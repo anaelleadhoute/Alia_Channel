@@ -102,16 +102,9 @@ async def scrape_telegram_deals():
 
 @router.post("/tips")
 async def scrape_tips():
-    """Scrape Kol Zchut and process tip with AI. Auto-publishes if enabled."""
+    """Scrape Kol Zchut and store raw payload (no generation)."""
     scrape_result = await run_kolzchut_scraper()
-    ai_result = await process_pending_tips()
-
-    auto = await _is_auto_publish()
-    if auto and ai_result.get("tip_ids"):
-        for tip_id in ai_result["tip_ids"]:
-            await _auto_publish_item("tips", "id", tip_id)
-
-    return {"scrape": scrape_result, "ai": ai_result, "auto_published": auto}
+    return {"scrape": scrape_result}
 
 
 @router.post("/reset-ai")
@@ -130,28 +123,48 @@ class ManualTip(BaseModel):
 
 @router.post("/tips/manual")
 async def manual_tip(body: ManualTip):
-    """Receive Kol Zchut content from local Mac scraper and process with AI."""
+    """Store raw Kol Zchut content from Mac scraper (no generation)."""
+    import json
     week = datetime.utcnow().strftime("%Y-W%W")
-
     async with get_db() as db:
         existing = await db.execute("SELECT id FROM tips WHERE week = ?", (week,))
-        if await existing.fetchone():
-            return {"status": "skipped", "reason": "tip already exists for this week"}
-
-        cursor = await db.execute(
-            "INSERT INTO tips (source_url, week) VALUES (?, ?)",
-            (body.url, week),
-        )
+        row = await existing.fetchone()
+        if row:
+            await db.execute(
+                "UPDATE tips SET source_url = ?, raw_payload = ? WHERE week = ?",
+                (body.url, json.dumps({"url": body.url, "content": body.content}), week),
+            )
+        else:
+            await db.execute(
+                "INSERT INTO tips (source_url, week, raw_payload) VALUES (?, ?, ?)",
+                (body.url, week, json.dumps({"url": body.url, "content": body.content})),
+            )
         await db.commit()
-        tip_id = cursor.lastrowid
+    return {"status": "stored", "week": week}
 
-    result = await process_tip(tip_id, body.url, body.content)
+
+@router.post("/tips/generate")
+async def generate_tip():
+    """Generate FR+RU tip from stored raw payload and auto-publish."""
+    week = datetime.utcnow().strftime("%Y-W%W")
+    import json
+    async with get_db() as db:
+        cursor = await db.execute(
+            "SELECT id, source_url, raw_payload FROM tips WHERE week = ? AND ai_processed_at IS NULL",
+            (week,)
+        )
+        row = await cursor.fetchone()
+    if not row:
+        return {"status": "skipped", "reason": "no stored tip for this week or already generated"}
+
+    payload = json.loads(row["raw_payload"] or "{}")
+    result = await process_tip(row["id"], payload.get("url", row["source_url"]), payload.get("content", ""))
 
     auto = await _is_auto_publish()
     if auto and result:
-        await _auto_publish_item("tips", "id", tip_id)
+        await _auto_publish_item("tips", "id", row["id"])
 
-    return {"status": "ok" if result else "error", "tip_id": tip_id, "week": week, "auto_published": auto}
+    return {"status": "ok" if result else "error", "tip_id": row["id"], "week": week, "auto_published": auto}
 
 
 @router.post("/deals")
@@ -261,10 +274,25 @@ class PrestatairePayload(BaseModel):
 
 @router.post("/prestataire/manual")
 async def scrape_prestataire_manual(body: PrestatairePayload):
+    """Store raw prestataire data from Mac scraper (no generation)."""
+    import json
+    week = datetime.utcnow().strftime("%Y-W%W")
+    async with get_db() as db:
+        if body.force:
+            await db.execute("DELETE FROM weekly_prestataire WHERE week = ?", (week,))
+        await db.execute(
+            "INSERT OR IGNORE INTO weekly_prestataire (week, data_json, raw_payload) VALUES (?, ?, ?)",
+            (week, json.dumps(body.data, ensure_ascii=False), json.dumps(body.data, ensure_ascii=False)),
+        )
+        await db.commit()
+    return {"status": "stored", "week": week}
+
+
+@router.post("/prestataire/generate")
+async def generate_prestataire():
+    """Generate FR+RU content from stored raw payload and auto-publish."""
     from processors.prestataire_processor import generate_weekly_prestataire
-
-    result = await generate_weekly_prestataire(force=body.force, data=body.data)
-
+    result = await generate_weekly_prestataire()
     auto = await _is_auto_publish()
     if auto and result.get("prestataire_id") and result.get("status") == "generated":
         try:
@@ -273,17 +301,30 @@ async def scrape_prestataire_manual(body: PrestatairePayload):
         except Exception as e:
             result["auto_published"] = False
             result["auto_publish_error"] = str(e)
-
     return result
 
 
 @router.post("/events-kids/manual")
 async def scrape_events_kids_manual(body: EventsPayload):
-    """Receive pre-scraped kids events from local Mac scraper and generate weekly kids message."""
+    """Store raw kids events from Mac scraper (no generation)."""
+    import json
+    week = datetime.utcnow().strftime("%Y-W%W")
+    async with get_db() as db:
+        if body.force:
+            await db.execute("DELETE FROM weekly_events_kids WHERE week = ?", (week,))
+        await db.execute(
+            "INSERT OR IGNORE INTO weekly_events_kids (week, raw_payload) VALUES (?, ?)",
+            (week, json.dumps(body.events, ensure_ascii=False)),
+        )
+        await db.commit()
+    return {"status": "stored", "week": week, "events_count": len(body.events)}
+
+
+@router.post("/events-kids/generate")
+async def generate_events_kids():
+    """Generate FR+RU kids events content from stored raw payload and auto-publish."""
     from processors.events_kids_processor import generate_weekly_kids_events
-
-    result = await generate_weekly_kids_events(force=body.force, raw_events=body.events)
-
+    result = await generate_weekly_kids_events()
     auto = await _is_auto_publish()
     if auto and result.get("weekly_event_kids_id") and result.get("status") == "generated":
         try:
@@ -292,7 +333,6 @@ async def scrape_events_kids_manual(body: EventsPayload):
         except Exception as e:
             result["auto_published"] = False
             result["auto_publish_error"] = str(e)
-
     return result
 
 

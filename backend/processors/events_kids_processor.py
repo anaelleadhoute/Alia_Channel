@@ -104,13 +104,18 @@ async def generate_weekly_kids_events(force: bool = False, raw_events: list[dict
     week = datetime.utcnow().strftime("%Y-W%W")
 
     async with get_db() as db:
-        cursor = await db.execute("SELECT id FROM weekly_events_kids WHERE week = ?", (week,))
+        cursor = await db.execute("SELECT id, content_fr, raw_payload FROM weekly_events_kids WHERE week = ?", (week,))
         existing = await cursor.fetchone()
-    if existing and not force:
+
+    if existing and existing["content_fr"] and not force:
         return {"status": "skipped", "week": week, "weekly_event_kids_id": existing["id"]}
 
+    # Load from DB raw_payload if not provided directly
     if not raw_events:
-        return {"status": "error", "reason": "no events provided"}
+        if existing and existing["raw_payload"]:
+            raw_events = json.loads(existing["raw_payload"])
+        else:
+            return {"status": "error", "reason": "no events stored for this week"}
 
     karamel = next((e for e in raw_events if e.get("source") == "Karamel"), None)
     ipo = next((e for e in raw_events if e.get("upcoming_highlight")), None)
@@ -213,15 +218,21 @@ async def generate_weekly_kids_events(force: bool = False, raw_events: list[dict
     content_ru = _build_message_ru(selected, intro_ru)
 
     async with get_db() as db:
-        if force:
-            await db.execute("DELETE FROM weekly_events_kids WHERE week = ?", (week,))
-        cursor = await db.execute(
-            """INSERT INTO weekly_events_kids (week, events_json, content_fr, content_ru, created_at)
-               VALUES (?, ?, ?, ?, ?)""",
-            (week, json.dumps(raw_events, ensure_ascii=False), content_fr, content_ru, datetime.utcnow().isoformat()),
-        )
-        await db.commit()
-        event_id = cursor.lastrowid
+        if existing:
+            await db.execute(
+                "UPDATE weekly_events_kids SET events_json = ?, content_fr = ?, content_ru = ? WHERE week = ?",
+                (json.dumps(raw_events, ensure_ascii=False), content_fr, content_ru, week),
+            )
+            await db.commit()
+            event_id = existing["id"]
+        else:
+            cursor = await db.execute(
+                """INSERT INTO weekly_events_kids (week, events_json, content_fr, content_ru, created_at)
+                   VALUES (?, ?, ?, ?, ?)""",
+                (week, json.dumps(raw_events, ensure_ascii=False), content_fr, content_ru, datetime.utcnow().isoformat()),
+            )
+            await db.commit()
+            event_id = cursor.lastrowid
 
     logger.info(f"[events_kids] Generated weekly_events_kids #{event_id} for {week}")
     return {"status": "generated", "week": week, "weekly_event_kids_id": event_id, "event_count": len(raw_events)}

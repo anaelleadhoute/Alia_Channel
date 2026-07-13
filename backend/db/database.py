@@ -190,7 +190,7 @@ async def init_db():
                 ('news_digest',   '📰 News + Digest',     NULL, 16, 1, 'server'),
                 ('telegram_deals','⚡ Telegram Deals',    1,    12, 1, 'server'),
                 ('faq',           '❓ FAQ',               2,    12, 1, 'server'),
-                ('kol_zchut',     '💡 Kol Zchut',        3,    12, 1, 'server'),
+                ('kol_zchut',     '💡 Scrape Kol Zchut', 3,    9,  1, 'server'),
                 ('prestataire',   '🏅 Prestataire',      4,    12, 1, 'mac'),
                 ('kids_events',   '👧 Kids Events',      0,    12, 1, 'mac');
 
@@ -221,6 +221,18 @@ async def init_db():
         for migration in [
             "ALTER TABLE articles ADD COLUMN published_at DATETIME",
             "ALTER TABLE weekly_events_kids ADD COLUMN activity_idea_json TEXT",
+            "ALTER TABLE weekly_events_kids ADD COLUMN raw_payload TEXT",
+            "ALTER TABLE weekly_prestataire ADD COLUMN raw_payload TEXT",
+            "ALTER TABLE tips ADD COLUMN raw_payload TEXT",
+            "ALTER TABLE schedules ADD COLUMN minute_utc INTEGER NOT NULL DEFAULT 0",
+            # Scrape jobs (mac) — separate from generate jobs (server)
+            """INSERT OR IGNORE INTO schedules (job_key, label, day_of_week, hour_utc, minute_utc, enabled, location) VALUES
+                ('scrape_kids_events',   '👧 Scrape Kids Events',   0, 9,  0, 1, 'mac'),
+                ('scrape_prestataire',   '🏅 Scrape Prestataire',   0, 9,  0, 1, 'mac'),
+                ('scrape_kol_zchut',     '💡 Scrape Kol Zchut',    0, 9,  0, 1, 'mac'),
+                ('generate_kids_events', '👧 Generate Kids Events', 1, 9,  0, 1, 'server'),
+                ('generate_prestataire', '🏅 Generate Prestataire', 4, 9,  0, 1, 'server'),
+                ('generate_kol_zchut',   '💡 Generate Kol Zchut',  3, 9,  0, 1, 'server')""",
         ]:
             try:
                 await db.execute(migration)

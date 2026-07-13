@@ -70,13 +70,17 @@ async def generate_weekly_prestataire(force: bool = False, data: dict | None = N
     week = datetime.utcnow().strftime("%Y-W%W")
 
     async with get_db() as db:
-        cursor = await db.execute("SELECT id FROM weekly_prestataire WHERE week = ?", (week,))
+        cursor = await db.execute("SELECT id, content_fr, raw_payload FROM weekly_prestataire WHERE week = ?", (week,))
         existing = await cursor.fetchone()
-    if existing and not force:
+
+    if existing and existing["content_fr"] and not force:
         return {"status": "skipped", "week": week, "prestataire_id": existing["id"]}
 
     if not data:
-        return {"status": "error", "reason": "no data provided"}
+        if existing and existing["raw_payload"]:
+            data = json.loads(existing["raw_payload"])
+        else:
+            return {"status": "error", "reason": "no data stored for this week"}
 
     satisfaction_str = f"{data['satisfaction']}%" if data.get("satisfaction") else "N/A"
 
@@ -113,14 +117,20 @@ async def generate_weekly_prestataire(force: bool = False, data: dict | None = N
     )
 
     async with get_db() as db:
-        if force:
-            await db.execute("DELETE FROM weekly_prestataire WHERE week = ?", (week,))
-        cursor = await db.execute(
-            "INSERT INTO weekly_prestataire (week, data_json, content_fr, content_ru, created_at) VALUES (?, ?, ?, ?, ?)",
-            (week, json.dumps(data, ensure_ascii=False), content_fr, content_ru, datetime.utcnow().isoformat()),
-        )
-        await db.commit()
-        record_id = cursor.lastrowid
+        if existing:
+            await db.execute(
+                "UPDATE weekly_prestataire SET data_json = ?, content_fr = ?, content_ru = ? WHERE week = ?",
+                (json.dumps(data, ensure_ascii=False), content_fr, content_ru, week),
+            )
+            await db.commit()
+            record_id = existing["id"]
+        else:
+            cursor = await db.execute(
+                "INSERT INTO weekly_prestataire (week, data_json, content_fr, content_ru, created_at) VALUES (?, ?, ?, ?, ?)",
+                (week, json.dumps(data, ensure_ascii=False), content_fr, content_ru, datetime.utcnow().isoformat()),
+            )
+            await db.commit()
+            record_id = cursor.lastrowid
 
     logger.info(f"[prestataire] Generated #{record_id} for {week}: {data['name']} ({data['category']})")
     return {"status": "generated", "week": week, "prestataire_id": record_id}
