@@ -119,7 +119,8 @@ def _parse_tme_html(html: str, username: str) -> list[dict]:
                 button_links.append(href)
 
         if button_links:
-            text = text + "\n" + "\n".join(button_links)
+            from html import unescape
+            text = text + "\n" + "\n".join(unescape(lnk) for lnk in button_links)
 
         if text or images:
             messages.append({
