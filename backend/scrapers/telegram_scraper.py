@@ -108,6 +108,17 @@ def _parse_tme_html(html: str, username: str) -> list[dict]:
                 if img_url:
                     images.append(img_url)
 
+        # Extract inline button links (e.g. "לרכישה לחצו כאן" buttons)
+        button_links = []
+        for btn in msg.select(".tgme_widget_message_inline_button"):
+            href = btn.get("href", "")
+            if href and href.startswith("http"):
+                button_links.append(href)
+
+        # Append button links to text so _deal_link() can find them
+        if button_links:
+            text = text + "\n" + "\n".join(button_links)
+
         if text or images:
             messages.append({
                 "id": msg_id,
