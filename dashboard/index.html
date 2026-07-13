@@ -748,7 +748,7 @@ async function loadAutomation() {
         </thead>
         <tbody>
           ${data.map(s => {
-            const hourIL = (s.hour_utc + 3) % 24;
+            const hourIL = s.hour_utc;
             const dayLabel = s.day_of_week === null ? 'Chaque jour' : DAYS_FR[s.day_of_week];
             const lastRun = s.last_run ? new Date(s.last_run).toLocaleString('fr-FR') : '—';
             const locBadge = s.location === 'mac'
@@ -767,8 +767,7 @@ async function loadAutomation() {
                 <div style="display:flex;gap:4px;justify-content:center;align-items:center;">
                   <select onchange="updateSchedule('${s.job_key}','hour_utc',this.value)" style="padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:13px;cursor:pointer;">
                     ${Array.from({length:24},(_,i)=>{
-                      const ilH = (i+3)%24;
-                      return `<option value="${i}" ${s.hour_utc===i?'selected':''}>${String(ilH).padStart(2,'0')}</option>`;
+                      return `<option value="${i}" ${s.hour_utc===i?'selected':''}>${String(i).padStart(2,'0')}</option>`;
                     }).join('')}
                   </select>
                   <span style="color:#999;">:</span>
