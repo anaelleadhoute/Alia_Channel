@@ -44,7 +44,7 @@ Voici les meilleurs deals de la semaine dans les supermarchés :
 🟡 Hazi Hinam : {carrefour}
 
 Rédige UN message WhatsApp en français (120-150 mots) présentant ces 3 deals.
-- Titre : "🛒 Promotions de la semaine — Alia a trouvé pour vous !"
+- Commence par : "🛒 Beaucoup d'olim cherchaient des bons plans au supermarché cette semaine, alors on a fouillé pour vous !"
 - Présente chaque supermarché avec son emoji et le deal clairement
 - Pour chaque supermarché, inclus le lien produit direct s'il est fourni, sinon le lien général :
   • Shufersal : {link_shufersal}
@@ -64,7 +64,7 @@ COMBINED_RU_PROMPT = """Ты редактор Alia Channel — медиа для
 🟡 Hazi Hinam : {carrefour}
 
 Напиши ОДНО сообщение для WhatsApp на русском (120-150 слов) с этими 3 акциями.
-- Заголовок : "🛒 Акции недели — Alia нашла для вас! 🛒"
+- Начни с : "🛒 На этой неделе многие олим искали выгодные покупки в супермаркетах — и мы нашли для вас !"
 - Представь каждый супермаркет с эмодзи и акцией чётко
 - Для каждого супермаркета включи прямую ссылку на товар, если она есть, иначе общую :
   • Shufersal : {link_shufersal}

@@ -175,6 +175,33 @@ async def init_db():
                 sent_wa_ru      INTEGER DEFAULT 0
             );
 
+            CREATE TABLE IF NOT EXISTS schedules (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                job_key     TEXT UNIQUE NOT NULL,
+                label       TEXT NOT NULL,
+                day_of_week INTEGER,
+                hour_utc    INTEGER NOT NULL DEFAULT 12,
+                enabled     INTEGER NOT NULL DEFAULT 1,
+                location    TEXT NOT NULL DEFAULT 'server',
+                last_run    DATETIME
+            );
+
+            INSERT OR IGNORE INTO schedules (job_key, label, day_of_week, hour_utc, enabled, location) VALUES
+                ('news_digest',   '📰 News + Digest',     NULL, 16, 1, 'server'),
+                ('telegram_deals','⚡ Telegram Deals',    1,    12, 1, 'server'),
+                ('faq',           '❓ FAQ',               2,    12, 1, 'server'),
+                ('kol_zchut',     '💡 Kol Zchut',        3,    12, 1, 'server'),
+                ('prestataire',   '🏅 Prestataire',      4,    12, 1, 'mac'),
+                ('kids_events',   '👧 Kids Events',      0,    12, 1, 'mac');
+
+            CREATE TABLE IF NOT EXISTS cleanup_logs (
+                id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                ran_at       DATETIME DEFAULT CURRENT_TIMESTAMP,
+                articles_deleted INTEGER DEFAULT 0,
+                deals_deleted    INTEGER DEFAULT 0,
+                triggered_by TEXT DEFAULT 'auto'
+            );
+
             CREATE TABLE IF NOT EXISTS weekly_events_kids (
                 id              INTEGER PRIMARY KEY AUTOINCREMENT,
                 week            TEXT UNIQUE NOT NULL,

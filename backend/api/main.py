@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from db.database import init_db
-from api.routes import articles, tips, publish, scrape, deals, faqs, digests, settings, contests, weekly_deals, weekly_events
+from api.routes import articles, tips, publish, scrape, deals, faqs, digests, settings, contests, weekly_deals, weekly_events, maintenance, schedules
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 
@@ -35,7 +35,9 @@ app.include_router(digests.router,  prefix="/api/digests",  tags=["digests"])
 app.include_router(settings.router,  prefix="/api/settings",  tags=["settings"])
 app.include_router(contests.router,      prefix="/api/contests",      tags=["contests"])
 app.include_router(weekly_deals.router,   prefix="/api/weekly-deals",   tags=["weekly-deals"])
-app.include_router(weekly_events.router,  prefix="/api/weekly-events",  tags=["weekly-events"])
+app.include_router(weekly_events.router,    prefix="/api/weekly-events",    tags=["weekly-events"])
+app.include_router(maintenance.router,     prefix="/api/maintenance",      tags=["maintenance"])
+app.include_router(schedules.router,       prefix="/api/schedules",        tags=["schedules"])
 
 
 @app.get("/api/health")

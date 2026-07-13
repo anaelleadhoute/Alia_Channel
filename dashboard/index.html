@@ -188,6 +188,8 @@
   <button class="tab" onclick="switchTab('events-kids')">👧 Kids</button>
   <button class="tab" onclick="switchTab('prestataire')">🏅 Prestataire</button>
   <button class="tab" onclick="switchTab('contests')">🎁 Concours</button>
+  <button class="tab" onclick="switchTab('automation')">⚙️ Automation</button>
+  <button class="tab" onclick="switchTab('maintenance')">🧹 Maintenance</button>
   <button class="tab" onclick="switchTab('send')">✏️ Send</button>
 </div>
 
@@ -198,10 +200,6 @@
     <div class="actions-bar">
       <span>Actions:</span>
       <button class="btn btn-primary" onclick="runScrape()">🔄 Scrape News</button>
-      <button class="btn btn-primary" onclick="generateDigest()">📰 Generate Digest</button>
-      <button class="btn btn-primary" onclick="generateDigestForce()">🔄 Regénérer Digest</button>
-      <button class="btn btn-primary" onclick="generateFaq()">❓ Generate FAQ</button>
-      <button class="btn btn-primary" onclick="scrapeDeals()">🛍️ Scrape Deals</button>
     </div>
     <div class="queue-header">
       <h2>Pending Queue</h2>
@@ -216,6 +214,11 @@
 
   <!-- DIGESTS -->
   <div class="section" id="section-digests">
+    <div class="actions-bar">
+      <span>Actions:</span>
+      <button class="btn btn-primary" onclick="generateDigest()">📰 Générer Digest</button>
+      <button class="btn btn-primary" onclick="generateDigestForce()">🔄 Regénérer Digest</button>
+    </div>
     <div class="queue-header"><h2>Daily Digests</h2></div>
     <div class="cards" id="digestCards"><div class="loading">Loading…</div></div>
   </div>
@@ -224,6 +227,7 @@
   <div class="section" id="section-faqs">
     <div class="actions-bar">
       <span>Actions:</span>
+      <button class="btn btn-primary" onclick="generateFaq()">❓ Générer FAQ</button>
       <button class="btn btn-primary" onclick="generateFaqForce()">🔄 Regénérer FAQ</button>
     </div>
     <div class="queue-header"><h2>Weekly FAQs</h2></div>
@@ -240,26 +244,38 @@
   <div class="section" id="section-deals">
     <div class="actions-bar">
       <span>Actions:</span>
-      <button class="btn btn-primary" onclick="scrapeDeals()">🛒 Générer Deals Semaine</button>
+      <button class="btn btn-primary" onclick="scrapeTelegramDeals()">⚡ Scraper Deals Telegram</button>
     </div>
-    <div class="queue-header"><h2>🛒 Deals Supermarché — Semaine</h2></div>
-    <div class="cards" id="dealCards"><div class="loading">Loading…</div></div>
+    <div class="queue-header"><h2>⚡ Alertes Deals (Telegram)</h2></div>
+    <div class="cards" id="dealAlertCards"><div class="loading">Loading…</div></div>
   </div>
 
   <!-- EVENTS -->
   <div class="section" id="section-events">
+    <div class="actions-bar">
+      <span>Actions:</span>
+      <button class="btn btn-primary" onclick="scrapeEventsKids()">🎭 Scraper & Générer Événements</button>
+    </div>
     <div class="queue-header"><h2>🎭 Événements de la semaine</h2></div>
     <div class="cards" id="eventCards"><div class="loading">Loading…</div></div>
   </div>
 
   <!-- KIDS EVENTS -->
   <div class="section" id="section-events-kids">
+    <div class="actions-bar">
+      <span>Actions:</span>
+      <button class="btn btn-primary" onclick="scrapeKidsInfo()">👧 Scraper & Générer Kids</button>
+    </div>
     <div class="queue-header"><h2>👧 Événements familles & enfants</h2></div>
     <div class="cards" id="eventKidsCards"><div class="loading">Loading…</div></div>
   </div>
 
   <!-- PRESTATAIRE -->
   <div class="section" id="section-prestataire">
+    <div class="actions-bar">
+      <span>Actions:</span>
+      <button class="btn btn-primary" onclick="scrapePrestataire()">🏅 Scraper & Générer Prestataire</button>
+    </div>
     <div class="queue-header"><h2>🏅 Prestataire de la semaine</h2></div>
     <div class="cards" id="prestataireCards"><div class="loading">Loading…</div></div>
   </div>
@@ -280,6 +296,23 @@
     </div>
     <div class="queue-header"><h2>Concours & Cadeaux</h2></div>
     <div class="cards" id="contestCards"><div class="loading">Loading…</div></div>
+  </div>
+
+  <!-- AUTOMATION -->
+  <div class="section" id="section-automation">
+    <div class="queue-header"><h2>⚙️ Automatisation</h2></div>
+    <div id="automationCards"><div class="loading">Loading…</div></div>
+  </div>
+
+  <!-- MAINTENANCE -->
+  <div class="section" id="section-maintenance">
+    <div class="actions-bar">
+      <span>Actions:</span>
+      <button class="btn btn-primary" onclick="runCleanup()">🧹 Nettoyer maintenant</button>
+    </div>
+    <div id="maintenanceInfo" style="margin-bottom:24px;"></div>
+    <div class="queue-header"><h2>Historique des nettoyages</h2></div>
+    <div id="cleanupLogs"><div class="loading">Loading…</div></div>
   </div>
 
   <!-- MANUAL SEND -->
@@ -318,6 +351,8 @@ async function init() {
   loadEvents();
   loadEventsKids();
   loadPrestataire();
+  loadAutomation();
+  loadMaintenance();
 }
 
 // ── Settings ────────────────────────────────────────────────────────────────
@@ -350,11 +385,11 @@ function switchTab(name) {
 
 // ── Queue (all pending content) ──────────────────────────────────────────────
 async function loadQueue() {
-  const [digests, faqs, tips, weeklyDeals, events, eventsKids, prestataire] = await Promise.all([
+  const [digests, faqs, tips, dealAlerts, events, eventsKids, prestataire] = await Promise.all([
     fetch(`${API}/api/digests`).then(r => r.json()),
     fetch(`${API}/api/faqs`).then(r => r.json()),
     fetch(`${API}/api/tips?status=${queueFilter}`).then(r => r.json()),
-    fetch(`${API}/api/weekly-deals`).then(r => r.json()),
+    fetch(`${API}/api/deals`).then(r => r.json()),
     fetch(`${API}/api/weekly-events`).then(r => r.json()),
     fetch(`${API}/api/weekly-events/kids`).then(r => r.json()),
     fetch(`${API}/api/weekly-events/prestataire`).then(r => r.json()),
@@ -364,7 +399,7 @@ async function loadQueue() {
     ...digests.filter(d => matchesFilter(d)).map(d => ({...d, _type: 'digest'})),
     ...faqs.filter(f => matchesFilter(f)).map(f => ({...f, _type: 'faq'})),
     ...tips.map(t => ({...t, _type: 'tip'})),
-    ...weeklyDeals.filter(d => matchesFilter(d)).map(d => ({...d, _type: 'weekly_deal'})),
+    ...dealAlerts.filter(d => matchesFilter(d)).map(d => ({...d, _type: 'deal'})),
     ...events.filter(e => matchesFilter(e)).map(e => ({...e, _type: 'weekly_event'})),
     ...eventsKids.filter(e => matchesFilter(e)).map(e => ({...e, _type: 'weekly_event_kids'})),
     ...prestataire.filter(e => matchesFilter(e)).map(e => ({...e, _type: 'prestataire'})),
@@ -418,10 +453,10 @@ async function loadTips() {
 }
 
 async function loadDeals() {
-  const data = await fetch(`${API}/api/weekly-deals`).then(r => r.json());
-  document.getElementById('dealCards').innerHTML = data.length
-    ? data.map(d => renderCard({...d, _type: 'weekly_deal'})).join('')
-    : '<div class="empty"><div class="icon">🛒</div>Pas encore de deals cette semaine — clique "Générer Deals Semaine"</div>';
+  const alerts = await fetch(`${API}/api/deals`).then(r => r.json());
+  document.getElementById('dealAlertCards').innerHTML = alerts.length
+    ? alerts.map(d => renderCard({...d, _type: 'deal'})).join('')
+    : '<div class="empty"><div class="icon">⚡</div>Aucune alerte deal pour le moment</div>';
 }
 
 // ── Card renderer ────────────────────────────────────────────────────────────
@@ -442,6 +477,10 @@ function renderCard(item) {
   if (type === 'contest') meta = `<span class="source">🎁 ${item.title || 'Concours'}</span>`;
   if (type === 'weekly_deal') {
     meta = `<span class="source">🛒 Deals Supermarché</span><span class="category">${item.week || ''}</span>`;
+  }
+  if (type === 'deal') {
+    const score = parseFloat(item.relevance_score || 0);
+    meta = `<span class="source">⚡ ${item.channel || 'Deal'}</span><span class="category">${item.category || ''}</span><span class="score ${score >= 7 ? 'high' : ''}">${score}/10</span>`;
   }
   if (type === 'weekly_event') {
     meta = `<span class="source">🎭 Événements</span><span class="category">${item.week || ''}</span>`;
@@ -496,7 +535,7 @@ function renderCard(item) {
 
 // ── Actions ──────────────────────────────────────────────────────────────────
 async function publish(type, id, audience) {
-  const endpoints = { digest: 'digest', faq: 'faq', tip: 'tip', article: 'article', contest: 'contest', weekly_deal: 'weekly-deal', weekly_event: 'weekly-event', weekly_event_kids: 'weekly-event-kids', prestataire: 'prestataire' };
+  const endpoints = { digest: 'digest', faq: 'faq', tip: 'tip', article: 'article', contest: 'contest', deal: 'deal', weekly_deal: 'weekly-deal', weekly_event: 'weekly-event', weekly_event_kids: 'weekly-event-kids', prestataire: 'prestataire' };
   const ep = endpoints[type];
   if (!ep) return;
 
@@ -689,6 +728,186 @@ async function generateFaqForce() {
     await loadQueue(); loadFaqs();
   });
 }
+
+const DAYS_FR = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+
+async function loadAutomation() {
+  const data = await fetch(`${API}/api/schedules`).then(r => r.json());
+  document.getElementById('automationCards').innerHTML = `
+    <div style="background:white;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.06);overflow:hidden;">
+      <table style="width:100%;border-collapse:collapse;font-size:14px;">
+        <thead>
+          <tr style="background:#f8f9fa;border-bottom:2px solid #eee;">
+            <th style="padding:14px 20px;text-align:left;color:#666;font-weight:600;">Tâche</th>
+            <th style="padding:14px 16px;text-align:center;color:#666;font-weight:600;">Jour</th>
+            <th style="padding:14px 16px;text-align:center;color:#666;font-weight:600;">Heure (IL)</th>
+            <th style="padding:14px 16px;text-align:center;color:#666;font-weight:600;">Serveur</th>
+            <th style="padding:14px 16px;text-align:center;color:#666;font-weight:600;">Dernière exéc.</th>
+            <th style="padding:14px 16px;text-align:center;color:#666;font-weight:600;">Actif</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.map(s => {
+            const hourIL = (s.hour_utc + 3) % 24;
+            const dayLabel = s.day_of_week === null ? 'Chaque jour' : DAYS_FR[s.day_of_week];
+            const lastRun = s.last_run ? new Date(s.last_run).toLocaleString('fr-FR') : '—';
+            const locBadge = s.location === 'mac'
+              ? '<span style="background:#fff3e0;color:#e65100;padding:2px 8px;border-radius:10px;font-size:12px;">💻 Mac</span>'
+              : '<span style="background:#e3f2fd;color:#1565c0;padding:2px 8px;border-radius:10px;font-size:12px;">🖥 VPS</span>';
+            return `
+            <tr style="border-bottom:1px solid #f0f0f0;" id="row-${s.job_key}">
+              <td style="padding:14px 20px;font-weight:600;">${s.label}</td>
+              <td style="padding:14px 16px;text-align:center;">
+                <select onchange="updateSchedule('${s.job_key}','day_of_week',this.value)" style="padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;cursor:pointer;">
+                  <option value="null" ${s.day_of_week === null ? 'selected' : ''}>Chaque jour</option>
+                  ${DAYS_FR.map((d,i) => `<option value="${i}" ${s.day_of_week === i ? 'selected' : ''}>${d}</option>`).join('')}
+                </select>
+              </td>
+              <td style="padding:14px 16px;text-align:center;">
+                <div style="display:flex;gap:4px;justify-content:center;align-items:center;">
+                  <select onchange="updateSchedule('${s.job_key}','hour_utc',this.value)" style="padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:13px;cursor:pointer;">
+                    ${Array.from({length:24},(_,i)=>{
+                      const ilH = (i+3)%24;
+                      return `<option value="${i}" ${s.hour_utc===i?'selected':''}>${String(ilH).padStart(2,'0')}</option>`;
+                    }).join('')}
+                  </select>
+                  <span style="color:#999;">:</span>
+                  <select onchange="updateSchedule('${s.job_key}','minute_utc',this.value)" style="padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:13px;cursor:pointer;">
+                    ${Array.from({length:60},(_,m)=>`<option value="${m}" ${(s.minute_utc||0)===m?'selected':''}>${String(m).padStart(2,'0')}</option>`).join('')}
+                  </select>
+                </div>
+              </td>
+              <td style="padding:14px 16px;text-align:center;">${locBadge}</td>
+              <td style="padding:14px 16px;text-align:center;color:#999;font-size:13px;">${lastRun}</td>
+              <td style="padding:14px 16px;text-align:center;">
+                <label class="toggle-switch" style="margin:0 auto;">
+                  <input type="checkbox" ${s.enabled ? 'checked' : ''} onchange="updateSchedule('${s.job_key}','enabled',this.checked?1:0)">
+                  <span class="slider"></span>
+                </label>
+              </td>
+            </tr>`}).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:12px;font-size:12px;color:#999;padding:0 4px;">
+      💻 Mac = tourne sur ton ordinateur (doit être allumé) &nbsp;|&nbsp; 🖥 VPS = tourne automatiquement sur le serveur
+    </div>`;
+}
+
+async function updateSchedule(jobKey, field, value) {
+  const body = {};
+  if (field === 'day_of_week') body[field] = value === 'null' ? null : parseInt(value);
+  else if (field === 'hour_utc') body[field] = parseInt(value);
+  else if (field === 'minute_utc') body[field] = parseInt(value);
+  else if (field === 'enabled') body[field] = parseInt(value);
+  else body[field] = value;
+  const res = await fetch(`${API}/api/schedules/${jobKey}`, {
+    method: 'PATCH',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(body)
+  });
+  if (res.ok) toast('✅ Planning mis à jour');
+  else toast('❌ Erreur sauvegarde', true);
+}
+
+async function loadMaintenance() {
+  const data = await fetch(`${API}/api/maintenance/cleanup/logs`).then(r => r.json());
+  const next = new Date(data.next_run);
+  const now = new Date();
+  const diffDays = Math.ceil((next - now) / (1000 * 60 * 60 * 24));
+
+  document.getElementById('maintenanceInfo').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:8px;">
+      <div style="background:white;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+        <div style="font-size:12px;color:#999;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Prochain nettoyage auto</div>
+        <div style="font-size:22px;font-weight:700;color:#1a1a2e;">1er ${next.toLocaleString('fr-FR',{month:'long'})} ${next.getFullYear()}</div>
+        <div style="font-size:13px;color:#666;margin-top:4px;">Dans ${diffDays} jour${diffDays>1?'s':''} • à 03h00 UTC</div>
+      </div>
+      <div style="background:white;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+        <div style="font-size:12px;color:#999;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Ce qui est nettoyé</div>
+        <div style="font-size:14px;color:#1a1a2e;line-height:1.8;">
+          🗞️ <b>articles</b> de plus de 30 jours<br>
+          🛒 <b>deals</b> de plus de 30 jours
+        </div>
+      </div>
+    </div>`;
+
+  const logs = data.logs;
+  document.getElementById('cleanupLogs').innerHTML = logs.length ? `
+    <div style="background:white;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.06);overflow:hidden;">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+          <tr style="background:#f8f9fa;border-bottom:1px solid #eee;">
+            <th style="padding:12px 16px;text-align:left;color:#666;font-weight:600;">Date</th>
+            <th style="padding:12px 16px;text-align:center;color:#666;font-weight:600;">Articles supprimés</th>
+            <th style="padding:12px 16px;text-align:center;color:#666;font-weight:600;">Deals supprimés</th>
+            <th style="padding:12px 16px;text-align:center;color:#666;font-weight:600;">Déclenché par</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${logs.map(l => `
+            <tr style="border-bottom:1px solid #f0f0f0;">
+              <td style="padding:12px 16px;">${new Date(l.ran_at).toLocaleString('fr-FR')}</td>
+              <td style="padding:12px 16px;text-align:center;"><span style="background:#e3f2fd;color:#1565c0;padding:2px 10px;border-radius:10px;font-weight:600;">${l.articles_deleted}</span></td>
+              <td style="padding:12px 16px;text-align:center;"><span style="background:#fff3e0;color:#e65100;padding:2px 10px;border-radius:10px;font-weight:600;">${l.deals_deleted}</span></td>
+              <td style="padding:12px 16px;text-align:center;"><span style="background:${l.triggered_by==='manual'?'#f3e5f5':'#e8f5e9'};color:${l.triggered_by==='manual'?'#7b1fa2':'#2e7d32'};padding:2px 10px;border-radius:10px;">${l.triggered_by==='manual'?'✋ Manuel':'⏰ Auto'}</span></td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>` : '<div class="empty"><div class="icon">🧹</div>Aucun nettoyage effectué pour le moment</div>';
+}
+
+async function runCleanup() {
+  const btn = event.target;
+  await withLoading(btn, async () => {
+    toast('🧹 Nettoyage en cours…');
+    const res = await fetch(`${API}/api/maintenance/cleanup?triggered_by=manual`, {method: 'POST'});
+    const data = await res.json();
+    if (data.status === 'ok') {
+      toast(`✅ ${data.articles_deleted} articles et ${data.deals_deleted} deals supprimés`);
+      await loadMaintenance();
+    } else {
+      toast('❌ Erreur', true);
+    }
+  });
+}
+
+function showLocalCommand(cmd) {
+  const existing = document.getElementById('local-cmd-modal');
+  if (existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = 'local-cmd-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML = `
+    <div style="background:white;border-radius:12px;padding:28px;max-width:500px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+      <div style="font-size:15px;font-weight:600;margin-bottom:12px;">⚙️ Scraper local requis</div>
+      <div style="font-size:13px;color:#666;margin-bottom:14px;">Ce scraper utilise Playwright et doit tourner sur ton Mac. Lance cette commande dans ton terminal :</div>
+      <div style="background:#1a1a2e;color:#4fc3f7;padding:14px 16px;border-radius:8px;font-family:monospace;font-size:13px;word-break:break-all;">${cmd}</div>
+      <div style="display:flex;gap:10px;margin-top:16px;">
+        <button class="btn btn-primary" onclick="navigator.clipboard.writeText('${cmd}').then(()=>toast('📋 Copié !'))">📋 Copier</button>
+        <button class="btn btn-reject" onclick="document.getElementById('local-cmd-modal').remove()">Fermer</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
+
+async function scrapeTelegramDeals() {
+  const btn = event.target;
+  await withLoading(btn, async () => {
+    toast('⚡ Scraping Telegram deals…');
+    const res = await fetch(`${API}/api/scrape/telegram-deals`, {method: 'POST'});
+    const data = await res.json();
+    const newDeals = data.ai?.processed || 0;
+    toast(`✅ ${newDeals} nouveau${newDeals !== 1 ? 'x' : ''} deal${newDeals !== 1 ? 's' : ''} traité${newDeals !== 1 ? 's' : ''}`);
+    await loadDeals();
+    await loadQueue();
+  });
+}
+
+function scrapeEventsKids() { showLocalCommand('python3 scripts/events_local.py --force'); }
+function scrapeKidsInfo()   { showLocalCommand('python3 scripts/events_kids_local.py --force'); }
+function scrapePrestataire(){ showLocalCommand('python3 scripts/prestataire_local.py --force'); }
 
 // ── Utils ────────────────────────────────────────────────────────────────────
 function escHtml(str) {

@@ -45,6 +45,7 @@ def _build_message_fr(events: list[dict], intro: str) -> str:
         name = karamel.get("name_fr") or karamel["name"]
         desc = karamel.get("desc_fr") or ""
         lines.append(f"💡 Idée activité : {name}")
+        lines.append(f"Beaucoup d'olim nous ont parlé de cet endroit cette semaine, alors on a creusé pour vous !")
         if desc:
             lines.append(desc)
         if karamel.get("url"):
@@ -82,6 +83,7 @@ def _build_message_ru(events: list[dict], intro: str) -> str:
         name = karamel.get("name_ru") or karamel["name"]
         desc = karamel.get("desc_ru") or ""
         lines.append(f"💡 Идея на неделю : {name}")
+        lines.append(f"На этой неделе многие олим рассказывали нам об этом месте — мы решили узнать подробнее!")
         if desc:
             lines.append(desc)
         if karamel.get("url"):
@@ -123,10 +125,28 @@ async def generate_weekly_kids_events(force: bool = False, raw_events: list[dict
         candidates.append(e)
     candidates = candidates[:20]
 
-    # Step 1: Claude picks the best 3 and translates; also translate IPO title if present
+    # Fetch last 4 weeks of picked events to avoid repetition
+    async with get_db() as db:
+        cursor = await db.execute(
+            "SELECT events_json FROM weekly_events_kids ORDER BY created_at DESC LIMIT 4"
+        )
+        past_rows = await cursor.fetchall()
+    past_events_line = ""
+    if past_rows:
+        past_names = []
+        for r in past_rows:
+            try:
+                evts = json.loads(r["events_json"] or "[]")
+                past_names += [e["name"] for e in evts if e.get("name") and not e.get("upcoming_highlight") and e.get("source") != "Karamel"]
+            except Exception:
+                pass
+        if past_names:
+            past_events_line = f"\n\nÉvite absolument ces activités déjà proposées ces dernières semaines : {', '.join(past_names)}"
+
+    # Step 1: Claude picks the best 2 and translates; also translate IPO title if present
     ipo_line = f"\nIPO: {ipo['name']}" if ipo else ""
     events_text = "\n".join(f"{i}. {e['name']} | {e.get('date','')} " for i, e in enumerate(candidates))
-    pick_prompt = KIDS_PICK_PROMPT.format(events_text=events_text)
+    pick_prompt = KIDS_PICK_PROMPT.format(events_text=events_text) + past_events_line
     extra_titles = {}
     if ipo:
         extra_titles["ipo"] = ipo["name"]
@@ -134,9 +154,9 @@ async def generate_weekly_kids_events(force: bool = False, raw_events: list[dict
         extra_titles["karamel"] = karamel["name"]
     if extra_titles:
         extras_str = ", ".join(f'"{k}": "{v}"' for k, v in extra_titles.items())
-        pick_prompt += f"\n\nTraduis aussi ces titres en français et russe et ajoute-les au JSON :\n{{{extras_str}}}\nFormat : \"ipo_fr\", \"ipo_ru\", \"karamel_fr\", \"karamel_ru\""
+        pick_prompt += f"\n\nTraduis aussi ces titres et ajoute-les au JSON :\n{{{extras_str}}}\n\"ipo_fr\" = traduction en FRANÇAIS, \"ipo_ru\" = traduction en RUSSE, \"karamel_fr\" = traduction en FRANÇAIS, \"karamel_ru\" = traduction en RUSSE. Attention : _fr doit être du français, _ru doit être du russe."
     if karamel and karamel.get("description"):
-        pick_prompt += f"\n\nTraduis aussi cette description de l'activité Karamel en français et russe (max 120 caractères chacune) :\n\"{karamel['description'][:300]}\"\nAjoute \"karamel_desc_fr\" et \"karamel_desc_ru\" au JSON."
+        pick_prompt += f"\n\nTraduis aussi cette description Karamel : \"karamel_desc_fr\" = traduction en FRANÇAIS (max 120 car), \"karamel_desc_ru\" = traduction en RUSSE (max 120 car) :\n\"{karamel['description'][:300]}\""
 
     pick_resp = await claude.messages.create(
         model="claude-haiku-4-5-20251001", max_tokens=500,

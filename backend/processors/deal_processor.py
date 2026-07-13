@@ -22,41 +22,63 @@ CATEGORY_LABELS = {
 
 PROMPT_FR = """Tu es rédacteur pour AL.IA Channel, un média pour les olim francophones en Israël.
 
-Voici un bon plan dénichée pour les olim :
-Catégorie : {category_label}
+Voici un bon plan à présenter :
 Produit/Service : {product}
 Prix : {price}
 Résumé : {summary}
 Texte original : {raw_text}
 Lien direct : {deal_link}
 
-Rédige un message WhatsApp en français (80-100 mots) naturel et bienveillant, comme si un ami partageait une bonne affaire.
-- Commence par l'emoji de catégorie
-- Ton : "AL.IA a trouvé pour vous..." — chaleureux, pas publicitaire
-- Mentionne le produit et le prix clairement
-- Inclus le lien direct : {deal_link}
-- Termine par : "AL.IA Community 👉 wa.me/972549675013"
+Rédige un message WhatsApp en français en suivant EXACTEMENT ce format (adapte uniquement le contenu du produit) :
 
-Réponds uniquement avec le texte du message, sans JSON."""
+💙 La vie en Israël est chère, surtout quand on est olé.
+
+C'est pourquoi on partagera ici uniquement des vrais bons plans pour vous aider à économiser au quotidien.
+
+🚫 Ces recommandations ne sont pas sponsorisées. Nous les partageons uniquement parce qu'elles valent le coup.
+
+D'ailleurs, plusieurs membres de la communauté Alia ont [courte phrase naturelle sur le produit, ex: "acheté ce ventilateur et les retours sont excellents"] 👌
+
+[emoji produit] [Nom du produit]
+💰 [Prix réduit] au lieu de [prix original] (ou juste le prix si pas de réduction)
+🚚 Livraison gratuite (uniquement si mentionné)
+
+👉 {deal_link}
+
+🤖 Besoin d'aide en Israël ?
+https://wa.me/972549675013?text=Aide-moi
+
+Réponds uniquement avec le texte du message, sans JSON, sans commentaire."""
 
 PROMPT_RU = """Ты редактор AL.IA Channel — медиа для русскоязычных олим в Израиле.
 
-Вот акция, найденная для олим :
-Категория : {category_label}
+Вот акция для публикации :
 Товар/Услуга : {product}
 Цена : {price}
 Описание : {summary}
 Оригинальный текст : {raw_text}
 Прямая ссылка : {deal_link}
 
-Напиши сообщение для WhatsApp на русском (80-100 слов) — дружелюбно, как будто друг делится выгодной находкой.
-- Начни с эмодзи категории
-- Тон : "AL.IA нашла для вас..." — тепло, без рекламного пафоса
-- Упомяни товар и цену чётко
-- Включи прямую ссылку : {deal_link}
-- Заверши : "AL.IA Community 👉 wa.me/972549675013"
+Напиши сообщение для WhatsApp на русском, строго следуя этому формату (адаптируй только содержание товара) :
 
-Отвечай только текстом сообщения, без JSON."""
+💙 Жизнь в Израиле дорогая, особенно для олим.
+
+Поэтому мы будем делиться здесь только настоящими выгодными предложениями, чтобы помочь вам экономить каждый день.
+
+🚫 Эти рекомендации не спонсируются. Мы делимся ими только потому, что они того стоят.
+
+Кстати, несколько участников сообщества Alia [короткая естественная фраза о товаре, например: "уже купили этот вентилятор — отзывы отличные"] 👌
+
+[эмодзи товара] [Название товара]
+💰 [Сниженная цена] вместо [оригинальная цена] (или просто цена, если скидки нет)
+🚚 Бесплатная доставка (только если упомянуто)
+
+👉 {deal_link}
+
+🤖 Нужна помощь в Израиле?
+https://wa.me/972549675013?text=Помоги-мне
+
+Отвечай только текстом сообщения, без JSON, без комментариев."""
 
 
 CHANNEL_WEBSITES = {
@@ -187,9 +209,61 @@ async def process_pending_deals() -> dict:
         return {"processed": 0}
 
     success = 0
+    deal_ids = []
     for row in pending:
         result = await process_deal(row["id"], dict(row))
         if result:
             success += 1
+            deal_ids.append(row["id"])
 
-    return {"processed": len(pending), "success": success}
+    return {"processed": len(pending), "success": success, "deal_ids": deal_ids}
+
+
+async def pick_best_deal(deal_ids: list[int]) -> int | None:
+    """Ask Claude to pick the single best deal from a list of processed deals. Flights are low priority."""
+    if not deal_ids:
+        return None
+    if len(deal_ids) == 1:
+        return deal_ids[0]
+
+    async with get_db() as db:
+        placeholders = ",".join("?" * len(deal_ids))
+        cursor = await db.execute(
+            f"SELECT id, category, deal_product, deal_price, relevance_score FROM deals WHERE id IN ({placeholders})",
+            deal_ids,
+        )
+        rows = await cursor.fetchall()
+
+    candidates = "\n".join(
+        f"{i+1}. [id={r['id']}] {r['category']} | {r['deal_product']} | {r['deal_price']} | score={r['relevance_score']}"
+        for i, r in enumerate(rows)
+    )
+
+    prompt = f"""Tu es éditeur pour AL.IA Channel, une communauté WhatsApp pour les olim en Israël.
+
+Voici les deals disponibles cette semaine :
+{candidates}
+
+Choisis UN SEUL deal à envoyer à la communauté. Critères :
+- Pertinence maximale pour les olim (produits du quotidien, bons pour familles)
+- Les vols (flights) sont basse priorité — ne les choisis que s'il n'y a rien de mieux
+- Le meilleur rapport qualité/prix et utilité
+
+Réponds UNIQUEMENT avec le chiffre de l'id du deal choisi. Exemple : 42"""
+
+    resp = await client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=10,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    try:
+        chosen_id = int(resp.content[0].text.strip())
+        if chosen_id in deal_ids:
+            return chosen_id
+    except Exception:
+        pass
+    # Fallback: first non-flight deal, or first deal
+    for r in rows:
+        if r["category"] != "flights":
+            return r["id"]
+    return rows[0]["id"]

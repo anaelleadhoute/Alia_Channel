@@ -68,7 +68,7 @@ async def generate_daily_digest(force: bool = False) -> dict:
             SELECT title_raw, summary_fr, summary_ru, source, language, score,
                    COALESCE(published_at, scraped_at) AS article_date
             FROM articles
-            WHERE DATE(COALESCE(published_at, scraped_at)) >= DATE('now', '-3 days')
+            WHERE DATE(COALESCE(published_at, scraped_at)) >= DATE('now', '-1 days')
             AND ai_processed_at IS NOT NULL
             AND score >= 0.6
             ORDER BY score DESC, article_date DESC

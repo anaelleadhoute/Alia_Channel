@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from scrapers.rss_scraper import run_scraper
 from scrapers.kolzchut_scraper import run_kolzchut_scraper
 from scrapers.telegram_scraper import run_telegram_scraper
-from processors.deal_processor import process_pending_deals
+from processors.deal_processor import process_pending_deals, pick_best_deal
 from processors.ai_processor import process_pending_articles
 from processors.tip_processor import process_pending_tips, process_tip
 from processors.digest_processor import generate_daily_digest
@@ -63,10 +63,41 @@ async def scrape_news():
     digest_result = None
     if auto:
         digest_result = await generate_daily_digest()
-        if digest_result.get("digest_id"):
-            await _auto_publish_item("digests", "id", digest_result["digest_id"])
+        digest_id = digest_result.get("digest_id")
+
+        # If digest already existed (skipped), check for unsent pending digest today
+        if not digest_id and digest_result.get("status") == "skipped":
+            from datetime import date
+            today = date.today().strftime("%Y-%m-%d")
+            async with get_db() as db:
+                cursor = await db.execute(
+                    "SELECT id FROM digests WHERE digest_date = ? AND sent_wa_fr = 0 AND sent_wa_ru = 0",
+                    (today,)
+                )
+                pending = await cursor.fetchone()
+                if pending:
+                    digest_id = pending["id"]
+
+        if digest_id:
+            await _auto_publish_item("digests", "id", digest_id)
 
     return {"scrape": scrape_result, "ai": ai_result, "digest": digest_result, "auto_published": auto}
+
+
+@router.post("/telegram-deals")
+async def scrape_telegram_deals():
+    """Scrape Telegram deal channels and process new deals with AI. Auto-publishes if enabled."""
+    scrape_result = await run_telegram_scraper()
+    ai_result = await process_pending_deals()
+
+    auto = await _is_auto_publish()
+    best_id = None
+    if ai_result.get("deal_ids"):
+        best_id = await pick_best_deal(ai_result["deal_ids"])
+        if auto and best_id:
+            await _auto_publish_item("deals", "id", best_id)
+
+    return {"scrape": scrape_result, "ai": ai_result, "best_deal_id": best_id, "auto_published": best_id}
 
 
 @router.post("/tips")
