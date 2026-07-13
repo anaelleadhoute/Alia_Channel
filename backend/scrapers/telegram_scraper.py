@@ -94,28 +94,30 @@ def _parse_tme_html(html: str, username: str) -> list[dict]:
     soup = BeautifulSoup(html, "html.parser")
     messages = []
 
-    for msg in soup.find_all("div", attrs={"data-post": True}):
+    for wrap in soup.find_all("div", class_="tgme_widget_message_wrap"):
+        msg = wrap.find("div", attrs={"data-post": True})
+        if not msg:
+            continue
         msg_id = msg.get("data-post", "").split("/")[-1]
         text_el = msg.select_one(".tgme_widget_message_text")
         text = text_el.get_text(separator="\n", strip=True) if text_el else ""
 
         # Extract image URLs from background-image style
         images = []
-        for img_el in msg.select(".tgme_widget_message_photo_wrap"):
+        for img_el in wrap.select(".tgme_widget_message_photo_wrap"):
             style = img_el.get("style", "")
-            if "url(" in style:
-                img_url = style.split("url('")[1].split("')")[0] if "url('" in style else ""
+            if "url('" in style:
+                img_url = style.split("url('")[1].split("')")[0]
                 if img_url:
                     images.append(img_url)
 
-        # Extract all external links in the message (inline buttons, text links, etc.)
+        # Extract all external links from the full wrap (includes inline buttons)
         button_links = []
-        for a in msg.find_all("a", href=True):
+        for a in wrap.find_all("a", href=True):
             href = a["href"]
             if href.startswith("http") and "t.me" not in href and "telegram" not in href:
                 button_links.append(href)
 
-        # Append links to text so _deal_link() can find them
         if button_links:
             text = text + "\n" + "\n".join(button_links)
 
