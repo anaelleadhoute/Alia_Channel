@@ -199,7 +199,6 @@ async def process_pending_deals() -> dict:
                    deal_summary_he, raw_text, audience
             FROM deals
             WHERE is_relevant = 1 AND ai_processed_at IS NULL
-            AND scraped_at >= datetime('now', '-2 hours')
             ORDER BY relevance_score DESC
             """
         )
