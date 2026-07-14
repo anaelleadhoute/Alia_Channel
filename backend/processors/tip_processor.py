@@ -54,35 +54,59 @@ async def process_tip(tip_id: int, source_url: str, raw_content: str) -> bool:
 
         fr_prompt = f"""Tu es rédacteur pour AL.IA Channel, un média pour les olim francophones en Israël.
 
-Voici une page de Kol Zchut (guide des droits sociaux en Israël) :
+Voici du contenu issu d'une source officielle israélienne :
 Source : {source_url}
 Contenu : {raw_content[:3000]}
 {past_tips}
-Rédige un tip pratique en français destiné aux nouveaux olim (150-200 mots). Choisis un angle ou un aspect du contenu qui n'a pas encore été couvert.
-Format :
-- Commence par un emoji pertinent et un titre accrocheur
-- Explique le droit ou l'aide en termes simples
-- Donne 2-3 étapes concrètes pour en bénéficier
-- Termine par : "Plus d'infos sur Kol Zchut 👉 {source_url}"
-- Ajoute : "Rejoins AL.IA Community 👉 wa.me/972549675013"
+Rédige un "Guide Alia" en français pour les nouveaux olim. Choisis UNE question concrète et fréquente liée à ce contenu.
 
-Réponds uniquement avec le texte du tip, sans JSON, sans titre supplémentaire."""
+Format EXACT à respecter :
+📄 Le Guide Alia
+
+Sources : Gov.il • Misrad Hapnim • Bituah Leumi • Kol Zchut • Rav-Kav • Maccabi • Clalit
+
+Beaucoup d'utilisateurs d'Alia nous demandent :
+
+"[La question fréquente entre guillemets]"
+
+✅ [Réponse claire et concrète en 2-3 phrases]
+
+⚠️ [Une mise en garde ou nuance importante, si pertinente]
+
+🤖 Pour connaître la procédure adaptée à votre situation, demandez à Alia.
+https://wa.me/972549675013?text=Aide-moi
+
+📢 Rejoignez la communauté Alia pour recevoir d'autres guides pratiques.
+
+Réponds uniquement avec le texte du guide, sans JSON, sans commentaire."""
 
         ru_prompt = f"""Ты редактор AL.IA Channel — медиа для русскоязычных олим в Израиле.
 
-Вот страница Kol Zchut (справочник социальных прав в Израиле) :
+Вот контент из официального израильского источника :
 Источник : {source_url}
 Содержание : {raw_content[:3000]}
 {past_tips_ru}
-Напиши практический совет на русском для новых олим (150-200 слов). Выбери угол или аспект контента, который ещё не был освещён.
-Формат :
-- Начни с подходящего эмодзи и привлекательного заголовка
-- Объясни право или помощь простыми словами
-- Дай 2-3 конкретных шага для получения
-- Заверши : "Подробнее на Kol Zchut 👉 {source_url}"
-- Добавь : "Присоединяйся к AL.IA Community 👉 wa.me/972549675013"
+Напиши "Гид Alia" на русском для новых олим. Выбери ОДИН конкретный и частый вопрос по этой теме.
 
-Отвечай только текстом совета, без JSON, без дополнительных заголовков."""
+ТОЧНЫЙ формат :
+📄 Гид Alia
+
+Источники : Gov.il • Мисрад Хапним • Битуах Леуми • Kol Zchut • Рав-Кав • Маккаби • Клалит
+
+Многие пользователи Alia спрашивают :
+
+"[Частый вопрос в кавычках]"
+
+✅ [Чёткий и конкретный ответ в 2-3 предложениях]
+
+⚠️ [Важная оговорка или нюанс, если есть]
+
+🤖 Чтобы узнать процедуру для вашей ситуации, спросите у Alia.
+https://wa.me/972549675013?text=Помоги
+
+📢 Присоединяйтесь к сообществу Alia, чтобы получать другие практические гиды.
+
+Отвечай только текстом гида, без JSON, без комментариев."""
 
         fr_response, ru_response = await asyncio.gather(
             client.messages.create(
