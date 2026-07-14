@@ -190,7 +190,6 @@ async def init_db():
                 ('news_digest',   '📰 News + Digest',     NULL, 16, 1, 'server'),
                 ('telegram_deals','⚡ Telegram Deals',    1,    12, 1, 'server'),
                 ('faq',           '❓ FAQ',               2,    12, 1, 'server'),
-                ('kol_zchut',     '📄 Guide Alia (ancien)', 3,    9,  1, 'server'),
                 ('prestataire',   '🏅 Prestataire',      4,    12, 1, 'mac'),
                 ('kids_events',   '👧 Kids Events',      0,    12, 1, 'mac');
 
