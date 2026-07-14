@@ -61,16 +61,6 @@ async def get_due_jobs(location: str = "server"):
         dow = r["day_of_week"]
         minute = r.get("minute_utc", 0) or 0
 
-        # Skip if already ran today (daily jobs) or this week (weekly jobs)
-        if r.get("last_run"):
-            last = datetime.fromisoformat(r["last_run"].replace("Z", "+00:00"))
-            if last.tzinfo is None:
-                last = last.replace(tzinfo=timezone.utc)
-            elapsed = (now - last).total_seconds()
-            cooldown = 23 * 3600 if r["day_of_week"] is None else 6 * 24 * 3600
-            if elapsed < cooldown:
-                continue
-
         # Due if within current 15-min window
         if abs(current_minute - minute) <= 14:
             if dow is None or dow == current_dow_js:
