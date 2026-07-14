@@ -63,8 +63,6 @@ Rédige un "Guide Alia" en français pour les nouveaux olim. Choisis UNE questio
 Format EXACT à respecter :
 📄 Le Guide Alia
 
-Sources : Gov.il • Misrad Hapnim • Bituah Leumi • Kol Zchut • Rav-Kav • Maccabi • Clalit
-
 Beaucoup d'utilisateurs d'Alia nous demandent :
 
 "[La question fréquente entre guillemets]"
@@ -90,8 +88,6 @@ Réponds uniquement avec le texte du guide, sans JSON, sans commentaire."""
 
 ТОЧНЫЙ формат :
 📄 Гид Alia
-
-Источники : Gov.il • Мисрад Хапним • Битуах Леуми • Kol Zchut • Рав-Кав • Маккаби • Клалит
 
 Многие пользователи Alia спрашивают :
 
