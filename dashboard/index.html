@@ -182,7 +182,7 @@
   <button class="tab active" onclick="switchTab('queue')">Queue <span class="badge" id="queueBadge">0</span></button>
   <button class="tab" onclick="switchTab('digests')">Digests</button>
   <button class="tab" onclick="switchTab('faqs')">FAQs</button>
-  <button class="tab" onclick="switchTab('tips')">Tips</button>
+  <button class="tab" onclick="switchTab('tips')">📄 Guide</button>
   <button class="tab" onclick="switchTab('deals')">Deals</button>
   <button class="tab" onclick="switchTab('events')">🎭 Events</button>
   <button class="tab" onclick="switchTab('events-kids')">👧 Kids</button>
@@ -236,7 +236,7 @@
 
   <!-- TIPS -->
   <div class="section" id="section-tips">
-    <div class="queue-header"><h2>Kol Zchut Tips</h2></div>
+    <div class="queue-header"><h2>📄 Guide Alia</h2></div>
     <div class="cards" id="tipCards"><div class="loading">Loading…</div></div>
   </div>
 
@@ -473,7 +473,7 @@ function renderCard(item) {
   let meta = '';
   if (type === 'digest') meta = `<span class="source">📰 Digest</span><span class="category">${item.digest_date || ''}</span><span class="category">${item.article_count} articles</span>`;
   if (type === 'faq') meta = `<span class="source">❓ FAQ</span><span class="category">${item.week || ''}</span>`;
-  if (type === 'tip') meta = `<span class="source">💡 Kol Zchut</span><span class="category">${item.week || ''}</span>`;
+  if (type === 'tip') meta = `<span class="source">📄 Guide Alia</span><span class="category">${item.week || ''}</span>`;
   if (type === 'contest') meta = `<span class="source">🎁 ${item.title || 'Concours'}</span>`;
   if (type === 'weekly_deal') {
     meta = `<span class="source">🛒 Deals Supermarché</span><span class="category">${item.week || ''}</span>`;
