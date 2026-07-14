@@ -201,6 +201,32 @@ async def init_db():
                 triggered_by TEXT DEFAULT 'auto'
             );
 
+            CREATE TABLE IF NOT EXISTS doctors (
+                id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+                name_he             TEXT NOT NULL,
+                phone               TEXT,
+                city_he             TEXT,
+                url                 TEXT UNIQUE NOT NULL,
+                specialties_he      TEXT,
+                specialty_translated TEXT,
+                language            TEXT NOT NULL,
+                source              TEXT DEFAULT 'medreviews',
+                imported_at         DATETIME DEFAULT CURRENT_TIMESTAMP,
+                last_featured       DATETIME
+            );
+
+            CREATE TABLE IF NOT EXISTS weekly_doctor (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                week        TEXT UNIQUE NOT NULL,
+                doctor_id   INTEGER,
+                content_fr  TEXT,
+                content_ru  TEXT,
+                created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+                status      TEXT DEFAULT 'pending',
+                sent_wa_fr  INTEGER DEFAULT 0,
+                sent_wa_ru  INTEGER DEFAULT 0
+            );
+
             CREATE TABLE IF NOT EXISTS weekly_events_kids (
                 id              INTEGER PRIMARY KEY AUTOINCREMENT,
                 week            TEXT UNIQUE NOT NULL,
@@ -231,7 +257,8 @@ async def init_db():
                 ('scrape_kol_zchut',     '📄 Scrape Guide',         0, 9,  0, 1, 'mac'),
                 ('generate_kids_events', '👧 Generate Kids Events', 1, 9,  0, 1, 'server'),
                 ('generate_prestataire', '🏅 Generate Prestataire', 4, 9,  0, 1, 'server'),
-                ('generate_kol_zchut',   '📄 Generate Guide',       3, 9,  0, 1, 'server')""",
+                ('generate_kol_zchut',   '📄 Generate Guide',       3, 9,  0, 1, 'server'),
+                ('generate_doctor',      '🏥 Generate Médecin',     5, 10, 0, 1, 'server')""",
         ]:
             try:
                 await db.execute(migration)
