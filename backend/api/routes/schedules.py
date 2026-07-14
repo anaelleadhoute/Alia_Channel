@@ -62,7 +62,7 @@ async def get_due_jobs(location: str = "server"):
         minute = r.get("minute_utc", 0) or 0
 
         # Due if within current 15-min window
-        if abs(current_minute - minute) <= 14:
+        if abs(current_minute - minute) <= 20:
             if dow is None or dow == current_dow_js:
                 due.append(r)
 
