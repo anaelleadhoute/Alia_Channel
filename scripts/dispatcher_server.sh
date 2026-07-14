@@ -22,28 +22,36 @@ fi
 run_job() {
     local JOB="$1"
     echo "[$(date -u '+%Y-%m-%d %H:%M')] Running: $JOB" >> "$LOG"
+
+    local ENDPOINT=""
     case "$JOB" in
-        news_digest)
-            RESULT=$(curl -s -X POST "${BASE}/api/scrape/news") ;;
-        telegram_deals)
-            RESULT=$(curl -s -X POST "${BASE}/api/scrape/telegram-deals") ;;
-        faq)
-            RESULT=$(curl -s -X POST "${BASE}/api/faqs/generate") ;;
-        kol_zchut)
-            RESULT=$(curl -s -X POST "${BASE}/api/scrape/tips") ;;
-        scrape_kol_zchut)
-            RESULT=$(curl -s -X POST "${BASE}/api/scrape/tips") ;;
-        generate_kids_events)
-            RESULT=$(curl -s -X POST "${BASE}/api/scrape/events-kids/generate") ;;
-        generate_prestataire)
-            RESULT=$(curl -s -X POST "${BASE}/api/scrape/prestataire/generate") ;;
-        generate_kol_zchut)
-            RESULT=$(curl -s -X POST "${BASE}/api/scrape/tips/generate") ;;
+        news_digest)          ENDPOINT="${BASE}/api/scrape/news" ;;
+        telegram_deals)       ENDPOINT="${BASE}/api/scrape/telegram-deals" ;;
+        faq)                  ENDPOINT="${BASE}/api/faqs/generate" ;;
+        kol_zchut)             ENDPOINT="${BASE}/api/scrape/tips" ;;
+        scrape_kol_zchut)      ENDPOINT="${BASE}/api/scrape/tips" ;;
+        generate_kids_events)  ENDPOINT="${BASE}/api/scrape/events-kids/generate" ;;
+        generate_prestataire)  ENDPOINT="${BASE}/api/scrape/prestataire/generate" ;;
+        generate_kol_zchut)    ENDPOINT="${BASE}/api/scrape/tips/generate" ;;
         *)
-            RESULT="unknown job: $JOB" ;;
+            echo "[$(date -u '+%Y-%m-%d %H:%M')] FAILED: $JOB → unknown job, NOT marking as ran" >> "$LOG"
+            return ;;
     esac
-    echo "[$(date -u '+%Y-%m-%d %H:%M')] Done: $JOB → $RESULT" >> "$LOG"
-    curl -s -X POST "${BASE}/api/schedules/${JOB}/run" > /dev/null 2>&1
+
+    # Capture HTTP status separately from the body so a failed/erroring job
+    # is never marked as "ran" — that used to silently suppress retries for
+    # up to 23h (daily) or 6 days (weekly) with no alert.
+    local RESPONSE HTTP_CODE BODY
+    RESPONSE=$(curl -s -w '\n%{http_code}' -X POST "$ENDPOINT")
+    HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+    BODY=$(echo "$RESPONSE" | sed '$d')
+
+    if [[ "$HTTP_CODE" =~ ^2 ]]; then
+        echo "[$(date -u '+%Y-%m-%d %H:%M')] Done: $JOB → $BODY" >> "$LOG"
+        curl -s -X POST "${BASE}/api/schedules/${JOB}/run" > /dev/null 2>&1
+    else
+        echo "[$(date -u '+%Y-%m-%d %H:%M')] FAILED: $JOB (HTTP $HTTP_CODE) → $BODY — NOT marking as ran, will retry next window" >> "$LOG"
+    fi
 }
 
 while IFS= read -r JOB; do
