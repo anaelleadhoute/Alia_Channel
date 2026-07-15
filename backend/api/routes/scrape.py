@@ -204,56 +204,6 @@ async def generate_rights():
     return result
 
 
-@router.post("/deals")
-async def scrape_deals():
-    """Scrape all 3 supermarkets and generate the weekly combined deal message."""
-    from processors.weekly_deal_processor import generate_weekly_deals
-    result = await generate_weekly_deals()
-
-    auto = await _is_auto_publish()
-    if auto and result.get("weekly_deal_id") and result.get("status") == "generated":
-        await _auto_publish_item("weekly_deals", "id", result["weekly_deal_id"])
-        result["auto_published"] = True
-
-    return result
-
-
-class SupermarketPayload(BaseModel):
-    shufersal: list[dict] = []
-    rami_levy: list[dict] = []
-    carrefour: list[dict] = []
-    force: bool = False  # regenerate even if this week already exists
-
-
-@router.post("/supermarkets/manual")
-async def scrape_supermarkets_manual(body: SupermarketPayload):
-    """Receive pre-scraped supermarket items from local Mac scraper and generate weekly deal."""
-    from processors.weekly_deal_processor import generate_weekly_deals
-    from datetime import datetime
-
-    week = datetime.utcnow().strftime("%Y-W%W")
-
-    raw_data = {
-        "shufersal": body.shufersal,
-        "rami_levy": body.rami_levy,
-        "carrefour": body.carrefour,
-    }
-
-    # Delete AFTER we've captured previous picks (done inside generate_weekly_deals)
-    result = await generate_weekly_deals(raw_data=raw_data, force=body.force)
-
-    auto = await _is_auto_publish()
-    if auto and result.get("weekly_deal_id") and result.get("status") == "generated":
-        try:
-            await _auto_publish_item("weekly_deals", "id", result["weekly_deal_id"])
-            result["auto_published"] = True
-        except Exception as e:
-            result["auto_published"] = False
-            result["auto_publish_error"] = str(e)
-
-    return result
-
-
 
 class PrestatairePayload(BaseModel):
     data: dict
