@@ -41,6 +41,8 @@ run_job() {
             RESULT=$(curl -s -X POST "${BASE}/api/scrape/tips/generate") ;;
         generate_doctor)
             RESULT=$(curl -s -X POST "${BASE}/api/doctors/generate") ;;
+        generate_rights)
+            RESULT=$(curl -s -X POST "${BASE}/api/scrape/rights/generate") ;;
         *)
             RESULT="unknown job: $JOB" ;;
     esac

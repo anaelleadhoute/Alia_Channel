@@ -167,6 +167,43 @@ async def generate_tip():
     return {"status": "ok" if result else "error", "tip_id": row["id"], "week": week, "auto_published": auto}
 
 
+@router.post("/rights/manual")
+async def manual_rights(body: ManualTip):
+    """Store raw Kol Zchut rights content from Mac scraper (no generation)."""
+    import json
+    week = datetime.utcnow().strftime("%Y-W%W")
+    async with get_db() as db:
+        existing = await db.execute("SELECT id FROM weekly_rights WHERE week = ?", (week,))
+        row = await existing.fetchone()
+        if row:
+            await db.execute(
+                "UPDATE weekly_rights SET source_url=?, raw_payload=? WHERE week=?",
+                (body.url, json.dumps({"url": body.url, "content": body.content}), week),
+            )
+        else:
+            await db.execute(
+                "INSERT INTO weekly_rights (week, source_url, raw_payload) VALUES (?,?,?)",
+                (week, body.url, json.dumps({"url": body.url, "content": body.content})),
+            )
+        await db.commit()
+    return {"status": "stored", "week": week}
+
+
+@router.post("/rights/generate")
+async def generate_rights():
+    """Generate FR+RU rights content from stored raw payload and auto-publish."""
+    from processors.rights_processor import generate_weekly_rights
+    result = await generate_weekly_rights()
+    auto = await _is_auto_publish()
+    if auto and result.get("weekly_rights_id") and result.get("status") == "generated":
+        try:
+            await _auto_publish_item("weekly_rights", "id", result["weekly_rights_id"])
+            result["auto_published"] = True
+        except Exception as e:
+            result["auto_publish_error"] = str(e)
+    return result
+
+
 @router.post("/deals")
 async def scrape_deals():
     """Scrape all 3 supermarkets and generate the weekly combined deal message."""

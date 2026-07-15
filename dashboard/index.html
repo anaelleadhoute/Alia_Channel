@@ -187,6 +187,8 @@
   <button class="tab" onclick="switchTab('events')">🎭 Events</button>
   <button class="tab" onclick="switchTab('events-kids')">👧 Kids</button>
   <button class="tab" onclick="switchTab('prestataire')">🏅 Prestataire</button>
+  <button class="tab" onclick="switchTab('rights')">💰 Droits</button>
+  <button class="tab" onclick="switchTab('doctors')">🏥 Médecin</button>
   <button class="tab" onclick="switchTab('contests')">🎁 Concours</button>
   <button class="tab" onclick="switchTab('automation')">⚙️ Automation</button>
   <button class="tab" onclick="switchTab('maintenance')">🧹 Maintenance</button>
@@ -280,6 +282,26 @@
     <div class="cards" id="prestataireCards"><div class="loading">Loading…</div></div>
   </div>
 
+  <!-- DROITS -->
+  <div class="section" id="section-rights">
+    <div class="actions-bar">
+      <span>Actions:</span>
+      <button class="btn btn-primary" onclick="generateRights()">💰 Générer Droits</button>
+    </div>
+    <div class="queue-header"><h2>💰 Les Droits Alia</h2></div>
+    <div class="cards" id="rightsCards"><div class="loading">Loading…</div></div>
+  </div>
+
+  <!-- MÉDECIN -->
+  <div class="section" id="section-doctors">
+    <div class="actions-bar">
+      <span>Actions:</span>
+      <button class="btn btn-primary" onclick="generateDoctor()">🏥 Générer Médecin</button>
+    </div>
+    <div class="queue-header"><h2>🏥 Le Médecin Alia</h2></div>
+    <div class="cards" id="doctorsCards"><div class="loading">Loading…</div></div>
+  </div>
+
   <!-- CONTESTS -->
   <div class="section" id="section-contests">
     <div class="manual-panel">
@@ -351,6 +373,8 @@ async function init() {
   loadEvents();
   loadEventsKids();
   loadPrestataire();
+  loadRights();
+  loadDoctors();
   loadAutomation();
   loadMaintenance();
 }
@@ -535,7 +559,7 @@ function renderCard(item) {
 
 // ── Actions ──────────────────────────────────────────────────────────────────
 async function publish(type, id, audience) {
-  const endpoints = { digest: 'digest', faq: 'faq', tip: 'tip', article: 'article', contest: 'contest', deal: 'deal', weekly_deal: 'weekly-deal', weekly_event: 'weekly-event', weekly_event_kids: 'weekly-event-kids', prestataire: 'prestataire' };
+  const endpoints = { digest: 'digest', faq: 'faq', tip: 'tip', article: 'article', contest: 'contest', deal: 'deal', weekly_deal: 'weekly-deal', weekly_event: 'weekly-event', weekly_event_kids: 'weekly-event-kids', prestataire: 'prestataire', weekly_rights: 'weekly-rights', weekly_doctor: 'weekly-doctor' };
   const ep = endpoints[type];
   if (!ep) return;
 
@@ -587,6 +611,44 @@ async function loadPrestataire() {
   document.getElementById('prestataireCards').innerHTML = data.length
     ? data.map(e => renderCard({...e, _type: 'prestataire'})).join('')
     : '<div class="empty"><div class="icon">🏅</div>Pas encore de prestataire cette semaine</div>';
+}
+
+async function loadRights() {
+  const data = await fetch(`${API}/api/weekly-events/rights`).then(r => r.json()).catch(() => []);
+  document.getElementById('rightsCards').innerHTML = data.length
+    ? data.map(e => renderCard({...e, _type: 'weekly_rights'})).join('')
+    : '<div class="empty"><div class="icon">💰</div>Pas encore de droits cette semaine</div>';
+}
+
+async function generateRights() {
+  const btn = event.target;
+  await withLoading(btn, async () => {
+    toast('💰 Génération des droits en cours…');
+    const res = await fetch(`${API}/api/scrape/rights/generate`, {method: 'POST'});
+    const data = await res.json();
+    if (data.status === 'generated') { toast('✅ Droits générés !'); await loadRights(); }
+    else if (data.status === 'skipped') toast('ℹ️ Droits déjà générés cette semaine');
+    else toast('❌ Erreur: ' + (data.reason || 'unknown'), true);
+  });
+}
+
+async function loadDoctors() {
+  const data = await fetch(`${API}/api/weekly-events/doctors`).then(r => r.json()).catch(() => []);
+  document.getElementById('doctorsCards').innerHTML = data.length
+    ? data.map(e => renderCard({...e, _type: 'weekly_doctor'})).join('')
+    : '<div class="empty"><div class="icon">🏥</div>Pas encore de médecin cette semaine</div>';
+}
+
+async function generateDoctor() {
+  const btn = event.target;
+  await withLoading(btn, async () => {
+    toast('🏥 Génération du médecin en cours…');
+    const res = await fetch(`${API}/api/doctors/generate`, {method: 'POST'});
+    const data = await res.json();
+    if (data.status === 'generated') { toast('✅ Médecin généré !'); await loadDoctors(); }
+    else if (data.status === 'skipped') toast('ℹ️ Médecin déjà généré cette semaine');
+    else toast('❌ Erreur: ' + (data.reason || 'unknown'), true);
+  });
 }
 
 async function loadEventsKids() {

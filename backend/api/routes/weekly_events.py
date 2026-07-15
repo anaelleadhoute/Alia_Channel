@@ -35,3 +35,25 @@ async def list_weekly_events_kids(limit: int = 10):
         )
         rows = await cursor.fetchall()
     return [dict(row) for row in rows]
+
+
+@router.get("/rights")
+async def list_weekly_rights(limit: int = 10):
+    async with get_db() as db:
+        cursor = await db.execute(
+            "SELECT id, week, content_fr, content_ru, sent_wa_fr, sent_wa_ru, created_at FROM weekly_rights ORDER BY created_at DESC LIMIT ?",
+            (limit,),
+        )
+        rows = await cursor.fetchall()
+    return [dict(row) for row in rows]
+
+
+@router.get("/doctors")
+async def list_weekly_doctors(limit: int = 10):
+    async with get_db() as db:
+        cursor = await db.execute(
+            "SELECT id, week, content_fr, content_ru, sent_wa_fr, sent_wa_ru, created_at FROM weekly_doctor ORDER BY created_at DESC LIMIT ?",
+            (limit,),
+        )
+        rows = await cursor.fetchall()
+    return [dict(row) for row in rows]

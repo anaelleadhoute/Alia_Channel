@@ -323,6 +323,30 @@ async def publish_weekly_event_kids(event_id: int):
     return {"ok": True, "weekly_event_kids_id": event_id, "sent": results}
 
 
+@router.post("/weekly-rights/{record_id}")
+async def publish_weekly_rights(record_id: int):
+    async with get_db() as db:
+        cursor = await db.execute("SELECT * FROM weekly_rights WHERE id = ?", (record_id,))
+        row = await cursor.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Weekly rights not found")
+    item = dict(row)
+    results = {}
+    if item.get("content_fr") and not item.get("sent_wa_fr"):
+        await _send_whatsapp(WHAPI_GROUP_FR, item["content_fr"])
+        results["fr"] = "sent"
+        async with get_db() as db:
+            await db.execute("UPDATE weekly_rights SET sent_wa_fr = 1 WHERE id = ?", (record_id,))
+            await db.commit()
+    if item.get("content_ru") and not item.get("sent_wa_ru"):
+        await _send_whatsapp(WHAPI_GROUP_RU, item["content_ru"])
+        results["ru"] = "sent"
+        async with get_db() as db:
+            await db.execute("UPDATE weekly_rights SET sent_wa_ru = 1 WHERE id = ?", (record_id,))
+            await db.commit()
+    return {"ok": True, "weekly_rights_id": record_id, "sent": results}
+
+
 @router.post("/weekly-doctor/{record_id}")
 async def publish_weekly_doctor(record_id: int):
     async with get_db() as db:

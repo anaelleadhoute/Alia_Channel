@@ -7,7 +7,7 @@ Setup:
   pip3 install httpx beautifulsoup4
 """
 
-import httpx, json, math
+import httpx, json, math, time
 from bs4 import BeautifulSoup
 
 SERVER_URL = "https://alia-channel.com/api/doctors/import"
@@ -94,6 +94,7 @@ def scrape_lang(client: httpx.Client, lang: str, base_url: str) -> list[dict]:
 
     for page in range(2, pages + 1):
         url = f"{base_url}&page={page}"
+        time.sleep(2)
         r = client.get(url, timeout=20)
         r.raise_for_status()
         docs = extract_doctors(r.text, lang)

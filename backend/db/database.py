@@ -227,6 +227,20 @@ async def init_db():
                 sent_wa_ru  INTEGER DEFAULT 0
             );
 
+            CREATE TABLE IF NOT EXISTS weekly_rights (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                week        TEXT UNIQUE NOT NULL,
+                source_url  TEXT,
+                raw_payload TEXT,
+                content_fr  TEXT,
+                content_ru  TEXT,
+                ai_processed_at DATETIME,
+                created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+                status      TEXT DEFAULT 'pending',
+                sent_wa_fr  INTEGER DEFAULT 0,
+                sent_wa_ru  INTEGER DEFAULT 0
+            );
+
             CREATE TABLE IF NOT EXISTS weekly_events_kids (
                 id              INTEGER PRIMARY KEY AUTOINCREMENT,
                 week            TEXT UNIQUE NOT NULL,
@@ -258,7 +272,9 @@ async def init_db():
                 ('generate_kids_events', '👧 Generate Kids Events', 1, 9,  0, 1, 'server'),
                 ('generate_prestataire', '🏅 Generate Prestataire', 4, 9,  0, 1, 'server'),
                 ('generate_kol_zchut',   '📄 Generate Guide',       3, 9,  0, 1, 'server'),
-                ('generate_doctor',      '🏥 Generate Médecin',     5, 10, 0, 1, 'server')""",
+                ('generate_doctor',      '🏥 Generate Médecin',     5, 10, 0, 1, 'server'),
+                ('scrape_rights',        '💰 Scrape Droits',        2, 9,  0, 1, 'mac'),
+                ('generate_rights',      '💰 Generate Droits',      4, 11, 0, 1, 'server')""",
         ]:
             try:
                 await db.execute(migration)
