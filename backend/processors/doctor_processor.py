@@ -58,7 +58,6 @@ Un médecin recommandé qui parle {lang_label_fr} :
 - Spécialité : {specialty}
 - Ville : {city_fr}
 - Téléphone : {doctor['phone']}
-- Profil : {doctor['url']}
 
 Rédige un message WhatsApp court (80-100 mots) au format EXACT :
 🏥 Le Médecin Alia
@@ -83,7 +82,6 @@ Réponds uniquement avec le texte, sans JSON."""
 - Специальность : {specialty}
 - Город : {city_fr}
 - Телефон : {doctor['phone']}
-- Профиль : {doctor['url']}
 
 Напиши короткое WhatsApp сообщение (80-100 слов) в точном формате :
 🏥 Врач от Alia
