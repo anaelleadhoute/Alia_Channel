@@ -106,12 +106,10 @@ async def generate_weekly_prestataire(force: bool = False, data: dict | None = N
 
     # Append source URL + Midrag CTA + Alia CTA
     content_fr += (
-        f"\n\n🔗 {data['url']}"
         "\n\n👉 Vous cherchez un autre professionnel ? Parlez directement à Lotem, notre assistante Midrag :\nhttps://wa.me/972556891818?text=Salut,%20Lotem%20!%20Aide-moi%20à%20trouver%20un%20professionnel"
         "\n\n🤖 Ou posez vos questions à Alia :\nhttps://wa.me/972549675013?text=Aide-moi"
     )
     content_ru += (
-        f"\n\n🔗 {data['url']}"
         "\n\n👉 Ищете другого специалиста? Напишите Лотем, нашему ассистенту Midrag :\nhttps://wa.me/972556891818?text=Привет,%20Лотем!%20Помоги%20мне%20найти%20специалиста"
         "\n\n🤖 Или задайте вопрос Alia :\nhttps://wa.me/972549675013?text=Помоги"
     )

@@ -68,7 +68,6 @@ Aujourd'hui, beaucoup d'utilisateurs d'Alia nous demandent un [spécialité en f
 👨‍⚕️ Nous vous recommandons [nom du médecin], qui parle [langue] et consulte à [ville].
 
 📞 [numéro de téléphone]
-🔗 [lien profil MedReviews]
 
 🤖 Pour trouver un médecin adapté à votre ville, spécialité ou caisse maladie, demandez à Alia.
 https://wa.me/972549675013?text=Aide-moi
@@ -94,7 +93,6 @@ Réponds uniquement avec le texte, sans JSON."""
 👨‍⚕️ Рекомендуем [имя врача], который говорит на [язык] и принимает в [город].
 
 📞 [номер телефона]
-🔗 [ссылка на профиль MedReviews]
 
 🤖 Чтобы найти врача по городу, специальности или больничной кассе, спросите у Alia.
 https://wa.me/972549675013?text=Помоги
