@@ -11,11 +11,11 @@ logger = logging.getLogger(__name__)
 client = anthropic.AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
 CITIES_TRANSLATE = {
-    "תל אביב": "Tel-Aviv", "ירושלים": "Jérusalem / Иерусалим",
-    "חיפה": "Haïfa / Хайфа", "באר שבע": "Beer-Sheva",
-    "נתניה": "Netanya / Нетания", "ראשון לציון": "Rishon LeZion",
-    "פתח תקווה": "Petah Tikva", "אשדוד": "Ashdod / Ашдод",
-    "רחובות": "Rehovot", "הרצליה": "Herzliya / Герцлия",
+    "תל אביב": "Tel-Aviv", "ירושלים": "Jérusalem",
+    "חיפה": "Haïfa", "באר שבע": "Beer-Sheva",
+    "נתניה": "Netanya", "ראשון לציון": "Rishon LeZion",
+    "פתח תקווה": "Petah Tikva", "אשדוד": "Ashdod",
+    "רחובות": "Rehovot", "הרצליה": "Herzliya",
     "גבעתיים": "Givataïm", "רמת גן": "Ramat Gan",
     "בת ים": "Bat Yam", "רמת השרון": "Ramat HaSharon",
     "כפר סבא": "Kfar Saba", "מודיעין": "Modi'in",
@@ -23,48 +23,24 @@ CITIES_TRANSLATE = {
 }
 
 
-async def generate_weekly_doctor() -> dict:
-    week = datetime.utcnow().strftime("%Y-W%W")
-
-    async with get_db() as db:
-        # Skip if already generated this week
-        existing = await db.execute("SELECT id FROM weekly_doctor WHERE week = ?", (week,))
-        if await existing.fetchone():
-            return {"status": "skipped", "week": week}
-
-        # Pick least recently featured doctor (both languages)
-        cursor = await db.execute(
-            """SELECT * FROM doctors
-               ORDER BY last_featured ASC NULLS FIRST, RANDOM()
-               LIMIT 1"""
-        )
-        doctor = await cursor.fetchone()
-
-    if not doctor:
-        return {"status": "error", "reason": "no doctors in DB"}
-
-    doctor = dict(doctor)
-    city_fr = CITIES_TRANSLATE.get(doctor["city_he"], doctor["city_he"])
+def _build_fr_prompt(doctor: dict) -> str:
+    city = CITIES_TRANSLATE.get(doctor["city_he"], doctor["city_he"])
     specialties = json.loads(doctor["specialties_he"] or "[]")
-    specialty_he = specialties[0] if specialties else ""
-    specialty = doctor["specialty_translated"] or specialty_he
-    lang_label_fr = "français" if doctor["language"] == "fr" else "russe et français"
-    lang_label_ru = "французском" if doctor["language"] == "fr" else "русском и французском"
+    specialty = doctor["specialty_translated"] or (specialties[0] if specialties else "")
+    return f"""Tu es rédacteur pour AL.IA Channel, média pour les olim francophones en Israël.
 
-    fr_prompt = f"""Tu es rédacteur pour AL.IA Channel, média pour les olim francophones en Israël.
-
-Un médecin recommandé qui parle {lang_label_fr} :
+Un médecin francophone recommandé :
 - Nom : {doctor['name_he']}
 - Spécialité : {specialty}
-- Ville : {city_fr}
+- Ville : {city}
 - Téléphone : {doctor['phone']}
 
 Rédige un message WhatsApp court (80-100 mots) au format EXACT :
 🏥 Le Médecin Alia
 
-Aujourd'hui, beaucoup d'utilisateurs d'Alia nous demandent un [spécialité en français] [francophone/russophone].
+Aujourd'hui, beaucoup d'utilisateurs d'Alia nous demandent un [spécialité en français] francophone.
 
-👨‍⚕️ Nous vous recommandons [nom du médecin], qui parle [langue] et consulte à [ville].
+👨‍⚕️ Nous vous recommandons [nom du médecin], qui parle français et consulte à [ville].
 
 📞 [numéro de téléphone]
 
@@ -75,20 +51,25 @@ https://wa.me/972549675013?text=Aide-moi
 
 Réponds uniquement avec le texte, sans JSON."""
 
-    ru_prompt = f"""Ты редактор AL.IA Channel — медиа для русскоязычных олим в Израиле.
 
-Рекомендуемый врач, говорящий на {lang_label_ru} :
+def _build_ru_prompt(doctor: dict) -> str:
+    city = CITIES_TRANSLATE.get(doctor["city_he"], doctor["city_he"])
+    specialties = json.loads(doctor["specialties_he"] or "[]")
+    specialty = doctor["specialty_translated"] or (specialties[0] if specialties else "")
+    return f"""Ты редактор AL.IA Channel — медиа для русскоязычных олим в Израиле.
+
+Рекомендуемый русскоязычный врач :
 - Имя : {doctor['name_he']}
 - Специальность : {specialty}
-- Город : {city_fr}
+- Город : {city}
 - Телефон : {doctor['phone']}
 
 Напиши короткое WhatsApp сообщение (80-100 слов) в точном формате :
 🏥 Врач от Alia
 
-Сегодня многие пользователи Alia ищут [специальность на русском] [говорящего по-русски/по-французски].
+Сегодня многие пользователи Alia ищут [специальность на русском] русскоязычного.
 
-👨‍⚕️ Рекомендуем [имя врача], который говорит на [язык] и принимает в [город].
+👨‍⚕️ Рекомендуем [имя врача], который говорит по-русски и принимает в [город].
 
 📞 [номер телефона]
 
@@ -99,25 +80,67 @@ https://wa.me/972549675013?text=Помоги
 
 Отвечай только текстом, без JSON."""
 
-    try:
-        fr_resp, ru_resp = await asyncio.gather(
-            client.messages.create(model="claude-haiku-4-5-20251001", max_tokens=400, messages=[{"role": "user", "content": fr_prompt}]),
-            client.messages.create(model="claude-haiku-4-5-20251001", max_tokens=400, messages=[{"role": "user", "content": ru_prompt}]),
-        )
-        content_fr = fr_resp.content[0].text.strip()
-        content_ru = ru_resp.content[0].text.strip()
 
+async def _pick_doctor(lang: str, db) -> dict | None:
+    cursor = await db.execute(
+        """SELECT * FROM doctors WHERE language = ?
+           ORDER BY last_featured ASC NULLS FIRST, RANDOM()
+           LIMIT 1""",
+        (lang,)
+    )
+    row = await cursor.fetchone()
+    return dict(row) if row else None
+
+
+async def generate_weekly_doctor() -> dict:
+    week = datetime.utcnow().strftime("%Y-W%W")
+
+    async with get_db() as db:
+        existing = await db.execute("SELECT id FROM weekly_doctor WHERE week = ?", (week,))
+        if await existing.fetchone():
+            return {"status": "skipped", "week": week}
+
+        doctor_fr = await _pick_doctor("fr", db)
+        doctor_ru = await _pick_doctor("ru", db)
+
+    if not doctor_fr and not doctor_ru:
+        return {"status": "error", "reason": "no doctors in DB"}
+
+    try:
+        tasks = []
+        if doctor_fr:
+            tasks.append(client.messages.create(
+                model="claude-haiku-4-5-20251001", max_tokens=400,
+                messages=[{"role": "user", "content": _build_fr_prompt(doctor_fr)}],
+            ))
+        if doctor_ru:
+            tasks.append(client.messages.create(
+                model="claude-haiku-4-5-20251001", max_tokens=400,
+                messages=[{"role": "user", "content": _build_ru_prompt(doctor_ru)}],
+            ))
+
+        results = await asyncio.gather(*tasks)
+        idx = 0
+        content_fr = results[idx].content[0].text.strip() if doctor_fr else None
+        if doctor_fr:
+            idx += 1
+        content_ru = results[idx].content[0].text.strip() if doctor_ru else None
+
+        now = datetime.utcnow().isoformat()
         async with get_db() as db:
             cursor = await db.execute(
                 "INSERT INTO weekly_doctor (week, doctor_id, content_fr, content_ru) VALUES (?,?,?,?)",
-                (week, doctor["id"], content_fr, content_ru),
+                (week, doctor_fr["id"] if doctor_fr else None, content_fr, content_ru),
             )
             weekly_id = cursor.lastrowid
-            await db.execute("UPDATE doctors SET last_featured = ? WHERE id = ?", (datetime.utcnow().isoformat(), doctor["id"]))
+            if doctor_fr:
+                await db.execute("UPDATE doctors SET last_featured = ? WHERE id = ?", (now, doctor_fr["id"]))
+            if doctor_ru:
+                await db.execute("UPDATE doctors SET last_featured = ? WHERE id = ?", (now, doctor_ru["id"]))
             await db.commit()
 
-        logger.info(f"[doctor_processor] Generated for doctor {doctor['id']} — week {week}")
-        return {"status": "generated", "week": week, "weekly_doctor_id": weekly_id, "doctor_id": doctor["id"]}
+        logger.info(f"[doctor_processor] Generated FR={doctor_fr and doctor_fr['id']} RU={doctor_ru and doctor_ru['id']} week={week}")
+        return {"status": "generated", "week": week, "weekly_doctor_id": weekly_id}
 
     except Exception as e:
         logger.error(f"[doctor_processor] Error: {e}")
