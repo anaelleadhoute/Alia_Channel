@@ -254,55 +254,6 @@ async def scrape_supermarkets_manual(body: SupermarketPayload):
     return result
 
 
-@router.post("/events")
-async def scrape_events():
-    """Fetch events from Eventbrite for IL cities and generate weekly FR+RU message."""
-    from processors.events_processor import generate_weekly_events
-
-    result = await generate_weekly_events()
-
-    auto = await _is_auto_publish()
-    if auto and result.get("weekly_event_id") and result.get("status") == "generated":
-        try:
-            await _auto_publish_item("weekly_events", "id", result["weekly_event_id"])
-            result["auto_published"] = True
-        except Exception as e:
-            result["auto_published"] = False
-            result["auto_publish_error"] = str(e)
-
-    return result
-
-
-@router.post("/events/force")
-async def scrape_events_force():
-    """Force-regenerate weekly events even if already generated this week."""
-    from processors.events_processor import generate_weekly_events
-    return await generate_weekly_events(force=True)
-
-
-class EventsPayload(BaseModel):
-    events: list[dict] = []
-    force: bool = False
-
-
-@router.post("/events/manual")
-async def scrape_events_manual(body: EventsPayload):
-    """Receive pre-scraped events from local Mac scraper and generate weekly message."""
-    from processors.events_processor import generate_weekly_events
-
-    result = await generate_weekly_events(force=body.force, raw_events=body.events)
-
-    auto = await _is_auto_publish()
-    if auto and result.get("weekly_event_id") and result.get("status") == "generated":
-        try:
-            await _auto_publish_item("weekly_events", "id", result["weekly_event_id"])
-            result["auto_published"] = True
-        except Exception as e:
-            result["auto_published"] = False
-            result["auto_publish_error"] = str(e)
-
-    return result
-
 
 class PrestatairePayload(BaseModel):
     data: dict
@@ -339,6 +290,11 @@ async def generate_prestataire():
             result["auto_published"] = False
             result["auto_publish_error"] = str(e)
     return result
+
+
+class EventsPayload(BaseModel):
+    events: list[dict] = []
+    force: bool = False
 
 
 @router.post("/events-kids/manual")

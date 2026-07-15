@@ -251,30 +251,6 @@ async def publish_weekly_deal(weekly_deal_id: int):
     return {"ok": True, "weekly_deal_id": weekly_deal_id, "sent": results}
 
 
-@router.post("/weekly-event/{event_id}")
-async def publish_weekly_event(event_id: int):
-    async with get_db() as db:
-        cursor = await db.execute("SELECT * FROM weekly_events WHERE id = ?", (event_id,))
-        row = await cursor.fetchone()
-    if not row:
-        raise HTTPException(status_code=404, detail="Weekly event not found")
-    item = dict(row)
-    results = {}
-    if item.get("content_fr") and not item.get("sent_wa_fr"):
-        await _send_whatsapp(WHAPI_GROUP_FR, item["content_fr"])
-        results["fr"] = "sent"
-        async with get_db() as db:
-            await db.execute("UPDATE weekly_events SET sent_wa_fr = 1 WHERE id = ?", (event_id,))
-            await db.commit()
-    if item.get("content_ru") and not item.get("sent_wa_ru"):
-        await _send_whatsapp(WHAPI_GROUP_RU, item["content_ru"])
-        results["ru"] = "sent"
-        async with get_db() as db:
-            await db.execute("UPDATE weekly_events SET sent_wa_ru = 1 WHERE id = ?", (event_id,))
-            await db.commit()
-    return {"ok": True, "weekly_event_id": event_id, "sent": results}
-
-
 @router.post("/prestataire/{record_id}")
 async def publish_prestataire(record_id: int):
     async with get_db() as db:
