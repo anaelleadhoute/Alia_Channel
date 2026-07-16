@@ -72,13 +72,15 @@ async def generate_daily_digest(force: bool = False) -> dict:
                 await db2.execute("DELETE FROM digests WHERE digest_date = ?", (week_day,))
                 await db2.commit()
 
-        # Fetch today's articles — prefer published_at when available, fall back to scraped_at
+        # Fetch today's articles — only use published_at if recent, otherwise scraped_at
+        # Exclude articles with an explicit published_at older than 2 days (old news re-scraped)
         cursor = await db.execute(
             """
             SELECT title_raw, summary_fr, summary_ru, source, language, score,
                    COALESCE(published_at, scraped_at) AS article_date
             FROM articles
-            WHERE DATE(COALESCE(published_at, scraped_at)) >= DATE('now', '-1 days')
+            WHERE DATE(scraped_at) >= DATE('now', '-1 days')
+            AND (published_at IS NULL OR DATE(published_at) >= DATE('now', '-2 days'))
             AND ai_processed_at IS NOT NULL
             AND score >= 0.6
             ORDER BY score DESC, article_date DESC
