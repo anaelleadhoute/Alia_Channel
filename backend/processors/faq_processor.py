@@ -16,10 +16,7 @@ COMMUNITY_FR_LINK = "wa.me/972549675013"  # TODO: replace with FR group invite l
 COMMUNITY_RU_LINK = "wa.me/972549675013"  # TODO: replace with RU group invite link
 
 ALIA_LINK_FR = "https://wa.me/972549675013?text=Aide-moi"
-ALIA_LINK_RU = "https://wa.me/972549675013?text=Aide-moi"
-
-ALIA_LINK_FR = "https://wa.me/972549675013?text=Aide-moi"
-ALIA_LINK_RU = "https://wa.me/972549675013?text=Aide-moi"
+ALIA_LINK_RU = "https://wa.me/972549675013?text=Помоги"
 
 PROMPT_FR = """Tu es expert en immigration et droits des olim en Israël.
 
