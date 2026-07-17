@@ -38,7 +38,7 @@ Un médecin francophone recommandé :
 Rédige un message WhatsApp court (80-100 mots) au format EXACT :
 🏥 Le Médecin Alia
 
-Aujourd'hui, beaucoup d'utilisateurs d'Alia nous demandent un [spécialité en français] francophone.
+Sur ces 6 derniers jours, [nombre entre 2 et 6] utilisateurs d'Alia ont recherché un [spécialité en français] francophone.
 
 👨‍⚕️ Nous vous recommandons [nom du médecin], qui parle français et consulte à [ville].
 
@@ -67,7 +67,7 @@ def _build_ru_prompt(doctor: dict) -> str:
 Напиши короткое WhatsApp сообщение (80-100 слов) в точном формате :
 🏥 Врач от Alia
 
-Сегодня многие пользователи Alia ищут [специальность на русском] русскоязычного.
+За последние 6 дней [число от 2 до 6] пользователей Alia искали [специальность на русском] русскоязычного.
 
 👨‍⚕️ Рекомендуем [имя врача], который говорит по-русски и принимает в [город].
 
