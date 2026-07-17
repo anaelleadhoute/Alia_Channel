@@ -17,7 +17,6 @@ ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 TELEGRAM_CHANNELS = [
     {"username": "shufersaloffocial", "category": "supermarket"},
     {"username": "payngoil",          "category": "electronics"},
-    {"username": "SecretFlights",     "category": "flights"},
     {"username": "ivorycoil",         "category": "deals"},
 ]
 
