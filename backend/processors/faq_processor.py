@@ -15,11 +15,11 @@ WHATSAPP_BOT_LINK = "wa.me/972549675013"  # TODO: replace with actual bot link
 COMMUNITY_FR_LINK = "wa.me/972549675013"  # TODO: replace with FR group invite link
 COMMUNITY_RU_LINK = "wa.me/972549675013"  # TODO: replace with RU group invite link
 
-ALIA_LINK_FR = "https://wa.me/972549675013?text=Avant%20de%20commencer%2C%20pr%C3%A9sente-toi"
-ALIA_LINK_RU = "https://wa.me/972549675013?text=%D0%9F%D1%80%D0%B5%D0%B4%D1%81%D1%82%D0%B0%D0%B2%D1%8C%D1%81%D1%8F"
+ALIA_LINK_FR = "https://wa.me/972549675013?text=Aide-moi"
+ALIA_LINK_RU = "https://wa.me/972549675013?text=Aide-moi"
 
-ALIA_LINK_FR = "https://wa.me/972549675013?text=Avant%20de%20commencer%2C%20pr%C3%A9sente-toi"
-ALIA_LINK_RU = "https://wa.me/972549675013?text=%D0%9F%D1%80%D0%B5%D0%B4%D1%81%D1%82%D0%B0%D0%B2%D1%8C%D1%81%D1%8F"
+ALIA_LINK_FR = "https://wa.me/972549675013?text=Aide-moi"
+ALIA_LINK_RU = "https://wa.me/972549675013?text=Aide-moi"
 
 PROMPT_FR = """Tu es expert en immigration et droits des olim en Israël.
 
