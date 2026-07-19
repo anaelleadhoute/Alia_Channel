@@ -219,7 +219,7 @@ async def scrape_prestataire_manual(body: PrestatairePayload):
         if body.force:
             await db.execute("DELETE FROM weekly_prestataire WHERE week = ?", (week,))
         await db.execute(
-            "INSERT OR IGNORE INTO weekly_prestataire (week, data_json, raw_payload) VALUES (?, ?, ?)",
+            "INSERT OR REPLACE INTO weekly_prestataire (week, data_json, raw_payload) VALUES (?, ?, ?)",
             (week, json.dumps(body.data, ensure_ascii=False), json.dumps(body.data, ensure_ascii=False)),
         )
         await db.commit()
@@ -253,10 +253,8 @@ async def scrape_events_kids_manual(body: EventsPayload):
     import json
     week = datetime.utcnow().strftime("%Y-W%W")
     async with get_db() as db:
-        if body.force:
-            await db.execute("DELETE FROM weekly_events_kids WHERE week = ?", (week,))
         await db.execute(
-            "INSERT OR IGNORE INTO weekly_events_kids (week, raw_payload) VALUES (?, ?)",
+            "INSERT OR REPLACE INTO weekly_events_kids (week, raw_payload) VALUES (?, ?)",
             (week, json.dumps(body.events, ensure_ascii=False)),
         )
         await db.commit()
