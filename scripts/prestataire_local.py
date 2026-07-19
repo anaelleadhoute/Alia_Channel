@@ -65,10 +65,25 @@ def parse_providers(text: str, title: str) -> tuple[str, str, list[dict]]:
     return category, city, providers
 
 
-def scrape_prestataire(page) -> dict | None:
+def _get_next_url() -> tuple[str, int]:
+    """Ask server for last used category index and return the next one."""
+    try:
+        with httpx.Client(timeout=10) as client:
+            resp = client.get("https://alia-channel.com/api/scrape/prestataire/last-index")
+            if resp.status_code == 200:
+                last_index = resp.json().get("last_index", -1)
+                next_index = (last_index + 1) % len(MIDRAG_URLS)
+                return MIDRAG_URLS[next_index], next_index
+    except Exception:
+        pass
     week_num = int(datetime.now().strftime("%W"))
-    url = MIDRAG_URLS[week_num % len(MIDRAG_URLS)]
-    print(f"[midrag] Week {week_num} → {url}")
+    idx = week_num % len(MIDRAG_URLS)
+    return MIDRAG_URLS[idx], idx
+
+
+def scrape_prestataire(page) -> dict | None:
+    url, idx = _get_next_url()
+    print(f"[midrag] Category index {idx} → {url}")
 
     try:
         page.goto(url, wait_until="networkidle", timeout=30000)
@@ -96,6 +111,7 @@ def scrape_prestataire(page) -> dict | None:
         "reviews": top["reviews"],
         "satisfaction": top["satisfaction"],
         "url": url,
+        "category_index": idx,
         "all_providers": providers[:5],
     }
 

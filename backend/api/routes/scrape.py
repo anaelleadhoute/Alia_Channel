@@ -210,6 +210,21 @@ class PrestatairePayload(BaseModel):
     force: bool = False
 
 
+@router.get("/prestataire/last-index")
+async def get_prestataire_last_index():
+    """Return the category_index stored in the most recent weekly_prestataire entry."""
+    import json
+    async with get_db() as db:
+        cursor = await db.execute(
+            "SELECT raw_payload FROM weekly_prestataire ORDER BY created_at DESC LIMIT 1"
+        )
+        row = await cursor.fetchone()
+    if row and row[0]:
+        data = json.loads(row[0])
+        return {"last_index": data.get("category_index", -1)}
+    return {"last_index": -1}
+
+
 @router.post("/prestataire/manual")
 async def scrape_prestataire_manual(body: PrestatairePayload):
     """Store raw prestataire data from Mac scraper (no generation)."""
