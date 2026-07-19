@@ -56,7 +56,7 @@ def _format_events_text(events: list[dict]) -> str:
 
 
 async def generate_weekly_events(force: bool = False, raw_events: list[dict] | None = None) -> dict:
-    week = datetime.utcnow().strftime("%Y-W%W")
+    week = datetime.utcnow().strftime("%Y-W%U")
 
     async with get_db() as db:
         cursor = await db.execute("SELECT id FROM weekly_events WHERE week = ?", (week,))

@@ -59,7 +59,7 @@ https://wa.me/972549675013?text=Помоги
 
 
 async def generate_weekly_rights() -> dict:
-    week = datetime.utcnow().strftime("%Y-W%W")
+    week = datetime.utcnow().strftime("%Y-W%U")
 
     async with get_db() as db:
         cursor = await db.execute("SELECT * FROM weekly_rights WHERE week = ?", (week,))

@@ -44,7 +44,7 @@ KARAMEL_ACTIVITIES = [
 
 def run():
     force = "--force" in sys.argv
-    week_num = int(datetime.utcnow().strftime("%W"))
+    week_num = int(datetime.utcnow().strftime("%U"))
     pick = KARAMEL_ACTIVITIES[week_num % len(KARAMEL_ACTIVITIES)]
     print(f"[karamel] Week {week_num} — {pick['name']} | {pick['url']}")
 

@@ -93,7 +93,7 @@ async def _pick_doctor(lang: str, db) -> dict | None:
 
 
 async def generate_weekly_doctor() -> dict:
-    week = datetime.utcnow().strftime("%Y-W%W")
+    week = datetime.utcnow().strftime("%Y-W%U")
 
     async with get_db() as db:
         existing = await db.execute("SELECT id FROM weekly_doctor WHERE week = ?", (week,))

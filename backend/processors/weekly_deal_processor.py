@@ -171,7 +171,7 @@ async def generate_weekly_deals(raw_data: dict | None = None, force: bool = Fals
     raw_data: pre-scraped items dict (from local Mac scraper). If None, scrapes automatically.
     force: regenerate even if this week already exists (deletes after picking, so exclusion still works).
     """
-    week = datetime.utcnow().strftime("%Y-W%W")
+    week = datetime.utcnow().strftime("%Y-W%U")
 
     # Check if already generated this week
     async with get_db() as db:

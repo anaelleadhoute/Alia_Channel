@@ -76,7 +76,7 @@ def _get_next_url() -> tuple[str, int]:
                 return MIDRAG_URLS[next_index], next_index
     except Exception:
         pass
-    week_num = int(datetime.now().strftime("%W"))
+    week_num = int(datetime.now().strftime("%U"))
     idx = week_num % len(MIDRAG_URLS)
     return MIDRAG_URLS[idx], idx
 

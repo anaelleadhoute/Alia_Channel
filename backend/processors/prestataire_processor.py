@@ -67,7 +67,7 @@ RU_PROMPT = """Ты редактор Alia Channel — WhatsApp-сообщест�
 
 async def generate_weekly_prestataire(force: bool = False, data: dict | None = None) -> dict:
     import asyncio
-    week = datetime.utcnow().strftime("%Y-W%W")
+    week = datetime.utcnow().strftime("%Y-W%U")
 
     async with get_db() as db:
         cursor = await db.execute("SELECT id, content_fr, raw_payload FROM weekly_prestataire WHERE week = ?", (week,))

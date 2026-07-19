@@ -13,7 +13,7 @@ SEARCH_URL = "https://www.kolzchut.org.il/w/he/index.php"
 
 
 def _current_week() -> str:
-    return datetime.utcnow().strftime("%Y-W%W")
+    return datetime.utcnow().strftime("%Y-W%U")
 
 
 def _extract_text(html: str) -> str:
@@ -37,7 +37,7 @@ async def run_kolzchut_scraper() -> dict:
             return {"status": "skipped", "week": week}
 
     # Rotate search term each week
-    week_number = int(datetime.utcnow().strftime("%W"))
+    week_number = int(datetime.utcnow().strftime("%U"))
     term = SEARCH_TERMS[week_number % len(SEARCH_TERMS)]
 
     headers = {

@@ -125,7 +125,7 @@ class ManualTip(BaseModel):
 async def manual_tip(body: ManualTip):
     """Store raw Kol Zchut content from Mac scraper (no generation)."""
     import json
-    week = datetime.utcnow().strftime("%Y-W%W")
+    week = datetime.utcnow().strftime("%Y-W%U")
     async with get_db() as db:
         existing = await db.execute("SELECT id FROM tips WHERE week = ?", (week,))
         row = await existing.fetchone()
@@ -146,7 +146,7 @@ async def manual_tip(body: ManualTip):
 @router.post("/tips/generate")
 async def generate_tip():
     """Generate FR+RU tip from stored raw payload and auto-publish."""
-    week = datetime.utcnow().strftime("%Y-W%W")
+    week = datetime.utcnow().strftime("%Y-W%U")
     import json
     async with get_db() as db:
         cursor = await db.execute(
@@ -171,7 +171,7 @@ async def generate_tip():
 async def manual_rights(body: ManualTip):
     """Store raw Kol Zchut rights content from Mac scraper (no generation)."""
     import json
-    week = datetime.utcnow().strftime("%Y-W%W")
+    week = datetime.utcnow().strftime("%Y-W%U")
     async with get_db() as db:
         existing = await db.execute("SELECT id FROM weekly_rights WHERE week = ?", (week,))
         row = await existing.fetchone()
@@ -229,7 +229,7 @@ async def get_prestataire_last_index():
 async def scrape_prestataire_manual(body: PrestatairePayload):
     """Store raw prestataire data from Mac scraper (no generation)."""
     import json
-    week = datetime.utcnow().strftime("%Y-W%W")
+    week = datetime.utcnow().strftime("%Y-W%U")
     async with get_db() as db:
         if body.force:
             await db.execute("DELETE FROM weekly_prestataire WHERE week = ?", (week,))
@@ -266,7 +266,7 @@ class EventsPayload(BaseModel):
 async def scrape_events_kids_manual(body: EventsPayload):
     """Store raw kids events from Mac scraper (no generation)."""
     import json
-    week = datetime.utcnow().strftime("%Y-W%W")
+    week = datetime.utcnow().strftime("%Y-W%U")
     async with get_db() as db:
         await db.execute(
             "INSERT OR REPLACE INTO weekly_events_kids (week, raw_payload) VALUES (?, ?)",
