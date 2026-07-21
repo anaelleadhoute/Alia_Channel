@@ -58,15 +58,23 @@ https://wa.me/972549675013?text=Помоги
 Отвечай только текстом, без JSON."""
 
 
-async def generate_weekly_rights() -> dict:
+async def generate_weekly_rights(force: bool = False) -> dict:
     week = datetime.utcnow().strftime("%Y-W%U")
 
     async with get_db() as db:
         cursor = await db.execute("SELECT * FROM weekly_rights WHERE week = ?", (week,))
         existing = await cursor.fetchone()
 
-    if existing and existing["content_fr"]:
+    if existing and existing["content_fr"] and not force:
         return {"status": "skipped", "week": week, "weekly_rights_id": existing["id"]}
+
+    if existing and force:
+        async with get_db() as db:
+            await db.execute(
+                "UPDATE weekly_rights SET content_fr=NULL, content_ru=NULL, sent_wa_fr=0, sent_wa_ru=0, ai_processed_at=NULL WHERE week=?",
+                (week,)
+            )
+            await db.commit()
 
     if not existing or not existing["raw_payload"]:
         return {"status": "error", "reason": "no rights data stored for this week"}

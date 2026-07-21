@@ -92,13 +92,20 @@ async def _pick_doctor(lang: str, db) -> dict | None:
     return dict(row) if row else None
 
 
-async def generate_weekly_doctor() -> dict:
+async def generate_weekly_doctor(force: bool = False) -> dict:
     week = datetime.utcnow().strftime("%Y-W%U")
 
     async with get_db() as db:
         existing = await db.execute("SELECT id FROM weekly_doctor WHERE week = ?", (week,))
-        if await existing.fetchone():
+        row = await existing.fetchone()
+        if row and not force:
             return {"status": "skipped", "week": week}
+        if row and force:
+            await db.execute(
+                "UPDATE weekly_doctor SET content_fr=NULL, content_ru=NULL, sent_wa_fr=0, sent_wa_ru=0 WHERE week=?",
+                (week,)
+            )
+            await db.commit()
 
         doctor_fr = await _pick_doctor("fr", db)
         doctor_ru = await _pick_doctor("ru", db)

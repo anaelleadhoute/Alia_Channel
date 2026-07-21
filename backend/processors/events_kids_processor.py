@@ -66,6 +66,14 @@ async def generate_weekly_kids_events(force: bool = False, raw_events: list[dict
     if existing and existing["content_fr"] and not force:
         return {"status": "skipped", "week": week, "weekly_event_kids_id": existing["id"]}
 
+    if existing and force:
+        async with get_db() as db:
+            await db.execute(
+                "UPDATE weekly_events_kids SET content_fr=NULL, content_ru=NULL, sent_wa_fr=0, sent_wa_ru=0 WHERE week=?",
+                (week,)
+            )
+            await db.commit()
+
     if not raw_events:
         if existing and existing["raw_payload"]:
             raw_events = json.loads(existing["raw_payload"])

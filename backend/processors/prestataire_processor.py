@@ -76,6 +76,14 @@ async def generate_weekly_prestataire(force: bool = False, data: dict | None = N
     if existing and existing["content_fr"] and not force:
         return {"status": "skipped", "week": week, "prestataire_id": existing["id"]}
 
+    if existing and force:
+        async with get_db() as db:
+            await db.execute(
+                "UPDATE weekly_prestataire SET content_fr=NULL, content_ru=NULL, sent_wa_fr=0, sent_wa_ru=0 WHERE week=?",
+                (week,)
+            )
+            await db.commit()
+
     if not data:
         if existing and existing["raw_payload"]:
             data = json.loads(existing["raw_payload"])

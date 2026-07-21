@@ -151,11 +151,16 @@ async def manual_tip(body: ManualTip):
 
 
 @router.post("/tips/generate")
-async def generate_tip():
+async def generate_tip(force: bool = False):
     """Generate FR+RU tip from stored raw payload and auto-publish."""
     week = datetime.utcnow().strftime("%Y-W%U")
     import json
     async with get_db() as db:
+        if force:
+            await db.execute(
+                "UPDATE tips SET ai_processed_at=NULL, sent_wa_fr=0, sent_wa_ru=0 WHERE week=?", (week,)
+            )
+            await db.commit()
         cursor = await db.execute(
             "SELECT id, source_url, raw_payload FROM tips WHERE week = ? AND ai_processed_at IS NULL",
             (week,)
@@ -163,9 +168,6 @@ async def generate_tip():
         row = await cursor.fetchone()
     if not row:
         return {"status": "skipped", "reason": "no stored tip for this week or already generated"}
-    async with get_db() as db:
-        await db.execute("UPDATE tips SET sent_wa_fr=0, sent_wa_ru=0 WHERE id=?", (row["id"],))
-        await db.commit()
 
     payload = json.loads(row["raw_payload"] or "{}")
     result = await process_tip(row["id"], payload.get("url", row["source_url"]), payload.get("content", ""))
@@ -200,10 +202,10 @@ async def manual_rights(body: ManualTip):
 
 
 @router.post("/rights/generate")
-async def generate_rights():
+async def generate_rights(force: bool = False):
     """Generate FR+RU rights content from stored raw payload and auto-publish."""
     from processors.rights_processor import generate_weekly_rights
-    result = await generate_weekly_rights()
+    result = await generate_weekly_rights(force=force)
     auto = await _is_auto_publish("rights")
     if auto and result.get("weekly_rights_id") and result.get("status") == "generated":
         try:
@@ -252,10 +254,10 @@ async def scrape_prestataire_manual(body: PrestatairePayload):
 
 
 @router.post("/prestataire/generate")
-async def generate_prestataire():
+async def generate_prestataire(force: bool = False):
     """Generate FR+RU content from stored raw payload and auto-publish."""
     from processors.prestataire_processor import generate_weekly_prestataire
-    result = await generate_weekly_prestataire()
+    result = await generate_weekly_prestataire(force=force)
     auto = await _is_auto_publish("prestataire")
     if auto and result.get("prestataire_id") and result.get("status") == "generated":
         try:
@@ -287,10 +289,10 @@ async def scrape_events_kids_manual(body: EventsPayload):
 
 
 @router.post("/events-kids/generate")
-async def generate_events_kids():
+async def generate_events_kids(force: bool = False):
     """Generate FR+RU kids events content from stored raw payload and auto-publish."""
     from processors.events_kids_processor import generate_weekly_kids_events
-    result = await generate_weekly_kids_events()
+    result = await generate_weekly_kids_events(force=force)
     auto = await _is_auto_publish("kids")
     if auto and result.get("weekly_event_kids_id") and result.get("status") == "generated":
         try:

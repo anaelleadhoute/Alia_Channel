@@ -230,6 +230,10 @@
 
   <!-- TIPS -->
   <div class="section" id="section-tips">
+    <div class="actions-bar">
+      <span>Actions:</span>
+      <button class="btn btn-primary" onclick="generateTipForce()">🔄 Regénérer Guide</button>
+    </div>
     <div class="queue-header"><h2>📄 Guide Alia</h2></div>
     <div class="cards" id="tipCards"><div class="loading">Loading…</div></div>
   </div>
@@ -250,6 +254,7 @@
     <div class="actions-bar">
       <span>Actions:</span>
       <button class="btn btn-primary" onclick="scrapeKidsInfo()">👧 Scraper & Générer Kids</button>
+      <button class="btn btn-primary" onclick="generateKidsForce()">🔄 Regénérer Kids</button>
     </div>
     <div class="queue-header"><h2>👧 Événements familles & enfants</h2></div>
     <div class="cards" id="eventKidsCards"><div class="loading">Loading…</div></div>
@@ -260,6 +265,7 @@
     <div class="actions-bar">
       <span>Actions:</span>
       <button class="btn btn-primary" onclick="scrapePrestataire()">🏅 Scraper & Générer Prestataire</button>
+      <button class="btn btn-primary" onclick="generatePrestataireForce()">🔄 Regénérer Prestataire</button>
     </div>
     <div class="queue-header"><h2>🏅 Prestataire de la semaine</h2></div>
     <div class="cards" id="prestataireCards"><div class="loading">Loading…</div></div>
@@ -270,6 +276,7 @@
     <div class="actions-bar">
       <span>Actions:</span>
       <button class="btn btn-primary" onclick="generateRights()">💰 Générer Droits</button>
+      <button class="btn btn-primary" onclick="generateRightsForce()">🔄 Regénérer Droits</button>
     </div>
     <div class="queue-header"><h2>💰 Les Droits Alia</h2></div>
     <div class="cards" id="rightsCards"><div class="loading">Loading…</div></div>
@@ -280,6 +287,7 @@
     <div class="actions-bar">
       <span>Actions:</span>
       <button class="btn btn-primary" onclick="generateDoctor()">🏥 Générer Médecin</button>
+      <button class="btn btn-primary" onclick="generateDoctorForce()">🔄 Regénérer Médecin</button>
     </div>
     <div class="queue-header"><h2>🏥 Le Médecin Alia</h2></div>
     <div class="cards" id="doctorsCards"><div class="loading">Loading…</div></div>
@@ -578,6 +586,61 @@ async function generateRights() {
     const data = await res.json();
     if (data.status === 'generated') { toast('✅ Droits générés !'); await loadRights(); }
     else if (data.status === 'skipped') toast('ℹ️ Droits déjà générés cette semaine');
+    else toast('❌ Erreur: ' + (data.reason || 'unknown'), true);
+  });
+}
+
+async function generateRightsForce() {
+  const btn = event.target;
+  await withLoading(btn, async () => {
+    toast('🔄 Regénération des droits…');
+    const res = await fetch(`${API}/api/scrape/rights/generate?force=true`, {method: 'POST'});
+    const data = await res.json();
+    if (data.status === 'generated') { toast('✅ Droits regénérés !'); await loadRights(); }
+    else toast('❌ Erreur: ' + (data.reason || 'unknown'), true);
+  });
+}
+
+async function generateDoctorForce() {
+  const btn = event.target;
+  await withLoading(btn, async () => {
+    toast('🔄 Regénération du médecin…');
+    const res = await fetch(`${API}/api/doctors/generate?force=true`, {method: 'POST'});
+    const data = await res.json();
+    if (data.status === 'generated') { toast('✅ Médecin regénéré !'); await loadDoctors(); }
+    else toast('❌ Erreur: ' + (data.reason || 'unknown'), true);
+  });
+}
+
+async function generateTipForce() {
+  const btn = event.target;
+  await withLoading(btn, async () => {
+    toast('🔄 Regénération du guide…');
+    const res = await fetch(`${API}/api/scrape/tips/generate?force=true`, {method: 'POST'});
+    const data = await res.json();
+    if (data.status === 'ok') { toast('✅ Guide regénéré !'); await loadTips(); }
+    else toast('❌ Erreur: ' + (data.reason || 'unknown'), true);
+  });
+}
+
+async function generateKidsForce() {
+  const btn = event.target;
+  await withLoading(btn, async () => {
+    toast('🔄 Regénération kids…');
+    const res = await fetch(`${API}/api/scrape/events-kids/generate?force=true`, {method: 'POST'});
+    const data = await res.json();
+    if (data.status === 'generated') { toast('✅ Kids regénéré !'); await loadKidsEvents(); }
+    else toast('❌ Erreur: ' + (data.reason || 'unknown'), true);
+  });
+}
+
+async function generatePrestataireForce() {
+  const btn = event.target;
+  await withLoading(btn, async () => {
+    toast('🔄 Regénération prestataire…');
+    const res = await fetch(`${API}/api/scrape/prestataire/generate?force=true`, {method: 'POST'});
+    const data = await res.json();
+    if (data.status === 'generated') { toast('✅ Prestataire regénéré !'); await loadPrestataire(); }
     else toast('❌ Erreur: ' + (data.reason || 'unknown'), true);
   });
 }
