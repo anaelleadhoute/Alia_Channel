@@ -410,10 +410,33 @@ async function loadQueue() {
 
   const container = document.getElementById('queueCards');
   if (!allItems.length) {
-    container.innerHTML = '<div class="empty"><div class="icon">📭</div>Queue is empty</div>';
+    container.innerHTML = '<div class="empty"><div class="icon">📭</div>Rien à afficher</div>';
     return;
   }
-  container.innerHTML = allItems.map(item => renderCard(item)).join('');
+
+  const CATEGORY_LABELS = {
+    digest: '📰 News', faq: '❓ FAQ', tip: '📄 Guide Alia',
+    deal: '⚡ Deals', weekly_event_kids: '👧 Kids', prestataire: '🏅 Prestataire',
+    weekly_rights: '💰 Droits', weekly_doctor: '🏥 Médecin',
+  };
+
+  // Group by category
+  const groups = {};
+  allItems.forEach(item => {
+    const cat = item._type;
+    if (!groups[cat]) groups[cat] = [];
+    groups[cat].push(item);
+  });
+
+  container.innerHTML = Object.entries(groups).map(([cat, items]) => `
+    <div style="margin-bottom:28px;">
+      <div style="font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #e8eaf0;">
+        ${CATEGORY_LABELS[cat] || cat}
+        <span style="font-size:12px;font-weight:400;color:#999;margin-left:8px;">${items.length} item${items.length > 1 ? 's' : ''}</span>
+      </div>
+      <div class="cards">${items.map(item => renderCard(item)).join('')}</div>
+    </div>
+  `).join('');
 }
 
 function isReady(item) {
