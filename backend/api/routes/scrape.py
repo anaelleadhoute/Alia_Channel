@@ -95,8 +95,10 @@ async def scrape_telegram_deals():
     best_id = None
     if ai_result.get("deal_ids"):
         best_id = await pick_best_deal(ai_result["deal_ids"])
+        if best_id:
+            await _auto_publish_item("deals", "id", best_id)
 
-    return {"scrape": scrape_result, "ai": ai_result, "best_deal_id": best_id}
+    return {"scrape": scrape_result, "ai": ai_result, "best_deal_id": best_id, "auto_published": bool(best_id)}
 
 
 @router.post("/tips")
