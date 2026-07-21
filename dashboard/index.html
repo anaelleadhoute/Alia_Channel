@@ -567,13 +567,18 @@ function renderCard(item) {
   const date = item.generated_at || item.scraped_at || item.digest_date || '';
 
   const deleteBtn = type === 'contest' ? `<button class="btn btn-reject" onclick="deleteContest(${id})">🗑 Supprimer</button>` : '';
+  const editBtn = type === 'tip' && !isRawTip
+    ? `<button class="btn" style="background:#f3e5f5;color:#7b1fa2;" onclick="editTip(${id})">✏️ Modifier</button>`
+    : '';
+
   const publishButtons = isRawTip ? '' : !isSent && !isRejected ? `
     <button class="btn btn-fr" onclick="publish('${type}', ${id}, 'fr')" ${item.sent_wa_fr ? 'disabled' : ''}>🇫🇷 FR</button>
     <button class="btn btn-ru" onclick="publish('${type}', ${id}, 'ru')" ${item.sent_wa_ru ? 'disabled' : ''}>🇷🇺 RU</button>
     <button class="btn btn-both" onclick="publish('${type}', ${id}, 'both')">Send Both</button>
+    ${editBtn}
     ${type !== 'contest' ? `<button class="btn btn-reject" onclick="reject('${type}', ${id})">✕ Reject</button>` : ''}
     ${deleteBtn}
-  ` : sentInfo + (type === 'contest' ? ` ${deleteBtn}` : '');
+  ` : sentInfo + editBtn + (type === 'contest' ? ` ${deleteBtn}` : '');
 
   const bodyHtml = isRawTip ? `
     <div class="lang-block" style="grid-column:1/-1">
@@ -1060,6 +1065,50 @@ async function scrapeTelegramDeals() {
     await loadDeals();
     await loadQueue();
   });
+}
+
+async function editTip(id) {
+  const data = await fetch(`${API}/api/tips`).then(r => r.json());
+  const tip = data.find(t => t.id === id);
+  if (!tip) return;
+
+  const existing = document.getElementById('edit-tip-modal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'edit-tip-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;';
+  modal.innerHTML = `
+    <div style="background:white;border-radius:12px;padding:28px;width:100%;max-width:800px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+      <div style="font-size:16px;font-weight:700;margin-bottom:20px;">✏️ Modifier le Guide — Semaine ${tip.week || ''}</div>
+      <label style="font-size:13px;font-weight:600;color:#666;display:block;margin-bottom:6px;">🇫🇷 Français</label>
+      <textarea id="edit-tip-fr" style="width:100%;height:220px;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:13px;resize:vertical;font-family:inherit;margin-bottom:16px;">${tip.content_fr || ''}</textarea>
+      <label style="font-size:13px;font-weight:600;color:#666;display:block;margin-bottom:6px;">🇷🇺 Русский</label>
+      <textarea id="edit-tip-ru" style="width:100%;height:220px;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:13px;resize:vertical;font-family:inherit;margin-bottom:20px;">${tip.content_ru || ''}</textarea>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-both" onclick="saveTip(${id})">💾 Sauvegarder</button>
+        <button class="btn btn-reject" onclick="document.getElementById('edit-tip-modal').remove()">Annuler</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
+
+async function saveTip(id) {
+  const fr = document.getElementById('edit-tip-fr').value;
+  const ru = document.getElementById('edit-tip-ru').value;
+  const res = await fetch(`${API}/api/tips/${id}`, {
+    method: 'PATCH',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({content_fr: fr, content_ru: ru}),
+  });
+  if (res.ok) {
+    toast('✅ Guide modifié !');
+    document.getElementById('edit-tip-modal').remove();
+    await loadTips();
+  } else {
+    toast('❌ Erreur sauvegarde', true);
+  }
 }
 
 function scrapeEventsKids() { showLocalCommand('python3 scripts/events_local.py --force'); }
