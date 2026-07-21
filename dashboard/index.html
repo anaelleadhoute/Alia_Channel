@@ -464,26 +464,51 @@ function setQueueFilter(f, btn) {
   loadQueue();
 }
 
+// ── Current week helper ──────────────────────────────────────────────────────
+function currentWeekStr() {
+  const now = new Date();
+  const jan1 = new Date(now.getFullYear(), 0, 1);
+  const dayOfYear = Math.floor((now - jan1) / 86400000);
+  const weekNum = Math.floor((dayOfYear + jan1.getDay()) / 7);
+  return `${now.getFullYear()}-W${String(weekNum).padStart(2, '0')}`;
+}
+
+function renderCategorySection(items, type, dateKey = 'week') {
+  if (!items.length) return '<div class="empty"><div class="icon">📭</div>Aucun contenu</div>';
+  const thisWeek = currentWeekStr();
+  const thisDate = new Date().toISOString().slice(0, 10);
+  const current = items.filter(i => (i[dateKey] === thisWeek || i[dateKey] === thisDate));
+  const history = items.filter(i => i[dateKey] !== thisWeek && i[dateKey] !== thisDate);
+  let html = '';
+  if (current.length) {
+    html += `<div style="margin-bottom:24px;">
+      <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#1565c0;margin-bottom:10px;">📅 Cette semaine</div>
+      <div class="cards">${current.map(i => renderCard({...i, _type: type})).join('')}</div>
+    </div>`;
+  }
+  if (history.length) {
+    html += `<div>
+      <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#999;margin-bottom:10px;">🕘 Historique</div>
+      <div class="cards">${history.map(i => renderCard({...i, _type: type})).join('')}</div>
+    </div>`;
+  }
+  return html || '<div class="empty"><div class="icon">📭</div>Aucun contenu</div>';
+}
+
 // ── Individual loaders ───────────────────────────────────────────────────────
 async function loadDigests() {
   const data = await fetch(`${API}/api/digests`).then(r => r.json());
-  document.getElementById('digestCards').innerHTML = data.length
-    ? data.map(d => renderCard({...d, _type: 'digest'})).join('')
-    : '<div class="empty"><div class="icon">📰</div>Pas encore de news</div>';
+  document.getElementById('digestCards').innerHTML = renderCategorySection(data, 'digest', 'digest_date');
 }
 
 async function loadFaqs() {
   const data = await fetch(`${API}/api/faqs`).then(r => r.json());
-  document.getElementById('faqCards').innerHTML = data.length
-    ? data.map(f => renderCard({...f, _type: 'faq'})).join('')
-    : '<div class="empty"><div class="icon">❓</div>No FAQs yet</div>';
+  document.getElementById('faqCards').innerHTML = renderCategorySection(data, 'faq');
 }
 
 async function loadTips() {
   const data = await fetch(`${API}/api/tips`).then(r => r.json());
-  document.getElementById('tipCards').innerHTML = data.length
-    ? data.map(t => renderCard({...t, _type: 'tip'})).join('')
-    : '<div class="empty"><div class="icon">💡</div>No tips yet</div>';
+  document.getElementById('tipCards').innerHTML = renderCategorySection(data, 'tip');
 }
 
 async function loadDeals() {
@@ -620,16 +645,12 @@ async function reject(type, id) {
 
 async function loadPrestataire() {
   const data = await fetch(`${API}/api/weekly-events/prestataire`).then(r => r.json());
-  document.getElementById('prestataireCards').innerHTML = data.length
-    ? data.map(e => renderCard({...e, _type: 'prestataire'})).join('')
-    : '<div class="empty"><div class="icon">🏅</div>Pas encore de prestataire cette semaine</div>';
+  document.getElementById('prestataireCards').innerHTML = renderCategorySection(data, 'prestataire');
 }
 
 async function loadRights() {
   const data = await fetch(`${API}/api/weekly-events/rights`).then(r => r.json()).catch(() => []);
-  document.getElementById('rightsCards').innerHTML = data.length
-    ? data.map(e => renderCard({...e, _type: 'weekly_rights'})).join('')
-    : '<div class="empty"><div class="icon">💰</div>Pas encore de droits cette semaine</div>';
+  document.getElementById('rightsCards').innerHTML = renderCategorySection(data, 'weekly_rights');
 }
 
 async function generateRights() {
@@ -701,9 +722,7 @@ async function generatePrestataireForce() {
 
 async function loadDoctors() {
   const data = await fetch(`${API}/api/weekly-events/doctors`).then(r => r.json()).catch(() => []);
-  document.getElementById('doctorsCards').innerHTML = data.length
-    ? data.map(e => renderCard({...e, _type: 'weekly_doctor'})).join('')
-    : '<div class="empty"><div class="icon">🏥</div>Pas encore de médecin cette semaine</div>';
+  document.getElementById('doctorsCards').innerHTML = renderCategorySection(data, 'weekly_doctor');
 }
 
 async function generateDoctor() {
@@ -720,9 +739,7 @@ async function generateDoctor() {
 
 async function loadEventsKids() {
   const data = await fetch(`${API}/api/weekly-events/kids`).then(r => r.json());
-  document.getElementById('eventKidsCards').innerHTML = data.length
-    ? data.map(e => renderCard({...e, _type: 'weekly_event_kids'})).join('')
-    : '<div class="empty"><div class="icon">👧</div>Pas encore d\'événements enfants cette semaine</div>';
+  document.getElementById('eventKidsCards').innerHTML = renderCategorySection(data, 'weekly_event_kids');
 }
 
 async function loadContests() {
