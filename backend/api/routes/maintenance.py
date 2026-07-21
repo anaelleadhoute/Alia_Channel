@@ -10,9 +10,13 @@ async def run_cleanup(triggered_by: str = "manual"):
     """Delete articles and deals older than 30 days, log the result."""
     async with get_db() as db:
         cur = await db.execute(
-            "DELETE FROM articles WHERE scraped_at < DATETIME('now', '-30 days')"
+            "DELETE FROM articles WHERE status = 'pending' AND scraped_at < DATETIME('now', '-14 days')"
         )
         articles_deleted = cur.rowcount
+        cur2 = await db.execute(
+            "DELETE FROM articles WHERE status IN ('approved','rejected') AND scraped_at < DATETIME('now', '-30 days')"
+        )
+        articles_deleted += cur2.rowcount
 
         cur = await db.execute(
             "DELETE FROM deals WHERE scraped_at < DATETIME('now', '-30 days')"
