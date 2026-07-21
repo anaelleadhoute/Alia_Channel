@@ -29,7 +29,8 @@ Format EXACT :
 🤖 Pour plus d'informations, demandez à Alia.
 https://wa.me/972549675013?text=Aide-moi
 
-📢 Rejoignez la communauté Alia pour découvrir toutes les aides disponibles.
+📢 Rejoignez la communauté Alia pour découvrir toutes les aides disponibles :
+https://tinyurl.com/Alia-community
 
 Réponds uniquement avec le texte, sans JSON."""
 

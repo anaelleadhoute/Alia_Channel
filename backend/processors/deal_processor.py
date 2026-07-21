@@ -43,7 +43,8 @@ C'est pourquoi Alia partage régulièrement des bons plans qui valent vraiment l
 
 [Présente le produit clairement : nom, prix, réduction si applicable. 2-3 lignes max. Inclus le lien : {deal_link}]
 
-📢 Rejoignez la communauté Alia pour découvrir chaque semaine de nouveaux bons plans.
+📢 Rejoignez la communauté Alia pour découvrir chaque semaine de nouveaux bons plans :
+https://tinyurl.com/Alia-community
 
 🤖 Des questions ? Parlez à Alia :
 https://wa.me/972549675013?text=Aide-moi

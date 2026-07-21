@@ -74,7 +74,8 @@ Beaucoup d'utilisateurs d'Alia nous demandent :
 🤖 Pour connaître la procédure adaptée à votre situation, demandez à Alia.
 https://wa.me/972549675013?text=Aide-moi
 
-📢 Rejoignez la communauté Alia pour recevoir d'autres guides pratiques.
+📢 Rejoignez la communauté Alia pour recevoir d'autres guides pratiques :
+https://tinyurl.com/Alia-community
 
 Réponds uniquement avec le texte du guide, sans JSON, sans commentaire."""
 

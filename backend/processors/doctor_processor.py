@@ -47,7 +47,8 @@ Sur ces 6 derniers jours, [nombre entre 2 et 6] utilisateurs d'Alia ont recherch
 🤖 Pour trouver un médecin adapté à votre ville, spécialité ou caisse maladie, demandez à Alia.
 https://wa.me/972549675013?text=Aide-moi
 
-📢 Rejoignez la communauté Alia pour d'autres recommandations.
+📢 Rejoignez la communauté Alia pour d'autres recommandations :
+https://tinyurl.com/Alia-community
 
 Réponds uniquement avec le texte, sans JSON."""
 

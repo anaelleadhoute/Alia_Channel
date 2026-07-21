@@ -28,7 +28,7 @@ Voici les informations importantes de la journée:
 [3 à 5 news résumées, chacune sur une nouvelle ligne, avec un emoji pertinent au début]
 
 📢 Rejoignez la communauté Alia et recevez toutes ces infos chaque semaine :
-https://chat.whatsapp.com/Ft7WegFuF2W9RunEgh0iOA
+https://tinyurl.com/Alia-community
 
 Aucun astérisque, aucun markdown, aucun gras. Réponds uniquement avec le texte du message."""
 

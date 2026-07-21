@@ -28,7 +28,8 @@ Sur ces 7 derniers jours, [nombre entre 2 et 6] familles d'Alia ont demandé une
 🤖 Pour plus d'informations, demandez à Alia.
 https://wa.me/972549675013?text=Aide-moi
 
-📢 Rejoignez la communauté Alia pour d'autres idées sorties.
+📢 Rejoignez la communauté Alia pour d'autres idées sorties :
+https://tinyurl.com/Alia-community
 
 Réponds uniquement avec le texte, sans JSON."""
 

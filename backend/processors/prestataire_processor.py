@@ -32,7 +32,8 @@ Grâce à notre partenariat avec Midrag, Alia peut désormais vous orienter vers
 
 🤖 Décrivez simplement votre problème à Alia.
 
-📢 Rejoignez la communauté Alia pour découvrir d'autres services utiles aux olim.
+📢 Rejoignez la communauté Alia pour découvrir d'autres services utiles aux olim :
+https://tinyurl.com/Alia-community
 
 IMPORTANT : traduis en français le nom du service ({category}) et le titre professionnel hébreu dans le nom du prestataire (ex: רו"ח = expert-comptable, שרברב = plombier, חשמלאי = électricien, etc.). Écris le nom du prestataire en translittération latine si nécessaire.
 N'invente rien, base-toi uniquement sur les infos fournies. Pas de markdown, pas de titre."""
