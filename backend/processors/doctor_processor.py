@@ -137,11 +137,20 @@ async def generate_weekly_doctor(force: bool = False) -> dict:
 
         now = datetime.utcnow().isoformat()
         async with get_db() as db:
-            cursor = await db.execute(
-                "INSERT INTO weekly_doctor (week, doctor_id, content_fr, content_ru) VALUES (?,?,?,?)",
-                (week, doctor_fr["id"] if doctor_fr else None, content_fr, content_ru),
-            )
-            weekly_id = cursor.lastrowid
+            existing2 = await db.execute("SELECT id FROM weekly_doctor WHERE week = ?", (week,))
+            existing_row = await existing2.fetchone()
+            if existing_row:
+                await db.execute(
+                    "UPDATE weekly_doctor SET doctor_id=?, content_fr=?, content_ru=? WHERE week=?",
+                    (doctor_fr["id"] if doctor_fr else None, content_fr, content_ru, week),
+                )
+                weekly_id = existing_row["id"]
+            else:
+                cursor = await db.execute(
+                    "INSERT INTO weekly_doctor (week, doctor_id, content_fr, content_ru) VALUES (?,?,?,?)",
+                    (week, doctor_fr["id"] if doctor_fr else None, content_fr, content_ru),
+                )
+                weekly_id = cursor.lastrowid
             if doctor_fr:
                 await db.execute("UPDATE doctors SET last_featured = ? WHERE id = ?", (now, doctor_fr["id"]))
             if doctor_ru:
