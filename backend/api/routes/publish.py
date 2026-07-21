@@ -12,10 +12,17 @@ WHAPI_TOKEN = os.getenv("WHAPI_TOKEN")
 WHAPI_GROUP_FR = os.getenv("WHAPI_GROUP_FR")
 WHAPI_GROUP_RU = os.getenv("WHAPI_GROUP_RU")
 WHAPI_URL = "https://gate.whapi.cloud/messages/text"
+WHAPI_IMAGE_URL = "https://gate.whapi.cloud/messages/image"
+ALIA_AVATAR_URL = "https://alia-channel.com/alia_avatar.png"
 
 
 async def _send_whatsapp(group_id: str, text: str) -> dict:
     async with httpx.AsyncClient() as client:
+        await client.post(
+            f"{WHAPI_IMAGE_URL}?token={WHAPI_TOKEN}",
+            json={"to": group_id, "media": ALIA_AVATAR_URL},
+            timeout=30,
+        )
         resp = await client.post(
             f"{WHAPI_URL}?token={WHAPI_TOKEN}",
             json={"to": group_id, "body": text},
