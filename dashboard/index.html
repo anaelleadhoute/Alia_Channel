@@ -862,7 +862,7 @@ async function loadAutomation() {
           </tr>
         </thead>
         <tbody>
-          ${data.filter(s => s.location !== 'mac').map(s => {
+          ${data.filter(s => s.location !== 'mac' && !['generate_kol_zchut','generate_kids_events','generate_prestataire','generate_rights'].includes(s.job_key)).map(s => {
             const hourIL = s.hour_utc;
             const dayLabel = s.day_of_week === null ? 'Chaque jour' : DAYS_FR[s.day_of_week];
             const lastRun = s.last_run ? new Date(s.last_run).toLocaleString('fr-FR') : '—';

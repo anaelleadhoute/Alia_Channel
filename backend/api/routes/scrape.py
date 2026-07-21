@@ -106,7 +106,7 @@ class ManualTip(BaseModel):
 
 @router.post("/tips/manual")
 async def manual_tip(body: ManualTip):
-    """Store raw Kol Zchut content from Mac scraper (no generation)."""
+    """Store raw Kol Zchut content from Mac scraper and immediately generate FR+RU."""
     import json
     week = datetime.utcnow().strftime("%Y-W%U")
     async with get_db() as db:
@@ -114,7 +114,7 @@ async def manual_tip(body: ManualTip):
         row = await existing.fetchone()
         if row:
             await db.execute(
-                "UPDATE tips SET source_url = ?, raw_payload = ? WHERE week = ?",
+                "UPDATE tips SET source_url = ?, raw_payload = ?, ai_processed_at = NULL WHERE week = ?",
                 (body.url, json.dumps({"url": body.url, "content": body.content}), week),
             )
         else:
@@ -123,7 +123,17 @@ async def manual_tip(body: ManualTip):
                 (body.url, week, json.dumps({"url": body.url, "content": body.content})),
             )
         await db.commit()
-    return {"status": "stored", "week": week}
+
+    # Immediately generate FR+RU
+    async with get_db() as db:
+        cursor = await db.execute(
+            "SELECT id FROM tips WHERE week = ? AND ai_processed_at IS NULL", (week,)
+        )
+        tip_row = await cursor.fetchone()
+    if tip_row:
+        await process_tip(tip_row["id"], body.url, body.content)
+
+    return {"status": "generated", "week": week}
 
 
 @router.post("/tips/generate")
@@ -152,15 +162,16 @@ async def generate_tip(force: bool = False):
 
 @router.post("/rights/manual")
 async def manual_rights(body: ManualTip):
-    """Store raw Kol Zchut rights content from Mac scraper (no generation)."""
+    """Store raw Kol Zchut rights content from Mac scraper and immediately generate FR+RU."""
     import json
+    from processors.rights_processor import generate_weekly_rights
     week = datetime.utcnow().strftime("%Y-W%U")
     async with get_db() as db:
         existing = await db.execute("SELECT id FROM weekly_rights WHERE week = ?", (week,))
         row = await existing.fetchone()
         if row:
             await db.execute(
-                "UPDATE weekly_rights SET source_url=?, raw_payload=? WHERE week=?",
+                "UPDATE weekly_rights SET source_url=?, raw_payload=?, content_fr=NULL, content_ru=NULL WHERE week=?",
                 (body.url, json.dumps({"url": body.url, "content": body.content}), week),
             )
         else:
@@ -169,7 +180,9 @@ async def manual_rights(body: ManualTip):
                 (week, body.url, json.dumps({"url": body.url, "content": body.content})),
             )
         await db.commit()
-    return {"status": "stored", "week": week}
+
+    result = await generate_weekly_rights()
+    return {"status": "generated", "week": week, "result": result}
 
 
 @router.post("/rights/generate")
@@ -202,8 +215,9 @@ async def get_prestataire_last_index():
 
 @router.post("/prestataire/manual")
 async def scrape_prestataire_manual(body: PrestatairePayload):
-    """Store raw prestataire data from Mac scraper (no generation)."""
+    """Store raw prestataire data from Mac scraper and immediately generate FR+RU."""
     import json
+    from processors.prestataire_processor import generate_weekly_prestataire
     week = datetime.utcnow().strftime("%Y-W%U")
     async with get_db() as db:
         if body.force:
@@ -213,7 +227,9 @@ async def scrape_prestataire_manual(body: PrestatairePayload):
             (week, json.dumps(body.data, ensure_ascii=False), json.dumps(body.data, ensure_ascii=False)),
         )
         await db.commit()
-    return {"status": "stored", "week": week}
+
+    result = await generate_weekly_prestataire(force=body.force, data=body.data)
+    return {"status": "generated", "week": week, "result": result}
 
 
 @router.post("/prestataire/generate")
@@ -230,8 +246,9 @@ class EventsPayload(BaseModel):
 
 @router.post("/events-kids/manual")
 async def scrape_events_kids_manual(body: EventsPayload):
-    """Store raw kids events from Mac scraper (no generation)."""
+    """Store raw kids events from Mac scraper and immediately generate FR+RU."""
     import json
+    from processors.events_kids_processor import generate_weekly_kids_events
     week = datetime.utcnow().strftime("%Y-W%U")
     async with get_db() as db:
         await db.execute(
@@ -239,7 +256,9 @@ async def scrape_events_kids_manual(body: EventsPayload):
             (week, json.dumps(body.events, ensure_ascii=False)),
         )
         await db.commit()
-    return {"status": "stored", "week": week, "events_count": len(body.events)}
+
+    result = await generate_weekly_kids_events(force=body.force, raw_events=body.events)
+    return {"status": "generated", "week": week, "events_count": len(body.events), "result": result}
 
 
 @router.post("/events-kids/generate")
