@@ -286,6 +286,7 @@ async def init_db():
                 ('send_deal',        '⚡ Envoyer Deal',          null, 10, 0, 1, 'server')""",
             "DELETE FROM schedules WHERE job_key = 'send_all_pending'",
             "DELETE FROM schedules WHERE job_key = 'send_digest'",
+            "DELETE FROM schedules WHERE job_key = 'send_faq'",
         ]:
             try:
                 await db.execute(migration)

@@ -9,8 +9,13 @@ router = APIRouter()
 
 @router.post("/generate")
 async def generate_faq(force: bool = False):
-    """Generate this week's FAQ in FR + RU."""
-    return await generate_weekly_faq(force=force)
+    """Generate this week's FAQ in FR + RU and send immediately."""
+    from api.routes.scrape import _auto_publish_item
+    result = await generate_weekly_faq(force=force)
+    if result.get("status") == "ok" and result.get("faq_id"):
+        await _auto_publish_item("faqs", "id", result["faq_id"])
+        result["auto_published"] = True
+    return result
 
 
 @router.post("/generate/force")
