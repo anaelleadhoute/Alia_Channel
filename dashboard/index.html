@@ -362,24 +362,7 @@ async function init() {
 }
 
 // ── Settings ────────────────────────────────────────────────────────────────
-async function loadSettings() {
-  const res = await fetch(`${API}/api/settings`);
-  const data = await res.json();
-  const auto = data.auto_publish === 'true';
-  document.getElementById('autoToggle').checked = auto;
-  document.getElementById('modeLabel').textContent = auto ? 'ON' : 'OFF';
-}
-
-async function toggleAutoPublish() {
-  const checked = document.getElementById('autoToggle').checked;
-  document.getElementById('modeLabel').textContent = checked ? 'ON' : 'OFF';
-  await fetch(`${API}/api/settings/auto_publish`, {
-    method: 'PATCH',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({value: checked ? 'true' : 'false'})
-  });
-  toast(checked ? '✅ Auto-publish enabled' : '⏸ Manual mode — content goes to queue');
-}
+async function loadSettings() {}
 
 // ── Tabs ────────────────────────────────────────────────────────────────────
 function switchTab(name) {
