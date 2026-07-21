@@ -173,7 +173,7 @@
 
 <div class="tabs">
   <button class="tab active" onclick="switchTab('queue')">Queue <span class="badge" id="queueBadge">0</span></button>
-  <button class="tab" onclick="switchTab('digests')">Digests</button>
+  <button class="tab" onclick="switchTab('digests')">News</button>
   <button class="tab" onclick="switchTab('faqs')">FAQs</button>
   <button class="tab" onclick="switchTab('tips')">📄 Guide</button>
   <button class="tab" onclick="switchTab('deals')">Deals</button>
@@ -213,7 +213,7 @@
       <button class="btn btn-primary" onclick="generateDigest()">📰 Générer Digest</button>
       <button class="btn btn-primary" onclick="generateDigestForce()">🔄 Regénérer Digest</button>
     </div>
-    <div class="queue-header"><h2>Daily Digests</h2></div>
+    <div class="queue-header"><h2>News</h2></div>
     <div class="cards" id="digestCards"><div class="loading">Loading…</div></div>
   </div>
 
@@ -430,7 +430,7 @@ async function loadDigests() {
   const data = await fetch(`${API}/api/digests`).then(r => r.json());
   document.getElementById('digestCards').innerHTML = data.length
     ? data.map(d => renderCard({...d, _type: 'digest'})).join('')
-    : '<div class="empty"><div class="icon">📰</div>No digests yet</div>';
+    : '<div class="empty"><div class="icon">📰</div>Pas encore de news</div>';
 }
 
 async function loadFaqs() {
@@ -466,7 +466,7 @@ function renderCard(item) {
   const ru = item.content_ru || item.cta_ru || '';
 
   let meta = '';
-  if (type === 'digest') meta = `<span class="source">📰 Digest</span><span class="category">${item.digest_date || ''}</span><span class="category">${item.article_count} articles</span>`;
+  if (type === 'digest') meta = `<span class="source">📰 News</span><span class="category">${item.digest_date || ''}</span><span class="category">${item.article_count} articles</span>`;
   if (type === 'faq') meta = `<span class="source">❓ FAQ</span><span class="category">${item.week || ''}</span>`;
   if (type === 'tip') meta = `<span class="source">📄 Guide Alia</span><span class="category">${item.week || ''}</span>`;
   if (type === 'contest') meta = `<span class="source">🎁 ${item.title || 'Concours'}</span>`;
@@ -745,11 +745,11 @@ async function runScrape() {
 async function generateDigest() {
   const btn = event.target;
   await withLoading(btn, async () => {
-    toast('📰 Generating digest…');
+    toast('📰 Génération news…');
     const res = await fetch(`${API}/api/digests/generate`, {method: 'POST'});
     const data = await res.json();
-    if (data.status === 'ok') toast(`✅ Digest ready (${data.articles_used} articles)`);
-    else if (data.status === 'skipped') toast('ℹ️ Digest already exists for today');
+    if (data.status === 'ok') toast(`✅ News prête (${data.articles_used} articles)`);
+    else if (data.status === 'skipped') toast('ℹ️ News déjà générée for today');
     else toast('❌ Failed', true);
     await loadQueue(); loadDigests();
   });
@@ -758,10 +758,10 @@ async function generateDigest() {
 async function generateDigestForce() {
   const btn = event.target;
   await withLoading(btn, async () => {
-    toast('🔄 Regénération digest…');
+    toast('🔄 Regénération news…');
     const res = await fetch(`${API}/api/digests/generate/force`, {method: 'POST'});
     const data = await res.json();
-    if (data.status === 'ok') toast(`✅ Digest regénéré (${data.articles_used} articles)`);
+    if (data.status === 'ok') toast(`✅ News regénérée (${data.articles_used} articles)`);
     else toast('❌ Failed', true);
     await loadQueue(); loadDigests();
   });
