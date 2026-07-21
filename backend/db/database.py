@@ -277,7 +277,6 @@ async def init_db():
                 ('generate_rights',      '💰 Generate Droits',      4, 11, 0, 1, 'server')""",
             # Send jobs — separate from generate, configurable per category
             """INSERT OR IGNORE INTO schedules (job_key, label, day_of_week, hour_utc, minute_utc, enabled, location) VALUES
-                ('send_digest',      '📰 Envoyer News',          null, 10, 0, 1, 'server'),
                 ('send_tip',         '📄 Envoyer Guide',         3,    11, 0, 1, 'server'),
                 ('send_faq',         '❓ Envoyer FAQ',           2,    11, 0, 1, 'server'),
                 ('send_rights',      '💰 Envoyer Droits',        4,    12, 0, 1, 'server'),
@@ -286,6 +285,7 @@ async def init_db():
                 ('send_prestataire', '🏅 Envoyer Prestataire',   4,    10, 0, 1, 'server'),
                 ('send_deal',        '⚡ Envoyer Deal',          null, 10, 0, 1, 'server')""",
             "DELETE FROM schedules WHERE job_key = 'send_all_pending'",
+            "DELETE FROM schedules WHERE job_key = 'send_digest'",
         ]:
             try:
                 await db.execute(migration)

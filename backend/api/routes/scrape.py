@@ -62,12 +62,28 @@ async def _auto_publish_item(table: str, id_col: str, item_id: int, audience: st
 
 @router.post("/news")
 async def scrape_news():
-    """Fetch all RSS sources and process new articles with AI. Auto-publishes digest if enabled."""
+    """Fetch all RSS sources, generate digest and send immediately."""
     scrape_result = await run_scraper()
     ai_result = await process_pending_articles()
-
     digest_result = await generate_daily_digest()
-    return {"scrape": scrape_result, "ai": ai_result, "digest": digest_result}
+
+    digest_id = digest_result.get("digest_id")
+    if not digest_id and digest_result.get("status") == "skipped":
+        from datetime import date
+        today = date.today().strftime("%Y-%m-%d")
+        async with get_db() as db:
+            cursor = await db.execute(
+                "SELECT id FROM digests WHERE digest_date = ? AND sent_wa_fr = 0 AND sent_wa_ru = 0",
+                (today,)
+            )
+            pending = await cursor.fetchone()
+            if pending:
+                digest_id = pending["id"]
+
+    if digest_id:
+        await _auto_publish_item("digests", "id", digest_id)
+
+    return {"scrape": scrape_result, "ai": ai_result, "digest": digest_result, "auto_published": bool(digest_id)}
 
 
 @router.post("/telegram-deals")
