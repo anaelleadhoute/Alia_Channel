@@ -18,14 +18,9 @@ ALIA_AVATAR_URL = "https://alia-channel.com/alia_avatar.png"
 
 async def _send_whatsapp(group_id: str, text: str) -> dict:
     async with httpx.AsyncClient() as client:
-        await client.post(
-            f"{WHAPI_IMAGE_URL}?token={WHAPI_TOKEN}",
-            json={"to": group_id, "media": ALIA_AVATAR_URL},
-            timeout=30,
-        )
         resp = await client.post(
-            f"{WHAPI_URL}?token={WHAPI_TOKEN}",
-            json={"to": group_id, "body": text},
+            f"{WHAPI_IMAGE_URL}?token={WHAPI_TOKEN}",
+            json={"to": group_id, "media": ALIA_AVATAR_URL, "caption": text},
             timeout=30,
         )
         resp.raise_for_status()
