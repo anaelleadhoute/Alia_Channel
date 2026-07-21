@@ -163,6 +163,9 @@ async def generate_tip():
         row = await cursor.fetchone()
     if not row:
         return {"status": "skipped", "reason": "no stored tip for this week or already generated"}
+    async with get_db() as db:
+        await db.execute("UPDATE tips SET sent_wa_fr=0, sent_wa_ru=0 WHERE id=?", (row["id"],))
+        await db.commit()
 
     payload = json.loads(row["raw_payload"] or "{}")
     result = await process_tip(row["id"], payload.get("url", row["source_url"]), payload.get("content", ""))
