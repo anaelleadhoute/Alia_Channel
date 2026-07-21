@@ -786,7 +786,6 @@ async function loadAutomation() {
             <th style="padding:14px 16px;text-align:center;color:#666;font-weight:600;">Heure (IL)</th>
             <th style="padding:14px 16px;text-align:center;color:#666;font-weight:600;">Serveur</th>
             <th style="padding:14px 16px;text-align:center;color:#666;font-weight:600;">Dernière exéc.</th>
-            <th style="padding:14px 16px;text-align:center;color:#666;font-weight:600;">Actif</th>
             <th style="padding:14px 16px;text-align:center;color:#666;font-weight:600;">Auto-pub</th>
           </tr>
         </thead>
@@ -822,12 +821,6 @@ async function loadAutomation() {
               </td>
               <td style="padding:14px 16px;text-align:center;">${locBadge}</td>
               <td style="padding:14px 16px;text-align:center;color:#999;font-size:13px;">${lastRun}</td>
-              <td style="padding:14px 16px;text-align:center;">
-                <label class="toggle-switch" style="margin:0 auto;">
-                  <input type="checkbox" ${s.enabled ? 'checked' : ''} onchange="updateSchedule('${s.job_key}','enabled',this.checked?1:0)">
-                  <span class="slider"></span>
-                </label>
-              </td>
               <td style="padding:14px 16px;text-align:center;">${(() => {
                 const cat = JOB_CATEGORY[s.job_key];
                 if (!cat) return '<span style="color:#ccc;font-size:12px;">—</span>';
