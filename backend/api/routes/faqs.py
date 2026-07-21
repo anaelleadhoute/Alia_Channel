@@ -13,7 +13,7 @@ async def generate_faq(force: bool = False):
     from api.routes.scrape import _is_auto_publish, _auto_publish_item
     result = await generate_weekly_faq(force=force)
     if result.get("status") == "ok" and result.get("faq_id"):
-        auto = await _is_auto_publish()
+        auto = await _is_auto_publish("faq")
         if auto:
             await _auto_publish_item("faqs", "id", result["faq_id"])
             result["auto_published"] = True

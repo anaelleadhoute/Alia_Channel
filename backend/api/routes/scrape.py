@@ -14,8 +14,15 @@ from datetime import datetime
 router = APIRouter()
 
 
-async def _is_auto_publish() -> bool:
+async def _is_auto_publish(category: str = "") -> bool:
     async with get_db() as db:
+        if category:
+            cursor = await db.execute(
+                "SELECT value FROM settings WHERE key = ?", (f"auto_publish_{category}",)
+            )
+            row = await cursor.fetchone()
+            if row:
+                return row["value"] == "true"
         cursor = await db.execute("SELECT value FROM settings WHERE key = 'auto_publish'")
         row = await cursor.fetchone()
     return row and row["value"] == "true"
@@ -59,7 +66,7 @@ async def scrape_news():
     scrape_result = await run_scraper()
     ai_result = await process_pending_articles()
 
-    auto = await _is_auto_publish()
+    auto = await _is_auto_publish("digest")
     digest_result = None
     if auto:
         digest_result = await generate_daily_digest()
@@ -90,7 +97,7 @@ async def scrape_telegram_deals():
     scrape_result = await run_telegram_scraper()
     ai_result = await process_pending_deals()
 
-    auto = await _is_auto_publish()
+    auto = await _is_auto_publish("deal")
     best_id = None
     if ai_result.get("deal_ids"):
         best_id = await pick_best_deal(ai_result["deal_ids"])
@@ -160,7 +167,7 @@ async def generate_tip():
     payload = json.loads(row["raw_payload"] or "{}")
     result = await process_tip(row["id"], payload.get("url", row["source_url"]), payload.get("content", ""))
 
-    auto = await _is_auto_publish()
+    auto = await _is_auto_publish("tip")
     if auto and result:
         await _auto_publish_item("tips", "id", row["id"])
 
@@ -194,7 +201,7 @@ async def generate_rights():
     """Generate FR+RU rights content from stored raw payload and auto-publish."""
     from processors.rights_processor import generate_weekly_rights
     result = await generate_weekly_rights()
-    auto = await _is_auto_publish()
+    auto = await _is_auto_publish("rights")
     if auto and result.get("weekly_rights_id") and result.get("status") == "generated":
         try:
             await _auto_publish_item("weekly_rights", "id", result["weekly_rights_id"])
@@ -246,7 +253,7 @@ async def generate_prestataire():
     """Generate FR+RU content from stored raw payload and auto-publish."""
     from processors.prestataire_processor import generate_weekly_prestataire
     result = await generate_weekly_prestataire()
-    auto = await _is_auto_publish()
+    auto = await _is_auto_publish("prestataire")
     if auto and result.get("prestataire_id") and result.get("status") == "generated":
         try:
             await _auto_publish_item("weekly_prestataire", "id", result["prestataire_id"])
@@ -281,7 +288,7 @@ async def generate_events_kids():
     """Generate FR+RU kids events content from stored raw payload and auto-publish."""
     from processors.events_kids_processor import generate_weekly_kids_events
     result = await generate_weekly_kids_events()
-    auto = await _is_auto_publish()
+    auto = await _is_auto_publish("kids")
     if auto and result.get("weekly_event_kids_id") and result.get("status") == "generated":
         try:
             await _auto_publish_item("weekly_events_kids", "id", result["weekly_event_kids_id"])

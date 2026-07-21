@@ -65,7 +65,7 @@ async def generate_doctor():
 
     result = await generate_weekly_doctor()
     if result.get("status") == "generated" and result.get("weekly_doctor_id"):
-        auto = await _is_auto_publish()
+        auto = await _is_auto_publish("doctor")
         if auto:
             await _auto_publish_item("weekly_doctor", "id", result["weekly_doctor_id"])
             result["auto_published"] = True

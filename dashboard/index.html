@@ -755,8 +755,26 @@ async function generateFaqForce() {
 
 const DAYS_FR = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
 
+const JOB_CATEGORY = {
+  news_digest: 'digest', faq: 'faq', generate_kol_zchut: 'tip',
+  generate_rights: 'rights', generate_doctor: 'doctor',
+  generate_kids_events: 'kids', generate_prestataire: 'prestataire',
+  telegram_deals: 'deal',
+};
+
+async function toggleAutoPublishCategory(category, checked) {
+  await fetch(`${API}/api/settings/auto_publish_${category}`, {
+    method: 'PATCH',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({value: checked ? 'true' : 'false'}),
+  });
+}
+
 async function loadAutomation() {
-  const data = await fetch(`${API}/api/schedules`).then(r => r.json());
+  const [data, settings] = await Promise.all([
+    fetch(`${API}/api/schedules`).then(r => r.json()),
+    fetch(`${API}/api/settings`).then(r => r.json()),
+  ]);
   document.getElementById('automationCards').innerHTML = `
     <div style="background:white;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.06);overflow:hidden;">
       <table style="width:100%;border-collapse:collapse;font-size:14px;">
@@ -768,6 +786,7 @@ async function loadAutomation() {
             <th style="padding:14px 16px;text-align:center;color:#666;font-weight:600;">Serveur</th>
             <th style="padding:14px 16px;text-align:center;color:#666;font-weight:600;">Dernière exéc.</th>
             <th style="padding:14px 16px;text-align:center;color:#666;font-weight:600;">Actif</th>
+            <th style="padding:14px 16px;text-align:center;color:#666;font-weight:600;">Auto-pub</th>
           </tr>
         </thead>
         <tbody>
@@ -808,6 +827,15 @@ async function loadAutomation() {
                   <span class="slider"></span>
                 </label>
               </td>
+              <td style="padding:14px 16px;text-align:center;">${(() => {
+                const cat = JOB_CATEGORY[s.job_key];
+                if (!cat) return '<span style="color:#ccc;font-size:12px;">—</span>';
+                const isOn = settings['auto_publish_' + cat] === 'true';
+                return `<label class="toggle-switch" style="margin:0 auto;">
+                  <input type="checkbox" ${isOn ? 'checked' : ''} onchange="toggleAutoPublishCategory('${cat}',this.checked)">
+                  <span class="slider"></span>
+                </label>`;
+              })()}</td>
             </tr>`}).join('')}
         </tbody>
       </table>
