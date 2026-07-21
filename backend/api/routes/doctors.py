@@ -61,12 +61,4 @@ async def list_doctors(language: Optional[str] = None, limit: int = 50):
 async def generate_doctor(force: bool = False):
     """Pick a doctor not recently featured and generate FR+RU message."""
     from processors.doctor_processor import generate_weekly_doctor
-    from api.routes.scrape import _is_auto_publish, _auto_publish_item
-
-    result = await generate_weekly_doctor(force=force)
-    if result.get("status") == "generated" and result.get("weekly_doctor_id"):
-        auto = await _is_auto_publish("doctor")
-        if auto:
-            await _auto_publish_item("weekly_doctor", "id", result["weekly_doctor_id"])
-            result["auto_published"] = True
-    return result
+    return await generate_weekly_doctor(force=force)

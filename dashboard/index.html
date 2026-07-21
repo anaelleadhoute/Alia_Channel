@@ -172,7 +172,7 @@
 </div>
 
 <div class="tabs">
-  <button class="tab active" onclick="switchTab('queue')">Queue <span class="badge" id="queueBadge">0</span></button>
+  <button class="tab active" onclick="switchTab('queue')">History <span class="badge" id="queueBadge">0</span></button>
   <button class="tab" onclick="switchTab('digests')">News</button>
   <button class="tab" onclick="switchTab('faqs')">FAQs</button>
   <button class="tab" onclick="switchTab('tips')">📄 Guide</button>
@@ -189,18 +189,19 @@
 
 <div class="content">
 
-  <!-- QUEUE -->
+  <!-- HISTORY -->
   <div class="section active" id="section-queue">
     <div class="actions-bar">
       <span>Actions:</span>
       <button class="btn btn-primary" onclick="runScrape()">🔄 Scrape News</button>
     </div>
     <div class="queue-header">
-      <h2>Pending Queue</h2>
+      <h2>History</h2>
       <div class="filter-bar">
-        <button class="filter-btn active" onclick="setQueueFilter('pending', this)">Pending</button>
-        <button class="filter-btn" onclick="setQueueFilter('sent', this)">Sent</button>
-        <button class="filter-btn" onclick="setQueueFilter('rejected', this)">Rejected</button>
+        <button class="filter-btn active" onclick="setQueueFilter('ready', this)">✍️ Prêt à envoyer</button>
+        <button class="filter-btn" onclick="setQueueFilter('waiting', this)">🕐 En attente</button>
+        <button class="filter-btn" onclick="setQueueFilter('sent', this)">✅ Envoyé</button>
+        <button class="filter-btn" onclick="setQueueFilter('rejected', this)">✕ Rejeté</button>
       </div>
     </div>
     <div class="cards" id="queueCards"><div class="loading">Loading…</div></div>
@@ -350,7 +351,7 @@
 
 <script>
 const API = '';
-let queueFilter = 'pending';
+let queueFilter = 'ready';
 
 // ── Init ────────────────────────────────────────────────────────────────────
 async function init() {
@@ -382,26 +383,30 @@ function switchTab(name) {
 
 // ── Queue (all pending content) ──────────────────────────────────────────────
 async function loadQueue() {
-  const [digests, faqs, tips, dealAlerts, eventsKids, prestataire] = await Promise.all([
+  const [digests, faqs, tips, dealAlerts, eventsKids, prestataire, rights, doctors] = await Promise.all([
     fetch(`${API}/api/digests`).then(r => r.json()),
     fetch(`${API}/api/faqs`).then(r => r.json()),
-    fetch(`${API}/api/tips?status=${queueFilter}`).then(r => r.json()),
+    fetch(`${API}/api/tips`).then(r => r.json()),
     fetch(`${API}/api/deals`).then(r => r.json()),
     fetch(`${API}/api/weekly-events/kids`).then(r => r.json()),
     fetch(`${API}/api/weekly-events/prestataire`).then(r => r.json()),
+    fetch(`${API}/api/weekly-events/rights`).then(r => r.json()).catch(() => []),
+    fetch(`${API}/api/weekly-events/doctors`).then(r => r.json()).catch(() => []),
   ]);
 
   const allItems = [
-    ...digests.filter(d => matchesFilter(d)).map(d => ({...d, _type: 'digest'})),
-    ...faqs.filter(f => matchesFilter(f)).map(f => ({...f, _type: 'faq'})),
+    ...digests.map(d => ({...d, _type: 'digest'})),
+    ...faqs.map(f => ({...f, _type: 'faq'})),
     ...tips.map(t => ({...t, _type: 'tip'})),
-    ...dealAlerts.filter(d => matchesFilter(d)).map(d => ({...d, _type: 'deal'})),
-    ...eventsKids.filter(e => matchesFilter(e)).map(e => ({...e, _type: 'weekly_event_kids'})),
-    ...prestataire.filter(e => matchesFilter(e)).map(e => ({...e, _type: 'prestataire'})),
-  ];
+    ...dealAlerts.map(d => ({...d, _type: 'deal'})),
+    ...eventsKids.map(e => ({...e, _type: 'weekly_event_kids'})),
+    ...prestataire.map(e => ({...e, _type: 'prestataire'})),
+    ...rights.map(e => ({...e, _type: 'weekly_rights'})),
+    ...doctors.map(e => ({...e, _type: 'weekly_doctor'})),
+  ].filter(i => matchesFilter(i));
 
-  const pending = allItems.filter(i => i.status === 'pending' || (!i.status && !i.sent_wa_fr && !i.sent_wa_ru));
-  document.getElementById('queueBadge').textContent = pending.length;
+  const ready = allItems.filter(i => isReady(i));
+  document.getElementById('queueBadge').textContent = ready.length;
 
   const container = document.getElementById('queueCards');
   if (!allItems.length) {
@@ -411,9 +416,20 @@ async function loadQueue() {
   container.innerHTML = allItems.map(item => renderCard(item)).join('');
 }
 
+function isReady(item) {
+  return item.content_fr && !item.sent_wa_fr && !item.sent_wa_ru && item.status !== 'rejected';
+}
+function isWaiting(item) {
+  return !item.content_fr && item.status !== 'rejected';
+}
+function isSent(item) {
+  return item.sent_wa_fr || item.sent_wa_ru;
+}
+
 function matchesFilter(item) {
-  if (queueFilter === 'pending') return item.status === 'pending' || (!item.status);
-  if (queueFilter === 'sent') return item.sent_wa_fr || item.sent_wa_ru;
+  if (queueFilter === 'ready')    return isReady(item);
+  if (queueFilter === 'waiting')  return isWaiting(item);
+  if (queueFilter === 'sent')     return isSent(item);
   if (queueFilter === 'rejected') return item.status === 'rejected';
   return true;
 }
@@ -441,7 +457,7 @@ async function loadFaqs() {
 }
 
 async function loadTips() {
-  const data = await fetch(`${API}/api/tips?status=pending`).then(r => r.json());
+  const data = await fetch(`${API}/api/tips`).then(r => r.json());
   document.getElementById('tipCards').innerHTML = data.length
     ? data.map(t => renderCard({...t, _type: 'tip'})).join('')
     : '<div class="empty"><div class="icon">💡</div>No tips yet</div>';
@@ -464,6 +480,7 @@ function renderCard(item) {
 
   const fr = item.content_fr || item.cta_fr || '';
   const ru = item.content_ru || item.cta_ru || '';
+  const isRawTip = type === 'tip' && !fr;
 
   let meta = '';
   if (type === 'digest') meta = `<span class="source">📰 News</span><span class="category">${item.digest_date || ''}</span><span class="category">${item.article_count} articles</span>`;
@@ -491,10 +508,18 @@ function renderCard(item) {
     ? `<span class="sent-tag">✓ FR${item.sent_wa_fr ? '' : ' pending'}</span><span class="sent-tag">✓ RU${item.sent_wa_ru ? '' : ' pending'}</span>`
     : '';
 
+  const stateBadge = isRawTip
+    ? `<span style="background:#fff3e0;color:#e65100;padding:2px 8px;border-radius:10px;font-size:12px;">🕐 En attente de génération</span>`
+    : isSent
+      ? `<span style="background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:10px;font-size:12px;">✅ Envoyé</span>`
+      : fr
+        ? `<span style="background:#e3f2fd;color:#1565c0;padding:2px 8px;border-radius:10px;font-size:12px;">✍️ Prêt à envoyer</span>`
+        : '';
+
   const date = item.generated_at || item.scraped_at || item.digest_date || '';
 
   const deleteBtn = type === 'contest' ? `<button class="btn btn-reject" onclick="deleteContest(${id})">🗑 Supprimer</button>` : '';
-  const publishButtons = !isSent && !isRejected ? `
+  const publishButtons = isRawTip ? '' : !isSent && !isRejected ? `
     <button class="btn btn-fr" onclick="publish('${type}', ${id}, 'fr')" ${item.sent_wa_fr ? 'disabled' : ''}>🇫🇷 FR</button>
     <button class="btn btn-ru" onclick="publish('${type}', ${id}, 'ru')" ${item.sent_wa_ru ? 'disabled' : ''}>🇷🇺 RU</button>
     <button class="btn btn-both" onclick="publish('${type}', ${id}, 'both')">Send Both</button>
@@ -502,22 +527,28 @@ function renderCard(item) {
     ${deleteBtn}
   ` : sentInfo + (type === 'contest' ? ` ${deleteBtn}` : '');
 
+  const bodyHtml = isRawTip ? `
+    <div class="lang-block" style="grid-column:1/-1">
+      <div class="lang-label">📄 Source Kol Zchut — Semaine ${item.week || ''}</div>
+      <div class="lang-text"><a href="${escHtml(item.source_url || '')}" target="_blank" style="color:#1565c0">${escHtml(item.source_url || '')}</a><br><br>Génération AI prévue selon le planning Automation.</div>
+    </div>` : `
+    <div class="lang-block">
+      <div class="lang-label">🇫🇷 Français</div>
+      <div class="lang-text">${escHtml(fr) || '<em style="color:#bbb">No content</em>'}</div>
+    </div>
+    <div class="lang-block">
+      <div class="lang-label">🇷🇺 Русский</div>
+      <div class="lang-text">${escHtml(ru) || '<em style="color:#bbb">No content</em>'}</div>
+    </div>`;
+
   return `
     <div class="card ${cardClass}" id="card-${type}-${id}">
       <div class="card-meta">
         ${meta}
+        ${stateBadge}
         <span class="date">${date ? new Date(date).toLocaleDateString('fr-FR') : ''}</span>
       </div>
-      <div class="card-body">
-        <div class="lang-block">
-          <div class="lang-label">🇫🇷 Français</div>
-          <div class="lang-text">${escHtml(fr) || '<em style="color:#bbb">No content</em>'}</div>
-        </div>
-        <div class="lang-block">
-          <div class="lang-label">🇷🇺 Русский</div>
-          <div class="lang-text">${escHtml(ru) || '<em style="color:#bbb">No content</em>'}</div>
-        </div>
-      </div>
+      <div class="card-body">${bodyHtml}</div>
       <div class="card-actions">${publishButtons}</div>
     </div>`;
 }
@@ -798,7 +829,7 @@ const JOB_CATEGORY = {
   news_digest: 'digest', faq: 'faq', generate_kol_zchut: 'tip',
   generate_rights: 'rights', generate_doctor: 'doctor',
   generate_kids_events: 'kids', generate_prestataire: 'prestataire',
-  telegram_deals: 'deal',
+  telegram_deals: 'deal', send_all_pending: null,
 };
 
 async function toggleAutoPublishCategory(category, checked) {

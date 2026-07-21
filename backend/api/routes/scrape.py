@@ -66,29 +66,8 @@ async def scrape_news():
     scrape_result = await run_scraper()
     ai_result = await process_pending_articles()
 
-    auto = await _is_auto_publish("digest")
-    digest_result = None
-    if auto:
-        digest_result = await generate_daily_digest()
-        digest_id = digest_result.get("digest_id")
-
-        # If digest already existed (skipped), check for unsent pending digest today
-        if not digest_id and digest_result.get("status") == "skipped":
-            from datetime import date
-            today = date.today().strftime("%Y-%m-%d")
-            async with get_db() as db:
-                cursor = await db.execute(
-                    "SELECT id FROM digests WHERE digest_date = ? AND sent_wa_fr = 0 AND sent_wa_ru = 0",
-                    (today,)
-                )
-                pending = await cursor.fetchone()
-                if pending:
-                    digest_id = pending["id"]
-
-        if digest_id:
-            await _auto_publish_item("digests", "id", digest_id)
-
-    return {"scrape": scrape_result, "ai": ai_result, "digest": digest_result, "auto_published": auto}
+    digest_result = await generate_daily_digest()
+    return {"scrape": scrape_result, "ai": ai_result, "digest": digest_result}
 
 
 @router.post("/telegram-deals")
@@ -97,14 +76,11 @@ async def scrape_telegram_deals():
     scrape_result = await run_telegram_scraper()
     ai_result = await process_pending_deals()
 
-    auto = await _is_auto_publish("deal")
     best_id = None
     if ai_result.get("deal_ids"):
         best_id = await pick_best_deal(ai_result["deal_ids"])
-        if auto and best_id:
-            await _auto_publish_item("deals", "id", best_id)
 
-    return {"scrape": scrape_result, "ai": ai_result, "best_deal_id": best_id, "auto_published": best_id}
+    return {"scrape": scrape_result, "ai": ai_result, "best_deal_id": best_id}
 
 
 @router.post("/tips")
@@ -171,12 +147,7 @@ async def generate_tip(force: bool = False):
 
     payload = json.loads(row["raw_payload"] or "{}")
     result = await process_tip(row["id"], payload.get("url", row["source_url"]), payload.get("content", ""))
-
-    auto = await _is_auto_publish("tip")
-    if auto and result:
-        await _auto_publish_item("tips", "id", row["id"])
-
-    return {"status": "ok" if result else "error", "tip_id": row["id"], "week": week, "auto_published": auto}
+    return {"status": "ok" if result else "error", "tip_id": row["id"], "week": week}
 
 
 @router.post("/rights/manual")
@@ -205,15 +176,7 @@ async def manual_rights(body: ManualTip):
 async def generate_rights(force: bool = False):
     """Generate FR+RU rights content from stored raw payload and auto-publish."""
     from processors.rights_processor import generate_weekly_rights
-    result = await generate_weekly_rights(force=force)
-    auto = await _is_auto_publish("rights")
-    if auto and result.get("weekly_rights_id") and result.get("status") == "generated":
-        try:
-            await _auto_publish_item("weekly_rights", "id", result["weekly_rights_id"])
-            result["auto_published"] = True
-        except Exception as e:
-            result["auto_publish_error"] = str(e)
-    return result
+    return await generate_weekly_rights(force=force)
 
 
 
@@ -257,16 +220,7 @@ async def scrape_prestataire_manual(body: PrestatairePayload):
 async def generate_prestataire(force: bool = False):
     """Generate FR+RU content from stored raw payload and auto-publish."""
     from processors.prestataire_processor import generate_weekly_prestataire
-    result = await generate_weekly_prestataire(force=force)
-    auto = await _is_auto_publish("prestataire")
-    if auto and result.get("prestataire_id") and result.get("status") == "generated":
-        try:
-            await _auto_publish_item("weekly_prestataire", "id", result["prestataire_id"])
-            result["auto_published"] = True
-        except Exception as e:
-            result["auto_published"] = False
-            result["auto_publish_error"] = str(e)
-    return result
+    return await generate_weekly_prestataire(force=force)
 
 
 class EventsPayload(BaseModel):
@@ -292,16 +246,7 @@ async def scrape_events_kids_manual(body: EventsPayload):
 async def generate_events_kids(force: bool = False):
     """Generate FR+RU kids events content from stored raw payload and auto-publish."""
     from processors.events_kids_processor import generate_weekly_kids_events
-    result = await generate_weekly_kids_events(force=force)
-    auto = await _is_auto_publish("kids")
-    if auto and result.get("weekly_event_kids_id") and result.get("status") == "generated":
-        try:
-            await _auto_publish_item("weekly_events_kids", "id", result["weekly_event_kids_id"])
-            result["auto_published"] = True
-        except Exception as e:
-            result["auto_published"] = False
-            result["auto_publish_error"] = str(e)
-    return result
+    return await generate_weekly_kids_events(force=force)
 
 
 @router.post("/cleanup")

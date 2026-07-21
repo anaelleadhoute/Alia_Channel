@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Literal
 from db.database import get_db
-from datetime import datetime
+from datetime import datetime, date
 
 router = APIRouter()
 
@@ -359,3 +359,50 @@ async def publish_deal(deal_id: int):
             await db.commit()
 
     return {"ok": True, "deal_id": deal_id, "sent": results}
+
+
+@router.post("/send-all-pending")
+async def send_all_pending():
+    """Send all generated-but-not-sent items, respecting per-category auto-pub settings."""
+    from api.routes.scrape import _is_auto_publish, _auto_publish_item
+
+    week = datetime.utcnow().strftime("%Y-W%U")
+    today = date.today().strftime("%Y-%m-%d")
+
+    CATEGORIES = [
+        ("digest",      "digests",              "id", "digest_date", today),
+        ("faq",         "faqs",                 "id", "week",        week),
+        ("tip",         "tips",                 "id", "week",        week),
+        ("rights",      "weekly_rights",        "id", "week",        week),
+        ("doctor",      "weekly_doctor",        "id", "week",        week),
+        ("kids",        "weekly_events_kids",   "id", "week",        week),
+        ("prestataire", "weekly_prestataire",   "id", "week",        week),
+        ("deal",        "deals",                "id", None,          None),
+    ]
+
+    results = {}
+    for category, table, id_col, date_col, date_val in CATEGORIES:
+        auto = await _is_auto_publish(category)
+        if not auto:
+            results[category] = "skipped"
+            continue
+
+        async with get_db() as db:
+            if date_col and date_val:
+                cursor = await db.execute(
+                    f"SELECT id FROM {table} WHERE {date_col} = ? AND content_fr IS NOT NULL AND sent_wa_fr = 0 AND sent_wa_ru = 0",
+                    (date_val,)
+                )
+            else:
+                cursor = await db.execute(
+                    f"SELECT id FROM {table} WHERE content_fr IS NOT NULL AND sent_wa_fr = 0 AND sent_wa_ru = 0 ORDER BY id DESC LIMIT 1"
+                )
+            rows = await cursor.fetchall()
+
+        sent = 0
+        for row in rows:
+            await _auto_publish_item(table, id_col, row["id"])
+            sent += 1
+        results[category] = f"sent {sent}"
+
+    return {"status": "ok", "results": results}

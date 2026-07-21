@@ -274,7 +274,8 @@ async def init_db():
                 ('generate_kol_zchut',   '📄 Generate Guide',       3, 9,  0, 1, 'server'),
                 ('generate_doctor',      '🏥 Generate Médecin',     5, 10, 0, 1, 'server'),
                 ('scrape_rights',        '💰 Scrape Droits',        2, 9,  0, 1, 'mac'),
-                ('generate_rights',      '💰 Generate Droits',      4, 11, 0, 1, 'server')""",
+                ('generate_rights',      '💰 Generate Droits',      4, 11, 0, 1, 'server'),
+                ('send_all_pending',     '📤 Envoyer contenus prêts', null, 12, 0, 1, 'server')""",
         ]:
             try:
                 await db.execute(migration)

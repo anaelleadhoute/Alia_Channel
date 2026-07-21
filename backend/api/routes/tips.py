@@ -14,18 +14,28 @@ class TipUpdate(BaseModel):
 
 
 @router.get("")
-async def list_tips(status: str = "pending"):
+async def list_tips(status: str = "all"):
     async with get_db() as db:
-        cursor = await db.execute(
-            """
-            SELECT id, source_url, week, content_fr, content_ru,
-                   status, send_at, sent_wa_fr, sent_wa_ru, scraped_at
-            FROM tips
-            WHERE status = ?
-            ORDER BY scraped_at DESC
-            """,
-            (status,),
-        )
+        if status == "all":
+            cursor = await db.execute(
+                """
+                SELECT id, source_url, week, content_fr, content_ru,
+                       status, send_at, sent_wa_fr, sent_wa_ru, scraped_at, ai_processed_at
+                FROM tips
+                ORDER BY scraped_at DESC
+                """
+            )
+        else:
+            cursor = await db.execute(
+                """
+                SELECT id, source_url, week, content_fr, content_ru,
+                       status, send_at, sent_wa_fr, sent_wa_ru, scraped_at, ai_processed_at
+                FROM tips
+                WHERE status = ?
+                ORDER BY scraped_at DESC
+                """,
+                (status,),
+            )
         rows = await cursor.fetchall()
     return [dict(row) for row in rows]
 
