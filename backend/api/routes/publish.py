@@ -361,48 +361,46 @@ async def publish_deal(deal_id: int):
     return {"ok": True, "deal_id": deal_id, "sent": results}
 
 
-@router.post("/send-all-pending")
-async def send_all_pending():
-    """Send all generated-but-not-sent items, respecting per-category auto-pub settings."""
-    from api.routes.scrape import _is_auto_publish, _auto_publish_item
+SEND_CATEGORY_MAP = {
+    "digest":      ("digests",            "digest_date"),
+    "faq":         ("faqs",               "week"),
+    "tip":         ("tips",               "week"),
+    "rights":      ("weekly_rights",      "week"),
+    "doctor":      ("weekly_doctor",      "week"),
+    "kids":        ("weekly_events_kids", "week"),
+    "prestataire": ("weekly_prestataire", "week"),
+    "deal":        ("deals",              None),
+}
 
+
+@router.post("/send-pending/{category}")
+async def send_pending_category(category: str):
+    """Send generated-but-not-sent item for a specific category."""
+    from api.routes.scrape import _auto_publish_item
+
+    if category not in SEND_CATEGORY_MAP:
+        raise HTTPException(status_code=400, detail=f"Unknown category: {category}")
+
+    table, date_col = SEND_CATEGORY_MAP[category]
     week = datetime.utcnow().strftime("%Y-W%U")
     today = date.today().strftime("%Y-%m-%d")
+    date_val = today if date_col == "digest_date" else week
 
-    CATEGORIES = [
-        ("digest",      "digests",              "id", "digest_date", today),
-        ("faq",         "faqs",                 "id", "week",        week),
-        ("tip",         "tips",                 "id", "week",        week),
-        ("rights",      "weekly_rights",        "id", "week",        week),
-        ("doctor",      "weekly_doctor",        "id", "week",        week),
-        ("kids",        "weekly_events_kids",   "id", "week",        week),
-        ("prestataire", "weekly_prestataire",   "id", "week",        week),
-        ("deal",        "deals",                "id", None,          None),
-    ]
+    async with get_db() as db:
+        if date_col and date_val:
+            cursor = await db.execute(
+                f"SELECT id FROM {table} WHERE {date_col} = ? AND content_fr IS NOT NULL AND sent_wa_fr = 0 AND sent_wa_ru = 0",
+                (date_val,)
+            )
+        else:
+            cursor = await db.execute(
+                f"SELECT id FROM {table} WHERE content_fr IS NOT NULL AND sent_wa_fr = 0 AND sent_wa_ru = 0 ORDER BY id DESC LIMIT 1"
+            )
+        rows = await cursor.fetchall()
 
-    results = {}
-    for category, table, id_col, date_col, date_val in CATEGORIES:
-        auto = await _is_auto_publish(category)
-        if not auto:
-            results[category] = "skipped"
-            continue
+    sent = 0
+    for row in rows:
+        await _auto_publish_item(table, "id", row["id"])
+        sent += 1
 
-        async with get_db() as db:
-            if date_col and date_val:
-                cursor = await db.execute(
-                    f"SELECT id FROM {table} WHERE {date_col} = ? AND content_fr IS NOT NULL AND sent_wa_fr = 0 AND sent_wa_ru = 0",
-                    (date_val,)
-                )
-            else:
-                cursor = await db.execute(
-                    f"SELECT id FROM {table} WHERE content_fr IS NOT NULL AND sent_wa_fr = 0 AND sent_wa_ru = 0 ORDER BY id DESC LIMIT 1"
-                )
-            rows = await cursor.fetchall()
-
-        sent = 0
-        for row in rows:
-            await _auto_publish_item(table, id_col, row["id"])
-            sent += 1
-        results[category] = f"sent {sent}"
-
-    return {"status": "ok", "results": results}
+    return {"status": "ok", "category": category, "sent": sent}

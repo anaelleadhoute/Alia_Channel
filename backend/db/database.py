@@ -274,8 +274,18 @@ async def init_db():
                 ('generate_kol_zchut',   '📄 Generate Guide',       3, 9,  0, 1, 'server'),
                 ('generate_doctor',      '🏥 Generate Médecin',     5, 10, 0, 1, 'server'),
                 ('scrape_rights',        '💰 Scrape Droits',        2, 9,  0, 1, 'mac'),
-                ('generate_rights',      '💰 Generate Droits',      4, 11, 0, 1, 'server'),
-                ('send_all_pending',     '📤 Envoyer contenus prêts', null, 12, 0, 1, 'server')""",
+                ('generate_rights',      '💰 Generate Droits',      4, 11, 0, 1, 'server')""",
+            # Send jobs — separate from generate, configurable per category
+            """INSERT OR IGNORE INTO schedules (job_key, label, day_of_week, hour_utc, minute_utc, enabled, location) VALUES
+                ('send_digest',      '📰 Envoyer News',          null, 10, 0, 1, 'server'),
+                ('send_tip',         '📄 Envoyer Guide',         3,    11, 0, 1, 'server'),
+                ('send_faq',         '❓ Envoyer FAQ',           2,    11, 0, 1, 'server'),
+                ('send_rights',      '💰 Envoyer Droits',        4,    12, 0, 1, 'server'),
+                ('send_doctor',      '🏥 Envoyer Médecin',       5,    11, 0, 1, 'server'),
+                ('send_kids',        '👧 Envoyer Kids',          1,    10, 0, 1, 'server'),
+                ('send_prestataire', '🏅 Envoyer Prestataire',   4,    10, 0, 1, 'server'),
+                ('send_deal',        '⚡ Envoyer Deal',          null, 10, 0, 1, 'server')""",
+            "DELETE FROM schedules WHERE job_key = 'send_all_pending'",
         ]:
             try:
                 await db.execute(migration)
