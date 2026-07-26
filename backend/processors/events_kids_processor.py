@@ -28,7 +28,7 @@ Sur ces 7 derniers jours, [nombre entre 2 et 6] familles d'Alia ont demandé une
 🤖 Pour plus d'informations, demandez à Alia.
 https://wa.me/972549675013?text=Aide-moi
 
-📢 Rejoignez la communauté Alia pour d'autres idées sorties :
+📢 Rejoignez la communauté Alia:
 https://tinyurl.com/Alia-community
 
 Réponds uniquement avec le texte, sans JSON."""
@@ -51,7 +51,7 @@ RU_PROMPT = """Ты редактор AL.IA Channel — медиа для рус�
 🤖 Для получения дополнительной информации спросите у Alia.
 https://wa.me/972549675013?text=Помоги
 
-📢 Присоединяйтесь к сообществу Alia для других идей на выходные :
+Присоединяйтесь к сообществу Alia и получайте всё это каждую неделю :
 https://tinyurl.com/Alia-community-RU
 
 Отвечай только текстом, без JSON."""
@@ -59,7 +59,7 @@ https://tinyurl.com/Alia-community-RU
 
 async def generate_weekly_kids_events(force: bool = False, raw_events: list[dict] | None = None) -> dict:
     import asyncio
-    week = datetime.utcnow().strftime("%Y-W%U")
+    week = f"{datetime.utcnow().isocalendar()[0]}-W{datetime.utcnow().isocalendar()[1]:02d}"
 
     async with get_db() as db:
         cursor = await db.execute("SELECT id, content_fr, raw_payload FROM weekly_events_kids WHERE week = ?", (week,))

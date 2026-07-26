@@ -138,31 +138,6 @@ async def init_db():
 
             INSERT OR IGNORE INTO settings (key, value) VALUES ('auto_publish', 'true');
 
-            CREATE TABLE IF NOT EXISTS weekly_deals (
-                id              INTEGER PRIMARY KEY AUTOINCREMENT,
-                week            TEXT UNIQUE NOT NULL,
-                shufersal_json  TEXT,
-                rami_levy_json  TEXT,
-                carrefour_json  TEXT,
-                content_fr      TEXT,
-                content_ru      TEXT,
-                created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
-                status          TEXT DEFAULT 'pending',
-                sent_wa_fr      INTEGER DEFAULT 0,
-                sent_wa_ru      INTEGER DEFAULT 0
-            );
-            CREATE TABLE IF NOT EXISTS weekly_events (
-                id              INTEGER PRIMARY KEY AUTOINCREMENT,
-                week            TEXT UNIQUE NOT NULL,
-                events_json     TEXT,
-                content_fr      TEXT,
-                content_ru      TEXT,
-                created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
-                status          TEXT DEFAULT 'pending',
-                sent_wa_fr      INTEGER DEFAULT 0,
-                sent_wa_ru      INTEGER DEFAULT 0
-            );
-
             CREATE TABLE IF NOT EXISTS weekly_prestataire (
                 id              INTEGER PRIMARY KEY AUTOINCREMENT,
                 week            TEXT UNIQUE NOT NULL,
@@ -288,6 +263,39 @@ async def init_db():
             "DELETE FROM schedules WHERE job_key = 'send_digest'",
             "DELETE FROM schedules WHERE job_key = 'send_faq'",
             "DELETE FROM schedules WHERE job_key = 'send_deal'",
+            # Split news_digest into scrape_news + send_news
+            "DELETE FROM schedules WHERE job_key = 'news_digest'",
+            """INSERT OR IGNORE INTO schedules (job_key, label, day_of_week, hour_utc, minute_utc, enabled, location) VALUES
+                ('scrape_news', '📰 Scraper News', NULL, 20, 0, 1, 'server'),
+                ('send_news',   '📰 Envoyer News', NULL, 20, 30, 1, 'server')""",
+            "ALTER TABLE schedules ADD COLUMN week_parity INTEGER",
+            # Split telegram_deals into scrape_deals (Sunday) + send_deals (Wednesday)
+            "DELETE FROM schedules WHERE job_key = 'telegram_deals'",
+            """INSERT OR IGNORE INTO schedules (job_key, label, day_of_week, hour_utc, minute_utc, enabled, location) VALUES
+                ('scrape_deals', '⚡ Scraper Deals Telegram', 0, 11, 0, 1, 'server'),
+                ('send_deals',   '⚡ Envoyer Deals',          3, 11, 0, 1, 'server')""",
+            """CREATE TABLE IF NOT EXISTS scheduled_manual (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                text_fr    TEXT NOT NULL,
+                text_ru    TEXT,
+                audience   TEXT NOT NULL DEFAULT 'both',
+                send_at    TEXT NOT NULL,
+                sent       INTEGER DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )""",
+            """CREATE TABLE IF NOT EXISTS recommendations (
+                id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                type         TEXT NOT NULL,
+                name         TEXT NOT NULL,
+                specialty    TEXT,
+                city         TEXT,
+                phone        TEXT,
+                language     TEXT NOT NULL,
+                notes        TEXT,
+                submitted_by TEXT,
+                status       TEXT DEFAULT 'pending',
+                created_at   DATETIME DEFAULT CURRENT_TIMESTAMP
+            )""",
         ]:
             try:
                 await db.execute(migration)

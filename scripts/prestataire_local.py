@@ -76,9 +76,18 @@ def _get_next_url() -> tuple[str, int]:
                 return MIDRAG_URLS[next_index], next_index
     except Exception:
         pass
-    week_num = int(datetime.now().strftime("%U"))
+    week_num = datetime.now().isocalendar()[1]
     idx = week_num % len(MIDRAG_URLS)
     return MIDRAG_URLS[idx], idx
+
+
+def extract_profile_links(page) -> list[str]:
+    """Extract individual provider profile URLs from the search results page."""
+    links = page.evaluate("""() => {
+        const anchors = Array.from(document.querySelectorAll('a[href*="/SpCard/Sp/"]'));
+        return [...new Set(anchors.map(a => a.href))];
+    }""")
+    return links
 
 
 def scrape_prestataire(page) -> dict | None:
@@ -93,6 +102,7 @@ def scrape_prestataire(page) -> dict | None:
 
     text = page.evaluate("() => document.body.innerText")
     title = page.evaluate("() => document.title")
+    profile_links = extract_profile_links(page)
     category, city, providers = parse_providers(text, title)
 
     if not providers:
@@ -101,7 +111,10 @@ def scrape_prestataire(page) -> dict | None:
 
     # Pick the top provider (highest rated = first in list)
     top = providers[0]
+    # Use the first profile link as the specific provider URL
+    profile_url = profile_links[0] if profile_links else url
     print(f"[midrag] Top provider: {top['name']} | {category} | ⭐ {top['rating']} | {top['reviews']} avis")
+    print(f"[midrag] Profile URL: {profile_url}")
 
     return {
         "name": top["name"],
@@ -110,7 +123,7 @@ def scrape_prestataire(page) -> dict | None:
         "rating": top["rating"],
         "reviews": top["reviews"],
         "satisfaction": top["satisfaction"],
-        "url": url,
+        "url": profile_url,
         "category_index": idx,
         "all_providers": providers[:5],
     }

@@ -22,28 +22,26 @@ CATEGORY_LABELS = {
 
 PROMPT_FR = """Tu es rédacteur pour AL.IA Channel, un média pour les olim francophones en Israël.
 
-Voici un bon plan à présenter :
+Voici un bon plan trouvé par Alia :
 Produit/Service : {product}
 Prix : {price}
-Résumé : {summary}
-Texte original : {raw_text}
 Lien direct : {deal_link}
+
+Si le produit est un jeu vidéo, une console de jeux, du matériel gaming ou tout accessoire gaming (mais PAS de la nourriture, produits supermarché, ou électronique grand public) — réponds uniquement "SKIP" sans rien d'autre.
 
 Rédige un message WhatsApp en français en suivant EXACTEMENT ce format :
 
 💙 Le Bon Plan Alia
 
-La vie en Israël est chère, surtout quand on est olé.
-
-C'est pourquoi Alia partage régulièrement des bons plans qui valent vraiment le coup.
-
 🚫 Ce post n'est pas sponsorisé.
 
-👇
+La vie en Israël est chère, surtout quand on est olé.
 
-[Présente le produit clairement : nom, prix, réduction si applicable. 2-3 lignes max. Inclus le lien : {deal_link}]
+Alia a cherché pour vous et a trouvé le meilleur prix du moment sur [nom du produit/service en 2-3 mots max].
 
-📢 Rejoignez la communauté Alia pour découvrir chaque semaine de nouveaux bons plans :
+👉 {deal_link}
+
+📢 Rejoignez la communauté Alia:
 https://tinyurl.com/Alia-community
 
 🤖 Des questions ? Parlez à Alia :
@@ -53,28 +51,26 @@ Réponds uniquement avec le texte du message, sans JSON, sans commentaire."""
 
 PROMPT_RU = """Ты редактор AL.IA Channel — медиа для русскоязычных олим в Израиле.
 
-Вот акция для публикации :
+Вот акция, найденная Alia :
 Товар/Услуга : {product}
 Цена : {price}
-Описание : {summary}
-Оригинальный текст : {raw_text}
 Прямая ссылка : {deal_link}
+
+Если товар — это видеоигра, игровая консоль, игровое оборудование или аксессуары для геймеров (но НЕ еда, продукты супермаркета или бытовая электроника) — ответь только "SKIP" и ничего больше.
 
 Напиши сообщение для WhatsApp на русском, строго следуя этому формату :
 
 💙 Выгодное предложение от Alia
 
-Жизнь в Израиле дорогая, особенно для олим.
-
-Поэтому Alia регулярно делится предложениями, которые действительно стоят внимания.
-
 🚫 Этот пост не спонсируется.
 
-👇
+Жизнь в Израиле дорогая, особенно для олим.
 
-[Представь товар чётко: название, цена, скидка если есть. Максимум 2-3 строки. Включи ссылку: {deal_link}]
+Alia искала для вас и нашла лучшую цену на [название товара/услуги в 2-3 словах].
 
-📢 Присоединяйтесь к сообществу Alia, чтобы каждую неделю узнавать о новых выгодных предложениях :
+👉 {deal_link}
+
+Присоединяйтесь к сообществу Alia и получайте всё это каждую неделю :
 https://tinyurl.com/Alia-community-RU
 
 🤖 Есть вопросы? Напишите Alia :
@@ -107,7 +103,7 @@ def _deal_link(deal: dict) -> str:
     return CHANNEL_WEBSITES.get(channel, f"https://t.me/{channel}")
 
 
-async def _generate_fr(deal: dict) -> str:
+async def _generate_fr(deal: dict) -> str | None:
     category = deal.get("category", "")
     label = CATEGORY_LABELS.get(category, {}).get("fr", category)
     response = await client.messages.create(
@@ -117,15 +113,14 @@ async def _generate_fr(deal: dict) -> str:
             category_label=label,
             product=deal.get("deal_product") or "N/A",
             price=deal.get("deal_price") or "N/A",
-            summary=deal.get("deal_summary_he") or "",
-            raw_text=deal.get("raw_text") or "",
             deal_link=_deal_link(deal),
         )}],
     )
-    return response.content[0].text.strip()
+    text = response.content[0].text.strip()
+    return None if text == "SKIP" else text
 
 
-async def _generate_ru(deal: dict) -> str:
+async def _generate_ru(deal: dict) -> str | None:
     category = deal.get("category", "")
     label = CATEGORY_LABELS.get(category, {}).get("ru", category)
     response = await client.messages.create(
@@ -135,12 +130,11 @@ async def _generate_ru(deal: dict) -> str:
             category_label=label,
             product=deal.get("deal_product") or "N/A",
             price=deal.get("deal_price") or "N/A",
-            summary=deal.get("deal_summary_he") or "",
-            raw_text=deal.get("raw_text") or "",
             deal_link=_deal_link(deal),
         )}],
     )
-    return response.content[0].text.strip()
+    text = response.content[0].text.strip()
+    return None if text == "SKIP" else text
 
 
 async def process_deal(deal_id: int, deal: dict) -> bool:
@@ -170,6 +164,16 @@ async def process_deal(deal_id: int, deal: dict) -> bool:
             if isinstance(results[idx], Exception):
                 raise results[idx]
             content_ru = results[idx]
+
+        if content_fr is None and content_ru is None:
+            async with get_db() as db:
+                await db.execute(
+                    "UPDATE deals SET is_relevant = 0, ai_processed_at = ? WHERE id = ?",
+                    (datetime.utcnow().isoformat(), deal_id),
+                )
+                await db.commit()
+            logger.info(f"[deal_processor] Deal {deal_id} skipped (gaming/excluded)")
+            return False
 
         async with get_db() as db:
             await db.execute(

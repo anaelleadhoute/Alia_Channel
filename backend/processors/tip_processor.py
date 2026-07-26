@@ -74,7 +74,7 @@ Beaucoup d'utilisateurs d'Alia nous demandent :
 🤖 Pour connaître la procédure adaptée à votre situation, demandez à Alia.
 https://wa.me/972549675013?text=Aide-moi
 
-📢 Rejoignez la communauté Alia pour recevoir d'autres guides pratiques :
+📢 Rejoignez la communauté Alia:
 https://tinyurl.com/Alia-community
 
 Réponds uniquement avec le texte du guide, sans JSON, sans commentaire."""
@@ -101,7 +101,7 @@ Réponds uniquement avec le texte du guide, sans JSON, sans commentaire."""
 🤖 Чтобы узнать процедуру для вашей ситуации, спросите у Alia.
 https://wa.me/972549675013?text=Помоги
 
-📢 Присоединяйтесь к сообществу Alia, чтобы получать другие практические гиды :
+Присоединяйтесь к сообществу Alia и получайте всё это каждую неделю :
 https://tinyurl.com/Alia-community-RU
 
 Отвечай только текстом гида, без JSON, без комментариев."""

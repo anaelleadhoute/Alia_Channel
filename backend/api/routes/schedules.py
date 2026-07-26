@@ -14,6 +14,7 @@ class ScheduleUpdate(BaseModel):
     hour_utc: Optional[int] = None
     minute_utc: Optional[int] = None
     enabled: Optional[int] = None
+    week_parity: Optional[int] = None   # None=every week, 0=even weeks, 1=odd weeks
 
 
 @router.get("")
@@ -47,6 +48,7 @@ async def get_due_jobs(location: str = "server"):
     current_minute = now_il.minute
     current_dow = now_il.weekday()
     current_dow_js = (current_dow + 1) % 7
+    current_iso_week = now_il.isocalendar()[1]
 
     async with get_db() as db:
         cursor = await db.execute(
@@ -60,11 +62,14 @@ async def get_due_jobs(location: str = "server"):
         r = dict(r)
         dow = r["day_of_week"]
         minute = r.get("minute_utc", 0) or 0
+        week_parity = r.get("week_parity")
 
         # Due if within current 15-min window
         if abs(current_minute - minute) <= 7:
             if dow is None or dow == current_dow_js:
-                due.append(r)
+                # Check biweekly parity if set
+                if week_parity is None or (current_iso_week % 2) == week_parity:
+                    due.append(r)
 
     return {"due": due, "now_utc": now.isoformat(), "hour": current_hour, "minute": current_minute, "dow": current_dow_js}
 

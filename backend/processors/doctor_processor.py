@@ -34,6 +34,7 @@ Un médecin francophone recommandé :
 - Spécialité : {specialty}
 - Ville : {city}
 - Téléphone : {doctor['phone']}
+- Profil : {doctor.get('url', '')}
 
 Rédige un message WhatsApp court (80-100 mots) au format EXACT :
 🏥 Le Médecin Alia
@@ -43,11 +44,12 @@ Sur ces 6 derniers jours, [nombre entre 2 et 6] utilisateurs d'Alia ont recherch
 👨‍⚕️ Nous vous recommandons [nom du médecin], qui parle français et consulte à [ville].
 
 📞 [numéro de téléphone]
+🔗 [profil]
 
 🤖 Pour trouver un médecin adapté à votre ville, spécialité ou caisse maladie, demandez à Alia.
 https://wa.me/972549675013?text=Aide-moi
 
-📢 Rejoignez la communauté Alia pour d'autres recommandations :
+📢 Rejoignez la communauté Alia:
 https://tinyurl.com/Alia-community
 
 Réponds uniquement avec le texte, sans JSON."""
@@ -64,6 +66,7 @@ def _build_ru_prompt(doctor: dict) -> str:
 - Специальность : {specialty}
 - Город : {city}
 - Телефон : {doctor['phone']}
+- Профиль : {doctor.get('url', '')}
 
 Напиши короткое WhatsApp сообщение (80-100 слов) в точном формате :
 🏥 Врач от Alia
@@ -73,11 +76,12 @@ def _build_ru_prompt(doctor: dict) -> str:
 👨‍⚕️ Рекомендуем [имя врача], который говорит по-русски и принимает в [город].
 
 📞 [номер телефона]
+🔗 [профиль]
 
 🤖 Чтобы найти врача по городу, специальности или больничной кассе, спросите у Alia.
 https://wa.me/972549675013?text=Помоги
 
-📢 Присоединяйтесь к сообществу Alia для других рекомендаций :
+Присоединяйтесь к сообществу Alia и получайте всё это каждую неделю :
 https://tinyurl.com/Alia-community-RU
 
 Отвечай только текстом, без JSON."""
@@ -95,7 +99,7 @@ async def _pick_doctor(lang: str, db) -> dict | None:
 
 
 async def generate_weekly_doctor(force: bool = False) -> dict:
-    week = datetime.utcnow().strftime("%Y-W%U")
+    week = f"{datetime.utcnow().isocalendar()[0]}-W{datetime.utcnow().isocalendar()[1]:02d}"
 
     async with get_db() as db:
         existing = await db.execute("SELECT id FROM weekly_doctor WHERE week = ?", (week,))

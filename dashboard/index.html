@@ -172,8 +172,7 @@
 </div>
 
 <div class="tabs">
-  <button class="tab active" onclick="switchTab('queue')">History <span class="badge" id="queueBadge">0</span></button>
-  <button class="tab" onclick="switchTab('digests')">News</button>
+  <button class="tab active" onclick="switchTab('digests')">News</button>
   <button class="tab" onclick="switchTab('faqs')">FAQs</button>
   <button class="tab" onclick="switchTab('tips')">📄 Guide</button>
   <button class="tab" onclick="switchTab('deals')">Deals</button>
@@ -189,26 +188,8 @@
 
 <div class="content">
 
-  <!-- HISTORY -->
-  <div class="section active" id="section-queue">
-    <div class="actions-bar">
-      <span>Actions:</span>
-      <button class="btn btn-primary" onclick="runScrape()">🔄 Scrape News</button>
-    </div>
-    <div class="queue-header">
-      <h2>History</h2>
-      <div class="filter-bar">
-        <button class="filter-btn active" onclick="setQueueFilter('ready', this)">✍️ Prêt à envoyer</button>
-        <button class="filter-btn" onclick="setQueueFilter('waiting', this)">🕐 En attente</button>
-        <button class="filter-btn" onclick="setQueueFilter('sent', this)">✅ Envoyé</button>
-        <button class="filter-btn" onclick="setQueueFilter('rejected', this)">✕ Rejeté</button>
-      </div>
-    </div>
-    <div class="cards" id="queueCards"><div class="loading">Loading…</div></div>
-  </div>
-
   <!-- DIGESTS -->
-  <div class="section" id="section-digests">
+  <div class="section active" id="section-digests">
     <div class="queue-header"><h2>News</h2></div>
     <div class="cards" id="digestCards"><div class="loading">Loading…</div></div>
   </div>
@@ -244,7 +225,6 @@
   <div class="section" id="section-events-kids">
     <div class="actions-bar">
       <span>Actions:</span>
-      <button class="btn btn-primary" onclick="scrapeKidsInfo()">👧 Scraper & Générer Kids</button>
       <button class="btn btn-primary" onclick="generateKidsForce()">🔄 Regénérer Kids</button>
     </div>
     <div class="queue-header"><h2>👧 Événements familles & enfants</h2></div>
@@ -321,18 +301,68 @@
 
   <!-- MANUAL SEND -->
   <div class="section" id="section-send">
-    <div class="manual-panel">
-      <h2>✏️ Send Custom Message</h2>
-      <textarea id="manualText" placeholder="Type your message here…"></textarea>
-      <div class="manual-actions">
-        <select class="audience-select" id="manualAudience">
-          <option value="both">🌍 Both groups (FR + RU)</option>
-          <option value="fr">🇫🇷 French group only</option>
-          <option value="ru">🇷🇺 Russian group only</option>
-        </select>
-        <button class="btn btn-both" onclick="sendManual()">Send to WhatsApp</button>
+
+    <div class="manual-panel" style="margin-bottom:24px;border:2px solid #e8f5e9;background:#f9fffe;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <h2>🤝 Appel à recommandations</h2>
+        <button class="btn btn-primary" style="padding:6px 14px;font-size:13px;" onclick="toggleRecommendEdit()">✏️ Modifier</button>
+      </div>
+      <p style="font-size:13px;color:#888;margin:0 0 16px;">Invite la communauté à recommander des médecins et prestataires via le formulaire.</p>
+
+      <!-- Preview mode -->
+      <div id="recommendPreviewMode">
+        <div style="background:#f1f8ff;border:1px solid #c9e6ff;border-radius:8px;padding:14px;margin-bottom:16px;font-size:13px;line-height:1.7;white-space:pre-wrap;" id="recommendMsgPreview"></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn btn-primary" style="flex:1;" onclick="sendRecommendMessage('fr')">📤 Envoyer au groupe 🇫🇷</button>
+          <button class="btn btn-primary" style="flex:1;" onclick="sendRecommendMessage('ru')">📤 Envoyer au groupe 🇷🇺</button>
+          <button class="btn btn-both" style="flex:1;" onclick="sendRecommendMessage('both')">📤 Envoyer aux deux groupes</button>
+        </div>
+      </div>
+
+      <!-- Edit mode -->
+      <div id="recommendEditMode" style="display:none;">
+        <label style="font-size:13px;font-weight:600;color:#666;display:block;margin-bottom:6px;">🇫🇷 Message français</label>
+        <textarea id="recommendEditFr" style="width:100%;height:180px;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:13px;resize:vertical;font-family:inherit;margin-bottom:14px;box-sizing:border-box;"></textarea>
+        <label style="font-size:13px;font-weight:600;color:#666;display:block;margin-bottom:6px;">🇷🇺 Message russe</label>
+        <textarea id="recommendEditRu" style="width:100%;height:180px;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:13px;resize:vertical;font-family:inherit;margin-bottom:14px;box-sizing:border-box;"></textarea>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-both" onclick="saveRecommendEdit()">💾 Enregistrer</button>
+          <button class="btn btn-primary" onclick="toggleRecommendEdit()">Annuler</button>
+        </div>
       </div>
     </div>
+
+    <div class="manual-panel">
+      <h2>✏️ Envoyer un message personnalisé</h2>
+
+      <label style="font-size:13px;font-weight:600;color:#666;display:block;margin-bottom:6px;">🇫🇷 Message français</label>
+      <textarea id="manualTextFr" placeholder="Écris le message en français…" style="width:100%;height:140px;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:14px;resize:vertical;font-family:inherit;margin-bottom:8px;box-sizing:border-box;"></textarea>
+      <button class="btn btn-primary" style="margin-bottom:14px;" onclick="translateManual()">🔄 Traduire en russe</button>
+
+      <label style="font-size:13px;font-weight:600;color:#666;display:block;margin-bottom:6px;">🇷🇺 Message russe</label>
+      <textarea id="manualTextRu" placeholder="Traduction automatique ou saisie manuelle…" style="width:100%;height:140px;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:14px;resize:vertical;font-family:inherit;margin-bottom:14px;box-sizing:border-box;"></textarea>
+
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
+        <select class="audience-select" id="manualAudience">
+          <option value="both">🌍 Les deux groupes (FR + RU)</option>
+          <option value="fr">🇫🇷 Groupe français seulement</option>
+          <option value="ru">🇷🇺 Groupe russe seulement</option>
+        </select>
+      </div>
+
+      <div style="background:#f8f9fa;border:1px solid #e0e0e0;border-radius:8px;padding:14px;margin-bottom:14px;">
+        <label style="font-size:13px;font-weight:600;color:#666;display:block;margin-bottom:8px;">⏰ Planifier l'envoi (optionnel)</label>
+        <input type="datetime-local" id="manualScheduleAt" style="border:1px solid #ddd;border-radius:6px;padding:8px 12px;font-size:14px;font-family:inherit;">
+        <span style="font-size:12px;color:#999;margin-left:8px;">Heure d'Israël</span>
+      </div>
+
+      <div class="manual-actions">
+        <button class="btn btn-both" onclick="sendManual()">📤 Envoyer</button>
+      </div>
+    </div>
+
+    <div class="queue-header" style="margin-top:24px;"><h2>⏳ Messages planifiés</h2></div>
+    <div id="scheduledManualCards"><div class="loading">Loading…</div></div>
   </div>
 
 </div>
@@ -346,7 +376,6 @@ let queueFilter = 'ready';
 // ── Init ────────────────────────────────────────────────────────────────────
 async function init() {
   await loadSettings();
-  await loadQueue();
   loadDigests();
   loadFaqs();
   loadTips();
@@ -358,6 +387,8 @@ async function init() {
   loadDoctors();
   loadAutomation();
   loadMaintenance();
+  loadScheduledManual();
+  initRecommendPreview();
 }
 
 // ── Settings ────────────────────────────────────────────────────────────────
@@ -479,7 +510,7 @@ function renderCategorySection(items, type, dateKey = 'week') {
   if (history.length) {
     html += `<div>
       <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#999;margin-bottom:10px;">🕘 Historique</div>
-      <div class="cards">${history.map(i => renderCard({...i, _type: type})).join('')}</div>
+      <div class="cards">${history.map(i => renderCard({...i, _type: type, _history: true})).join('')}</div>
     </div>`;
   }
   return html || '<div class="empty"><div class="icon">📭</div>Aucun contenu</div>';
@@ -503,9 +534,18 @@ async function loadTips() {
 
 async function loadDeals() {
   const alerts = await fetch(`${API}/api/deals`).then(r => r.json());
-  document.getElementById('dealAlertCards').innerHTML = alerts.length
-    ? alerts.map(d => renderCard({...d, _type: 'deal'})).join('')
-    : '<div class="empty"><div class="icon">⚡</div>Aucune alerte deal pour le moment</div>';
+  if (!alerts.length) {
+    document.getElementById('dealAlertCards').innerHTML = '<div class="empty"><div class="icon">⚡</div>Aucune alerte deal pour le moment</div>';
+    return;
+  }
+  const thisWeek = currentWeekStr();
+  const toWeek = d => { const dt = new Date(d.scraped_at || 0); const jan1 = new Date(dt.getFullYear(),0,1); const week = Math.floor(((dt-jan1)/86400000 + jan1.getDay())/7); return `${dt.getFullYear()}-W${String(week).padStart(2,'0')}`; };
+  const current = alerts.filter(d => toWeek(d) === thisWeek);
+  const history = alerts.filter(d => toWeek(d) !== thisWeek);
+  let html = '';
+  if (current.length) html += `<div style="margin-bottom:24px;"><div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#1565c0;margin-bottom:10px;">📅 Cette semaine</div><div class="cards">${current.map(d => renderCard({...d, _type: 'deal'})).join('')}</div></div>`;
+  if (history.length) html += `<div><div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#999;margin-bottom:10px;">🕘 Historique</div><div class="cards">${history.map(d => renderCard({...d, _type: 'deal'})).join('')}</div></div>`;
+  document.getElementById('dealAlertCards').innerHTML = html || '<div class="empty"><div class="icon">⚡</div>Aucune alerte deal pour le moment</div>';
 }
 
 // ── Card renderer ────────────────────────────────────────────────────────────
@@ -557,11 +597,21 @@ function renderCard(item) {
   const date = item.generated_at || item.scraped_at || item.digest_date || '';
 
   const deleteBtn = type === 'contest' ? `<button class="btn btn-reject" onclick="deleteContest(${id})">🗑 Supprimer</button>` : '';
-  const editBtn = type === 'tip' && !isRawTip
+  const editBtn = (type === 'tip' && !isRawTip)
     ? `<button class="btn" style="background:#f3e5f5;color:#7b1fa2;" onclick="editTip(${id})">✏️ Modifier</button>`
-    : '';
+    : type === 'digest'
+      ? `<button class="btn" style="background:#f3e5f5;color:#7b1fa2;" onclick="editDigest(${id})">✏️ Modifier</button>`
+      : type === 'weekly_event_kids'
+        ? `<button class="btn" style="background:#f3e5f5;color:#7b1fa2;" onclick="editKids(${id})">✏️ Modifier</button>`
+        : type === 'prestataire'
+          ? `<button class="btn" style="background:#f3e5f5;color:#7b1fa2;" onclick="editPrestataire(${id})">✏️ Modifier</button>`
+          : type === 'weekly_doctor'
+            ? `<button class="btn" style="background:#f3e5f5;color:#7b1fa2;" onclick="editDoctor(${id})">✏️ Modifier</button>`
+            : type === 'weekly_rights'
+              ? `<button class="btn" style="background:#f3e5f5;color:#7b1fa2;" onclick="editRights(${id})">✏️ Modifier</button>`
+              : '';
 
-  const publishButtons = isRawTip ? '' : !isSent && !isRejected ? `
+  const publishButtons = isRawTip || item._history ? '' : !isSent && !isRejected ? `
     <button class="btn btn-fr" onclick="publish('${type}', ${id}, 'fr')" ${item.sent_wa_fr ? 'disabled' : ''}>🇫🇷 FR</button>
     <button class="btn btn-ru" onclick="publish('${type}', ${id}, 'ru')" ${item.sent_wa_ru ? 'disabled' : ''}>🇷🇺 RU</button>
     <button class="btn btn-both" onclick="publish('${type}', ${id}, 'both')">Send Both</button>
@@ -769,21 +819,162 @@ async function createContest() {
   });
 }
 
+const RECOMMEND_MSG_FR = `🤝 Aidez-nous à les aider !
+
+Connaissez-vous un médecin ou un prestataire de service qui parle français en Israël ?
+
+👨‍⚕️ Médecin, dentiste, kiné, psy…
+🔧 Plombier, électricien, avocat, comptable…
+
+Partagez-le avec la communauté Alia en 2 minutes 👇
+https://alia-channel.com/recommander
+
+Ensemble on construit l'annuaire des olim 💪
+
+📢 Rejoignez la communauté Alia:
+https://tinyurl.com/Alia-community`;
+
+const RECOMMEND_MSG_RU = `🤝 Помогите нам помочь им !
+
+Вы знаете врача или специалиста, который говорит по-русски в Израиле ?
+
+👨‍⚕️ Врач, стоматолог, физиотерапевт, психолог…
+🔧 Сантехник, электрик, адвокат, бухгалтер…
+
+Поделитесь с сообществом Alia за 2 минуты 👇
+https://alia-channel.com/recommander
+
+Вместе мы строим справочник олим 💪
+
+Присоединяйтесь к сообществу Alia:
+https://tinyurl.com/Alia-community-RU`;
+
+let currentRecommendFr = RECOMMEND_MSG_FR;
+let currentRecommendRu = RECOMMEND_MSG_RU;
+
+function initRecommendPreview() {
+  document.getElementById('recommendMsgPreview').textContent = currentRecommendFr;
+}
+
+function toggleRecommendEdit() {
+  const preview = document.getElementById('recommendPreviewMode');
+  const edit = document.getElementById('recommendEditMode');
+  const isEditing = edit.style.display !== 'none';
+  if (isEditing) {
+    preview.style.display = 'block';
+    edit.style.display = 'none';
+  } else {
+    document.getElementById('recommendEditFr').value = currentRecommendFr;
+    document.getElementById('recommendEditRu').value = currentRecommendRu;
+    preview.style.display = 'none';
+    edit.style.display = 'block';
+  }
+}
+
+function saveRecommendEdit() {
+  currentRecommendFr = document.getElementById('recommendEditFr').value.trim();
+  currentRecommendRu = document.getElementById('recommendEditRu').value.trim();
+  document.getElementById('recommendMsgPreview').textContent = currentRecommendFr;
+  document.getElementById('recommendPreviewMode').style.display = 'block';
+  document.getElementById('recommendEditMode').style.display = 'none';
+  toast('✅ Message mis à jour');
+}
+
+async function sendRecommendMessage(audience) {
+  const btn = event.target;
+  btn.disabled = true;
+  const orig = btn.innerHTML;
+  btn.innerHTML = '⏳ Envoi…';
+  try {
+    const res = await fetch(`${API}/api/publish/manual`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ text_fr: RECOMMEND_MSG_FR, text_ru: RECOMMEND_MSG_RU, audience })
+    });
+    if (res.ok) toast('✅ Message envoyé !');
+    else toast('❌ Erreur lors de l\'envoi', true);
+  } catch(e) {
+    toast('❌ Erreur réseau', true);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = orig;
+  }
+}
+
+async function translateManual() {
+  const text = document.getElementById('manualTextFr').value.trim();
+  if (!text) { toast('Écris le message français d\'abord', true); return; }
+  const btn = event.target;
+  btn.disabled = true; btn.innerHTML = '⏳ Traduction…';
+  try {
+    const res = await fetch(`${API}/api/publish/translate`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({text})
+    });
+    const data = await res.json();
+    document.getElementById('manualTextRu').value = data.text_ru;
+    toast('✅ Traduit en russe !');
+  } catch(e) {
+    toast('❌ Erreur de traduction', true);
+  } finally {
+    btn.disabled = false; btn.innerHTML = '🔄 Traduire en russe';
+  }
+}
+
 async function sendManual() {
-  const text = document.getElementById('manualText').value.trim();
+  const text_fr = document.getElementById('manualTextFr').value.trim();
+  const text_ru = document.getElementById('manualTextRu').value.trim();
   const audience = document.getElementById('manualAudience').value;
-  if (!text) { toast('Please enter a message', true); return; }
+  const scheduleAt = document.getElementById('manualScheduleAt').value;
+
+  if (!text_fr) { toast('Écris le message français', true); return; }
+  if (audience !== 'fr' && !text_ru) { toast('Le message russe est vide. Traduis d\'abord ou choisis FR seulement.', true); return; }
+
+  const body = { text_fr, text_ru: text_ru || null, audience };
+  if (scheduleAt) body.scheduled_at = scheduleAt;
+
   const res = await fetch(`${API}/api/publish/manual`, {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({text, audience})
+    body: JSON.stringify(body)
   });
+  const data = await res.json();
   if (res.ok) {
-    toast('✅ Message sent!');
-    document.getElementById('manualText').value = '';
+    if (data.scheduled) {
+      toast(`⏰ Planifié pour ${new Date(data.send_at).toLocaleString('fr-FR')}`);
+      loadScheduledManual();
+    } else {
+      toast('✅ Message envoyé !');
+    }
+    document.getElementById('manualTextFr').value = '';
+    document.getElementById('manualTextRu').value = '';
+    document.getElementById('manualScheduleAt').value = '';
   } else {
-    toast('❌ Failed to send', true);
+    toast('❌ Échec de l\'envoi', true);
   }
+}
+
+async function loadScheduledManual() {
+  const data = await fetch(`${API}/api/publish/scheduled-manual`).then(r => r.json()).catch(() => []);
+  const el = document.getElementById('scheduledManualCards');
+  if (!data.length) { el.innerHTML = '<div class="empty"><div class="icon">⏰</div>Aucun message planifié</div>'; return; }
+  el.innerHTML = data.map(m => `
+    <div class="card" style="border-left:4px solid #4fc3f7;">
+      <div style="font-size:12px;color:#999;margin-bottom:6px;">⏰ ${new Date(m.send_at).toLocaleString('fr-FR')} · ${m.audience === 'both' ? '🌍' : m.audience === 'fr' ? '🇫🇷' : '🇷🇺'}</div>
+      <div style="margin-bottom:6px;"><strong>🇫🇷</strong> ${m.text_fr.substring(0, 120)}${m.text_fr.length > 120 ? '…' : ''}</div>
+      ${m.text_ru ? `<div><strong>🇷🇺</strong> ${m.text_ru.substring(0, 120)}${m.text_ru.length > 120 ? '…' : ''}</div>` : ''}
+      <div style="margin-top:10px;">
+        <button class="btn btn-danger" onclick="cancelScheduledManual(${m.id})">🗑️ Annuler</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function cancelScheduledManual(id) {
+  await fetch(`${API}/api/publish/scheduled-manual/${id}`, {method: 'DELETE'});
+  toast('🗑️ Message annulé');
+  loadScheduledManual();
 }
 
 async function withLoading(btn, fn) {
@@ -861,10 +1052,11 @@ async function generateFaqForce() {
 const DAYS_FR = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
 
 const JOB_CATEGORY = {
-  news_digest: 'digest', faq: 'faq', generate_kol_zchut: 'tip',
+  news_digest: 'digest', scrape_news: 'digest', send_news: 'digest',
+  faq: 'faq', generate_kol_zchut: 'tip',
   generate_rights: 'rights', generate_doctor: 'doctor',
   generate_kids_events: 'kids', generate_prestataire: 'prestataire',
-  telegram_deals: 'deal',
+  telegram_deals: 'deal', scrape_deals: 'deal', send_deals: 'deal',
   send_digest: 'digest', send_tip: 'tip', send_faq: 'faq',
   send_rights: 'rights', send_doctor: 'doctor', send_kids: 'kids',
   send_prestataire: 'prestataire', send_deal: 'deal',
@@ -890,6 +1082,7 @@ async function loadAutomation() {
           <tr style="background:#f8f9fa;border-bottom:2px solid #eee;">
             <th style="padding:14px 20px;text-align:left;color:#666;font-weight:600;">Tâche</th>
             <th style="padding:14px 16px;text-align:center;color:#666;font-weight:600;">Jour</th>
+            <th style="padding:14px 16px;text-align:center;color:#666;font-weight:600;">Fréquence</th>
             <th style="padding:14px 16px;text-align:center;color:#666;font-weight:600;">Heure (IL)</th>
             <th style="padding:14px 16px;text-align:center;color:#666;font-weight:600;">Serveur</th>
             <th style="padding:14px 16px;text-align:center;color:#666;font-weight:600;">Dernière exéc.</th>
@@ -897,7 +1090,7 @@ async function loadAutomation() {
           </tr>
         </thead>
         <tbody>
-          ${data.filter(s => s.location !== 'mac' && !['generate_kol_zchut','generate_kids_events','generate_prestataire','generate_rights','send_digest','send_faq','send_deal'].includes(s.job_key)).map(s => {
+          ${data.filter(s => s.location !== 'mac' && !['generate_kol_zchut','generate_kids_events','generate_prestataire','generate_rights','send_faq','send_deal','news_digest','telegram_deals'].includes(s.job_key)).map(s => {
             const hourIL = s.hour_utc;
             const dayLabel = s.day_of_week === null ? 'Chaque jour' : DAYS_FR[s.day_of_week];
             const lastRun = s.last_run ? new Date(s.last_run).toLocaleString('fr-FR') : '—';
@@ -911,6 +1104,13 @@ async function loadAutomation() {
                 <select onchange="updateSchedule('${s.job_key}','day_of_week',this.value)" style="padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;cursor:pointer;">
                   <option value="null" ${s.day_of_week === null ? 'selected' : ''}>Chaque jour</option>
                   ${DAYS_FR.map((d,i) => `<option value="${i}" ${s.day_of_week === i ? 'selected' : ''}>${d}</option>`).join('')}
+                </select>
+              </td>
+              <td style="padding:14px 16px;text-align:center;">
+                <select onchange="updateSchedule('${s.job_key}','week_parity',this.value)" style="padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;cursor:pointer;">
+                  <option value="null" ${s.week_parity === null || s.week_parity === undefined ? 'selected' : ''}>Chaque semaine</option>
+                  <option value="0" ${s.week_parity === 0 ? 'selected' : ''}>Semaines paires</option>
+                  <option value="1" ${s.week_parity === 1 ? 'selected' : ''}>Semaines impaires</option>
                 </select>
               </td>
               <td style="padding:14px 16px;text-align:center;">
@@ -949,6 +1149,7 @@ async function loadAutomation() {
 async function updateSchedule(jobKey, field, value) {
   const body = {};
   if (field === 'day_of_week') body[field] = value === 'null' ? null : parseInt(value);
+  else if (field === 'week_parity') body[field] = value === 'null' ? null : parseInt(value);
   else if (field === 'hour_utc') body[field] = parseInt(value);
   else if (field === 'minute_utc') body[field] = parseInt(value);
   else if (field === 'enabled') body[field] = parseInt(value);
@@ -1096,6 +1297,228 @@ async function saveTip(id) {
     toast('✅ Guide modifié !');
     document.getElementById('edit-tip-modal').remove();
     await loadTips();
+  } else {
+    toast('❌ Erreur sauvegarde', true);
+  }
+}
+
+async function editRights(id) {
+  const data = await fetch(`${API}/api/weekly-events/rights`).then(r => r.json());
+  const item = data.find(d => d.id === id);
+  if (!item) return;
+
+  const existing = document.getElementById('edit-rights-modal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'edit-rights-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;';
+  modal.innerHTML = `
+    <div style="background:white;border-radius:12px;padding:28px;width:100%;max-width:800px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+      <div style="font-size:16px;font-weight:700;margin-bottom:20px;">✏️ Modifier Droits — Semaine ${item.week || ''}</div>
+      <label style="font-size:13px;font-weight:600;color:#666;display:block;margin-bottom:6px;">🇫🇷 Français</label>
+      <textarea id="edit-rights-fr" style="width:100%;height:220px;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:13px;resize:vertical;font-family:inherit;margin-bottom:16px;">${item.content_fr || ''}</textarea>
+      <label style="font-size:13px;font-weight:600;color:#666;display:block;margin-bottom:6px;">🇷🇺 Русский</label>
+      <textarea id="edit-rights-ru" style="width:100%;height:220px;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:13px;resize:vertical;font-family:inherit;margin-bottom:20px;">${item.content_ru || ''}</textarea>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-both" onclick="saveRights(${id})">💾 Sauvegarder</button>
+        <button class="btn btn-reject" onclick="document.getElementById('edit-rights-modal').remove()">Annuler</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
+
+async function saveRights(id) {
+  const fr = document.getElementById('edit-rights-fr').value;
+  const ru = document.getElementById('edit-rights-ru').value;
+  const res = await fetch(`${API}/api/weekly-events/rights/${id}`, {
+    method: 'PATCH',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({content_fr: fr, content_ru: ru}),
+  });
+  if (res.ok) {
+    toast('✅ Droits modifié !');
+    document.getElementById('edit-rights-modal').remove();
+    await loadRights();
+  } else {
+    toast('❌ Erreur sauvegarde', true);
+  }
+}
+
+async function editDoctor(id) {
+  const data = await fetch(`${API}/api/weekly-events/doctors`).then(r => r.json());
+  const item = data.find(d => d.id === id);
+  if (!item) return;
+
+  const existing = document.getElementById('edit-doctor-modal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'edit-doctor-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;';
+  modal.innerHTML = `
+    <div style="background:white;border-radius:12px;padding:28px;width:100%;max-width:800px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+      <div style="font-size:16px;font-weight:700;margin-bottom:20px;">✏️ Modifier Médecin — Semaine ${item.week || ''}</div>
+      <label style="font-size:13px;font-weight:600;color:#666;display:block;margin-bottom:6px;">🇫🇷 Français</label>
+      <textarea id="edit-doctor-fr" style="width:100%;height:220px;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:13px;resize:vertical;font-family:inherit;margin-bottom:16px;">${item.content_fr || ''}</textarea>
+      <label style="font-size:13px;font-weight:600;color:#666;display:block;margin-bottom:6px;">🇷🇺 Русский</label>
+      <textarea id="edit-doctor-ru" style="width:100%;height:220px;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:13px;resize:vertical;font-family:inherit;margin-bottom:20px;">${item.content_ru || ''}</textarea>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-both" onclick="saveDoctor(${id})">💾 Sauvegarder</button>
+        <button class="btn btn-reject" onclick="document.getElementById('edit-doctor-modal').remove()">Annuler</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
+
+async function saveDoctor(id) {
+  const fr = document.getElementById('edit-doctor-fr').value;
+  const ru = document.getElementById('edit-doctor-ru').value;
+  const res = await fetch(`${API}/api/weekly-events/doctors/${id}`, {
+    method: 'PATCH',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({content_fr: fr, content_ru: ru}),
+  });
+  if (res.ok) {
+    toast('✅ Médecin modifié !');
+    document.getElementById('edit-doctor-modal').remove();
+    await loadDoctors();
+  } else {
+    toast('❌ Erreur sauvegarde', true);
+  }
+}
+
+async function editPrestataire(id) {
+  const data = await fetch(`${API}/api/weekly-events/prestataire`).then(r => r.json());
+  const item = data.find(d => d.id === id);
+  if (!item) return;
+
+  const existing = document.getElementById('edit-prestataire-modal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'edit-prestataire-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;';
+  modal.innerHTML = `
+    <div style="background:white;border-radius:12px;padding:28px;width:100%;max-width:800px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+      <div style="font-size:16px;font-weight:700;margin-bottom:20px;">✏️ Modifier Prestataire — Semaine ${item.week || ''}</div>
+      <label style="font-size:13px;font-weight:600;color:#666;display:block;margin-bottom:6px;">🇫🇷 Français</label>
+      <textarea id="edit-prestataire-fr" style="width:100%;height:220px;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:13px;resize:vertical;font-family:inherit;margin-bottom:16px;">${item.content_fr || ''}</textarea>
+      <label style="font-size:13px;font-weight:600;color:#666;display:block;margin-bottom:6px;">🇷🇺 Русский</label>
+      <textarea id="edit-prestataire-ru" style="width:100%;height:220px;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:13px;resize:vertical;font-family:inherit;margin-bottom:20px;">${item.content_ru || ''}</textarea>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-both" onclick="savePrestataire(${id})">💾 Sauvegarder</button>
+        <button class="btn btn-reject" onclick="document.getElementById('edit-prestataire-modal').remove()">Annuler</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
+
+async function savePrestataire(id) {
+  const fr = document.getElementById('edit-prestataire-fr').value;
+  const ru = document.getElementById('edit-prestataire-ru').value;
+  const res = await fetch(`${API}/api/weekly-events/prestataire/${id}`, {
+    method: 'PATCH',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({content_fr: fr, content_ru: ru}),
+  });
+  if (res.ok) {
+    toast('✅ Prestataire modifié !');
+    document.getElementById('edit-prestataire-modal').remove();
+    await loadPrestataire();
+  } else {
+    toast('❌ Erreur sauvegarde', true);
+  }
+}
+
+async function editKids(id) {
+  const data = await fetch(`${API}/api/weekly-events/kids`).then(r => r.json());
+  const item = data.find(d => d.id === id);
+  if (!item) return;
+
+  const existing = document.getElementById('edit-kids-modal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'edit-kids-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;';
+  modal.innerHTML = `
+    <div style="background:white;border-radius:12px;padding:28px;width:100%;max-width:800px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+      <div style="font-size:16px;font-weight:700;margin-bottom:20px;">✏️ Modifier Kids Events — Semaine ${item.week || ''}</div>
+      <label style="font-size:13px;font-weight:600;color:#666;display:block;margin-bottom:6px;">🇫🇷 Français</label>
+      <textarea id="edit-kids-fr" style="width:100%;height:220px;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:13px;resize:vertical;font-family:inherit;margin-bottom:16px;">${item.content_fr || ''}</textarea>
+      <label style="font-size:13px;font-weight:600;color:#666;display:block;margin-bottom:6px;">🇷🇺 Русский</label>
+      <textarea id="edit-kids-ru" style="width:100%;height:220px;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:13px;resize:vertical;font-family:inherit;margin-bottom:20px;">${item.content_ru || ''}</textarea>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-both" onclick="saveKids(${id})">💾 Sauvegarder</button>
+        <button class="btn btn-reject" onclick="document.getElementById('edit-kids-modal').remove()">Annuler</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
+
+async function saveKids(id) {
+  const fr = document.getElementById('edit-kids-fr').value;
+  const ru = document.getElementById('edit-kids-ru').value;
+  const res = await fetch(`${API}/api/weekly-events/kids/${id}`, {
+    method: 'PATCH',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({content_fr: fr, content_ru: ru}),
+  });
+  if (res.ok) {
+    toast('✅ Kids modifié !');
+    document.getElementById('edit-kids-modal').remove();
+    await loadKidsEvents();
+  } else {
+    toast('❌ Erreur sauvegarde', true);
+  }
+}
+
+
+
+async function editDigest(id) {
+  const data = await fetch(`${API}/api/digests`).then(r => r.json());
+  const digest = data.find(d => d.id === id);
+  if (!digest) return;
+
+  const existing = document.getElementById('edit-digest-modal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'edit-digest-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;';
+  modal.innerHTML = `
+    <div style="background:white;border-radius:12px;padding:28px;width:100%;max-width:800px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+      <div style="font-size:16px;font-weight:700;margin-bottom:20px;">✏️ Modifier le Digest — ${digest.digest_date || ''}</div>
+      <label style="font-size:13px;font-weight:600;color:#666;display:block;margin-bottom:6px;">🇫🇷 Français</label>
+      <textarea id="edit-digest-fr" style="width:100%;height:220px;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:13px;resize:vertical;font-family:inherit;margin-bottom:16px;">${digest.content_fr || ''}</textarea>
+      <label style="font-size:13px;font-weight:600;color:#666;display:block;margin-bottom:6px;">🇷🇺 Русский</label>
+      <textarea id="edit-digest-ru" style="width:100%;height:220px;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:13px;resize:vertical;font-family:inherit;margin-bottom:20px;">${digest.content_ru || ''}</textarea>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-both" onclick="saveDigest(${id})">💾 Sauvegarder</button>
+        <button class="btn btn-reject" onclick="document.getElementById('edit-digest-modal').remove()">Annuler</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
+
+async function saveDigest(id) {
+  const fr = document.getElementById('edit-digest-fr').value;
+  const ru = document.getElementById('edit-digest-ru').value;
+  const res = await fetch(`${API}/api/digests/${id}`, {
+    method: 'PATCH',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({content_fr: fr, content_ru: ru}),
+  });
+  if (res.ok) {
+    toast('✅ News modifiée !');
+    document.getElementById('edit-digest-modal').remove();
+    await loadDigests();
   } else {
     toast('❌ Erreur sauvegarde', true);
   }

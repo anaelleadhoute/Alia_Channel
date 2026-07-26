@@ -6,6 +6,9 @@ LOG="/var/log/alia-cron.log"
 
 echo "[$(date -u '+%Y-%m-%d %H:%M')] Dispatcher running..." >> "$LOG"
 
+# Always check for due scheduled manual messages
+curl -s -X POST "${BASE}/api/publish/fire-scheduled-manual" > /dev/null 2>&1
+
 DUE=$(curl -s "${BASE}/api/schedules/due?location=server")
 JOBS=$(echo "$DUE" | python3 -c "
 import sys, json
@@ -25,8 +28,16 @@ run_job() {
     case "$JOB" in
         news_digest)
             RESULT=$(curl -s -X POST "${BASE}/api/scrape/news") ;;
+        scrape_news)
+            RESULT=$(curl -s -X POST "${BASE}/api/scrape/news") ;;
+        send_news)
+            RESULT=$(curl -s -X POST "${BASE}/api/publish/send-pending/digest") ;;
         telegram_deals)
             RESULT=$(curl -s -X POST "${BASE}/api/scrape/telegram-deals") ;;
+        scrape_deals)
+            RESULT=$(curl -s -X POST "${BASE}/api/scrape/telegram-deals") ;;
+        send_deals)
+            RESULT=$(curl -s -X POST "${BASE}/api/publish/send-pending/deal") ;;
         faq)
             RESULT=$(curl -s -X POST "${BASE}/api/faqs/generate") ;;
         kol_zchut)

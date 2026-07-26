@@ -30,7 +30,7 @@ async def _is_auto_publish(category: str = "") -> bool:
 
 async def _auto_publish_item(table: str, id_col: str, item_id: int, audience: str = "both"):
     """Auto-publish a single item if auto_publish is enabled."""
-    from api.routes.publish import _send_whatsapp
+    from api.routes.publish import _send_whatsapp, TABLE_IMAGE_MAP_FR, TABLE_IMAGE_MAP_RU, ALIA_AVATAR_URL
     import os
     WHAPI_GROUP_FR = os.getenv("WHAPI_GROUP_FR")
     WHAPI_GROUP_RU = os.getenv("WHAPI_GROUP_RU")
@@ -46,10 +46,10 @@ async def _auto_publish_item(table: str, id_col: str, item_id: int, audience: st
 
     updates = []
     if audience in ("fr", "both") and row["content_fr"] and not row["sent_wa_fr"]:
-        await _send_whatsapp(WHAPI_GROUP_FR, row["content_fr"])
+        await _send_whatsapp(WHAPI_GROUP_FR, row["content_fr"], TABLE_IMAGE_MAP_FR.get(table, ALIA_AVATAR_URL))
         updates.append("sent_wa_fr = 1")
     if audience in ("ru", "both") and row["content_ru"] and not row["sent_wa_ru"]:
-        await _send_whatsapp(WHAPI_GROUP_RU, row["content_ru"])
+        await _send_whatsapp(WHAPI_GROUP_RU, row["content_ru"], TABLE_IMAGE_MAP_RU.get(table, ALIA_AVATAR_URL))
         updates.append("sent_wa_ru = 1")
 
     if updates:
@@ -62,43 +62,22 @@ async def _auto_publish_item(table: str, id_col: str, item_id: int, audience: st
 
 @router.post("/news")
 async def scrape_news():
-    """Fetch all RSS sources, generate digest and send immediately."""
+    """Fetch all RSS sources and generate digest — does NOT send."""
     scrape_result = await run_scraper()
     ai_result = await process_pending_articles()
     digest_result = await generate_daily_digest()
-
-    digest_id = digest_result.get("digest_id")
-    if not digest_id and digest_result.get("status") == "skipped":
-        from datetime import date
-        today = date.today().strftime("%Y-%m-%d")
-        async with get_db() as db:
-            cursor = await db.execute(
-                "SELECT id FROM digests WHERE digest_date = ? AND sent_wa_fr = 0 AND sent_wa_ru = 0",
-                (today,)
-            )
-            pending = await cursor.fetchone()
-            if pending:
-                digest_id = pending["id"]
-
-    if digest_id:
-        await _auto_publish_item("digests", "id", digest_id)
-
-    return {"scrape": scrape_result, "ai": ai_result, "digest": digest_result, "auto_published": bool(digest_id)}
+    return {"scrape": scrape_result, "ai": ai_result, "digest": digest_result}
 
 
 @router.post("/telegram-deals")
 async def scrape_telegram_deals():
-    """Scrape Telegram deal channels and process new deals with AI. Auto-publishes if enabled."""
+    """Scrape Telegram deal channels and process new deals with AI — does NOT send."""
     scrape_result = await run_telegram_scraper()
     ai_result = await process_pending_deals()
-
     best_id = None
     if ai_result.get("deal_ids"):
         best_id = await pick_best_deal(ai_result["deal_ids"])
-        if best_id:
-            await _auto_publish_item("deals", "id", best_id)
-
-    return {"scrape": scrape_result, "ai": ai_result, "best_deal_id": best_id, "auto_published": bool(best_id)}
+    return {"scrape": scrape_result, "ai": ai_result, "best_deal_id": best_id}
 
 
 @router.post("/tips")
@@ -126,7 +105,7 @@ class ManualTip(BaseModel):
 async def manual_tip(body: ManualTip):
     """Store raw Kol Zchut content from Mac scraper and immediately generate FR+RU."""
     import json
-    week = datetime.utcnow().strftime("%Y-W%U")
+    week = f"{datetime.utcnow().isocalendar()[0]}-W{datetime.utcnow().isocalendar()[1]:02d}"
     async with get_db() as db:
         existing = await db.execute("SELECT id FROM tips WHERE week = ?", (week,))
         row = await existing.fetchone()
@@ -157,7 +136,7 @@ async def manual_tip(body: ManualTip):
 @router.post("/tips/generate")
 async def generate_tip(force: bool = False):
     """Generate FR+RU tip from stored raw payload and auto-publish."""
-    week = datetime.utcnow().strftime("%Y-W%U")
+    week = f"{datetime.utcnow().isocalendar()[0]}-W{datetime.utcnow().isocalendar()[1]:02d}"
     import json
     async with get_db() as db:
         if force:
@@ -183,7 +162,7 @@ async def manual_rights(body: ManualTip):
     """Store raw Kol Zchut rights content from Mac scraper and immediately generate FR+RU."""
     import json
     from processors.rights_processor import generate_weekly_rights
-    week = datetime.utcnow().strftime("%Y-W%U")
+    week = f"{datetime.utcnow().isocalendar()[0]}-W{datetime.utcnow().isocalendar()[1]:02d}"
     async with get_db() as db:
         existing = await db.execute("SELECT id FROM weekly_rights WHERE week = ?", (week,))
         row = await existing.fetchone()
@@ -236,7 +215,7 @@ async def scrape_prestataire_manual(body: PrestatairePayload):
     """Store raw prestataire data from Mac scraper and immediately generate FR+RU."""
     import json
     from processors.prestataire_processor import generate_weekly_prestataire
-    week = datetime.utcnow().strftime("%Y-W%U")
+    week = f"{datetime.utcnow().isocalendar()[0]}-W{datetime.utcnow().isocalendar()[1]:02d}"
     async with get_db() as db:
         if body.force:
             await db.execute("DELETE FROM weekly_prestataire WHERE week = ?", (week,))
@@ -267,7 +246,7 @@ async def scrape_events_kids_manual(body: EventsPayload):
     """Store raw kids events from Mac scraper and immediately generate FR+RU."""
     import json
     from processors.events_kids_processor import generate_weekly_kids_events
-    week = datetime.utcnow().strftime("%Y-W%U")
+    week = f"{datetime.utcnow().isocalendar()[0]}-W{datetime.utcnow().isocalendar()[1]:02d}"
     async with get_db() as db:
         await db.execute(
             "INSERT OR REPLACE INTO weekly_events_kids (week, raw_payload) VALUES (?, ?)",

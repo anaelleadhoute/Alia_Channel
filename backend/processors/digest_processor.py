@@ -27,7 +27,7 @@ Voici les informations importantes de la journée:
 
 [3 à 5 news résumées, chacune sur une nouvelle ligne, avec un emoji pertinent au début]
 
-📢 Rejoignez la communauté Alia et recevez toutes ces infos chaque semaine :
+📢 Rejoignez la communauté Alia:
 https://tinyurl.com/Alia-community
 
 Aucun astérisque, aucun markdown, aucun gras. Réponds uniquement avec le texte du message."""
@@ -48,7 +48,7 @@ PROMPT_RU = """Ты редактор AL.IA Channel — медиа для рус�
 
 [3-5 новостей, каждая с новой строки, с подходящим эмодзи в начале]
 
-📢 Присоединяйтесь к сообществу Alia и получайте все эти материалы каждую неделю :
+Присоединяйтесь к сообществу Alia и получайте всё это каждую неделю :
 https://tinyurl.com/Alia-community-RU
 
 Никаких звёздочек, никакого markdown, никакого жирного текста. Отвечай только текстом сообщения.

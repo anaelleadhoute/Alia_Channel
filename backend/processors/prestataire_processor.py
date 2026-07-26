@@ -24,15 +24,15 @@ Satisfaction : {satisfaction}% très satisfaits
 
 🛠️ Le Réseau Alia
 
-[Commence par une phrase avec une emoji thématique sur le contexte saisonnier ou la situation olim qui explique pourquoi beaucoup cherchent un(e) {category} cette semaine]
+[Commence par une phrase avec une emoji thématique qui présente ce professionnel de façon engageante]
 
 Grâce à notre partenariat avec Midrag, Alia peut désormais vous orienter vers un professionnel recommandé.
 
 [Présente le prestataire : nom, note, ville, fiabilité en 1-2 lignes max]
 
-🤖 Décrivez simplement votre problème à Alia.
+🔗 Voir son profil Midrag : {url}
 
-📢 Rejoignez la communauté Alia pour découvrir d'autres services utiles aux olim :
+📢 Rejoignez la communauté Alia:
 https://tinyurl.com/Alia-community
 
 IMPORTANT : traduis en français le nom du service ({category}) et le titre professionnel hébreu dans le nom du prestataire (ex: רו"ח = expert-comptable, שרברב = plombier, חשמלאי = électricien, etc.). Écris le nom du prestataire en translittération latine si nécessaire.
@@ -52,15 +52,15 @@ RU_PROMPT = """Ты редактор Alia Channel — WhatsApp-сообщест�
 
 🛠️ Сеть Alia
 
-[Начни с предложения с тематическим эмодзи о сезонном контексте или ситуации олим, объясняющего почему многие ищут {category} на этой неделе]
+[Начни с предложения с тематическим эмодзи, которое представляет этого специалиста в привлекательной манере]
 
 Благодаря нашему партнёрству с Midrag, Alia теперь может направить вас к рекомендованному специалисту.
 
 [Представь специалиста: имя, оценка, город, надёжность — максимум 1-2 строки]
 
-🤖 Просто опишите свою проблему Alia.
+🔗 Профиль на Midrag : {url}
 
-📢 Присоединяйтесь к сообществу Alia, чтобы узнавать о других полезных услугах для олим :
+Присоединяйтесь к сообществу Alia и получайте всё это каждую неделю :
 https://tinyurl.com/Alia-community-RU
 
 ВАЖНО : переведи на русский язык название услуги ({category}) и профессиональный иврит-префикс в имени специалиста (например: רו"ח = бухгалтер/CPA, שרברב = сантехник, חשמלאי = электрик и т.д.). Имя специалиста напиши в русской транслитерации если нужно.
@@ -69,7 +69,7 @@ https://tinyurl.com/Alia-community-RU
 
 async def generate_weekly_prestataire(force: bool = False, data: dict | None = None) -> dict:
     import asyncio
-    week = datetime.utcnow().strftime("%Y-W%U")
+    week = f"{datetime.utcnow().isocalendar()[0]}-W{datetime.utcnow().isocalendar()[1]:02d}"
 
     async with get_db() as db:
         cursor = await db.execute("SELECT id, content_fr, raw_payload FROM weekly_prestataire WHERE week = ?", (week,))
@@ -94,19 +94,22 @@ async def generate_weekly_prestataire(force: bool = False, data: dict | None = N
 
     satisfaction_str = f"{data['satisfaction']}%" if data.get("satisfaction") else "N/A"
 
+    prof_url = data.get("url", "")
     fr_resp, ru_resp = await asyncio.gather(
         claude.messages.create(
-            model="claude-haiku-4-5-20251001", max_tokens=200,
+            model="claude-haiku-4-5-20251001", max_tokens=500,
             messages=[{"role": "user", "content": FR_PROMPT.format(
                 name=data["name"], category=data["category"], city=data["city"],
-                rating=data["rating"], reviews=data["reviews"], satisfaction=satisfaction_str
+                rating=data["rating"], reviews=data["reviews"], satisfaction=satisfaction_str,
+                url=prof_url
             )}]
         ),
         claude.messages.create(
-            model="claude-haiku-4-5-20251001", max_tokens=200,
+            model="claude-haiku-4-5-20251001", max_tokens=500,
             messages=[{"role": "user", "content": RU_PROMPT.format(
                 name=data["name"], category=data["category"], city=data["city"],
-                rating=data["rating"], reviews=data["reviews"], satisfaction=satisfaction_str
+                rating=data["rating"], reviews=data["reviews"], satisfaction=satisfaction_str,
+                url=prof_url
             )}]
         ),
     )

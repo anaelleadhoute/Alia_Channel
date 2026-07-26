@@ -34,6 +34,9 @@ Format EXACT (sans réponses, sans rien ajouter avant ou après) :
 
 Pour connaître les réponses, parle à Alia 👉 {alia_link}
 
+📢 Rejoignez la communauté Alia:
+https://tinyurl.com/Alia-community
+
 Réponds uniquement avec le texte du message."""
 
 PROMPT_RU = """Ты эксперт по иммиграции и правам олим в Израиле.
@@ -52,12 +55,15 @@ PROMPT_RU = """Ты эксперт по иммиграции и правам о�
 
 Чтобы узнать ответы — напиши Alia 👉 {alia_link}
 
+Присоединяйтесь к сообществу Alia и получайте всё это каждую неделю :
+https://tinyurl.com/Alia-community-RU
+
 Отвечай только текстом сообщения."""
 
 
 async def generate_weekly_faq(force: bool = False) -> dict:
     """Generate a weekly FAQ for olim in FR + RU and save to DB."""
-    week = datetime.utcnow().strftime("%Y-W%U")
+    week = f"{datetime.utcnow().isocalendar()[0]}-W{datetime.utcnow().isocalendar()[1]:02d}"
 
     async with get_db() as db:
         existing = await db.execute(

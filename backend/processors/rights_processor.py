@@ -29,7 +29,7 @@ Format EXACT :
 🤖 Pour plus d'informations, demandez à Alia.
 https://wa.me/972549675013?text=Aide-moi
 
-📢 Rejoignez la communauté Alia pour découvrir toutes les aides disponibles :
+📢 Rejoignez la communauté Alia:
 https://tinyurl.com/Alia-community
 
 Réponds uniquement avec le texte, sans JSON."""
@@ -54,14 +54,14 @@ RU_PROMPT = """Ты редактор AL.IA Channel — медиа для рус�
 🤖 Для получения дополнительной информации спросите у Alia.
 https://wa.me/972549675013?text=Помоги
 
-📢 Присоединяйтесь к сообществу Alia, чтобы узнать о всех доступных льготах :
+Присоединяйтесь к сообществу Alia и получайте всё это каждую неделю :
 https://tinyurl.com/Alia-community-RU
 
 Отвечай только текстом, без JSON."""
 
 
 async def generate_weekly_rights(force: bool = False) -> dict:
-    week = datetime.utcnow().strftime("%Y-W%U")
+    week = f"{datetime.utcnow().isocalendar()[0]}-W{datetime.utcnow().isocalendar()[1]:02d}"
 
     async with get_db() as db:
         cursor = await db.execute("SELECT * FROM weekly_rights WHERE week = ?", (week,))

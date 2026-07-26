@@ -50,7 +50,7 @@ def extract_text(html: str) -> str:
 
 
 def run():
-    week_number = int(datetime.now().strftime("%U"))
+    week_number = datetime.now().isocalendar()[1]
     term = KOLZCHUT_TERMS[week_number % len(KOLZCHUT_TERMS)]
     print(f"[guide] Week {week_number} — searching: {term}")
 
