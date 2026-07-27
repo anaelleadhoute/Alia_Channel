@@ -107,6 +107,11 @@ async def generate_weekly_doctor(force: bool = False) -> dict:
         if row and not force:
             return {"status": "skipped", "week": week}
         if row and force:
+            # Reset last_featured for current week's doctor so a different one gets picked
+            await db.execute(
+                "UPDATE doctors SET last_featured = NULL WHERE id = ("
+                "SELECT doctor_id FROM weekly_doctor WHERE week = ?)", (week,)
+            )
             await db.execute(
                 "UPDATE weekly_doctor SET content_fr=NULL, content_ru=NULL, sent_wa_fr=0, sent_wa_ru=0 WHERE week=?",
                 (week,)
