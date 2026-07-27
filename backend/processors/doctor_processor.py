@@ -90,7 +90,7 @@ https://tinyurl.com/Alia-community-RU
 async def _pick_doctor(lang: str, db) -> dict | None:
     cursor = await db.execute(
         """SELECT * FROM doctors WHERE language = ?
-           ORDER BY last_featured ASC NULLS FIRST, RANDOM()
+           ORDER BY CASE WHEN last_featured IS NULL THEN 0 ELSE 1 END, RANDOM()
            LIMIT 1""",
         (lang,)
     )
