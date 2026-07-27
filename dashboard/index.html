@@ -1544,14 +1544,14 @@ function toast(msg, isError = false) {
   setTimeout(() => el.classList.remove('show'), 3000);
 }
 
-// ── Inline queue (inside each category tab) ──────────────────────────────────
+// ── Queue (inline in each category tab) ───────────────────────────────────────
 async function loadInlineQueue(category) {
   const listEl = document.getElementById(`queue-${category}-list`);
   const countEl = document.getElementById(`queue-${category}-count`);
   if (!listEl) return;
   listEl.innerHTML = '<div class="loading">Chargement…</div>';
   try {
-    const data = await apiFetch(`/api/queue?category=${category}&limit=200`);
+    const data = await fetch(`${API}/api/queue?category=${category}&limit=200`).then(r => r.json());
     const items = data.items || [];
     const pending = items.filter(i => i.status === 'pending');
     const sent = items.filter(i => i.status === 'sent');
@@ -1570,11 +1570,10 @@ async function loadInlineQueue(category) {
       const label = isPending ? weekLabel(pendingIndex++) : '✅ Envoyé';
       const borderColor = isPending ? (pendingIndex === 1 ? '#2e7d32' : '#1565c0') : '#ccc';
       const bgColor = isPending ? (pendingIndex === 1 ? '#e8f5e9' : '#fff') : '#fafafa';
-
       return `<div class="card" style="border-left:4px solid ${borderColor};background:${bgColor};opacity:${isPending ? 1 : 0.5};margin-bottom:16px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
           <span style="font-weight:700;font-size:13px;color:${borderColor};">${label}</span>
-          ${isPending ? `<button class="btn" style="font-size:11px;padding:3px 8px;background:#ffebee;color:#c62828;" onclick="deleteQueueItem(${item.id}, '${category}')">🗑 Supprimer</button>` : ''}
+          ${isPending ? `<button class="btn" style="font-size:11px;padding:3px 8px;background:#ffebee;color:#c62828;" onclick="deleteQueueItem(${item.id},'${category}')">🗑 Supprimer</button>` : ''}
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
           <div>
@@ -1596,7 +1595,7 @@ async function loadInlineQueue(category) {
 async function sendNextFromQueueInline(category) {
   if (!confirm(`Envoyer le prochain item "${category}" de la queue sur WhatsApp ?`)) return;
   try {
-    const data = await apiFetch(`/api/queue/send/${category}`, { method: 'POST' });
+    const data = await fetch(`${API}/api/queue/send/${category}`, { method: 'POST' }).then(r => r.json());
     if (data.status === 'sent') {
       toast(`✅ Envoyé ! FR=${data.sent_fr} RU=${data.sent_ru}`);
       await loadInlineQueue(category);
@@ -1608,98 +1607,12 @@ async function sendNextFromQueueInline(category) {
   } catch(e) { toast(`❌ ${e.message}`); }
 }
 
-// Override deleteQueueItem to also refresh inline view
 async function deleteQueueItem(id, category) {
   if (!confirm('Supprimer cet item de la queue ?')) return;
   try {
-    await apiFetch(`/api/queue/${id}`, { method: 'DELETE' });
+    await fetch(`${API}/api/queue/${id}`, { method: 'DELETE' });
     toast('🗑 Supprimé');
     if (category) await loadInlineQueue(category);
-    else if (currentQueueCategory) await loadQueue(currentQueueCategory);
-  } catch(e) { toast(`❌ ${e.message}`); }
-}
-
-// ── Queue ──────────────────────────────────────────────────────────────────
-let currentQueueCategory = null;
-
-async function loadQueueStats() {
-  try {
-    const data = await apiFetch('/api/queue/stats');
-    const stats = {};
-    for (const row of data.stats || []) {
-      if (!stats[row.category]) stats[row.category] = { pending: 0, sent: 0 };
-      stats[row.category][row.status] = (stats[row.category][row.status] || 0) + row.cnt;
-    }
-    const el = document.getElementById('queueStats');
-    const cats = { guide: '📄', droits: '💰', prestataire: '🏅', kids: '👧' };
-    el.innerHTML = Object.entries(cats).map(([cat, icon]) => {
-      const s = stats[cat] || { pending: 0, sent: 0 };
-      return `<div style="background:#f8f9fa;border-radius:8px;padding:10px 16px;min-width:130px;">
-        <div style="font-weight:600;margin-bottom:4px;">${icon} ${cat}</div>
-        <div style="font-size:13px;color:#2e7d32;">✅ ${s.sent || 0} envoyés</div>
-        <div style="font-size:13px;color:#1565c0;">⏳ ${s.pending || 0} en attente</div>
-      </div>`;
-    }).join('');
-  } catch(e) { console.error(e); }
-}
-
-async function loadQueue(category) {
-  currentQueueCategory = category;
-  document.querySelectorAll('[id^="qbtn-"]').forEach(b => b.style.fontWeight = '');
-  const btn = document.getElementById('qbtn-' + category);
-  if (btn) btn.style.fontWeight = '700';
-
-  const el = document.getElementById('queueCards');
-  el.innerHTML = '<div class="loading">Chargement…</div>';
-  await loadQueueStats();
-
-  try {
-    const data = await apiFetch(`/api/queue?category=${category}&limit=100`);
-    const items = data.items || [];
-    if (!items.length) { el.innerHTML = '<div class="loading">Aucun item dans la queue.</div>'; return; }
-
-    el.innerHTML = items.map(item => {
-      const isPending = item.status === 'pending';
-      const preview = item.content_fr || '(contenu non généré)';
-      return `<div class="card" style="border-left:4px solid ${isPending ? '#1565c0' : '#aaa'};">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-          <span style="font-weight:600;">#${item.queue_order} — ${item.category}</span>
-          <span style="font-size:12px;padding:2px 8px;border-radius:10px;background:${isPending ? '#e3f2fd' : '#f5f5f5'};color:${isPending ? '#1565c0' : '#888'};">
-            ${isPending ? '⏳ En attente' : '✅ Envoyé'}
-          </span>
-        </div>
-        <div style="font-size:12px;color:#888;margin-bottom:6px;">${item.source_url || ''}</div>
-        <div style="font-size:13px;color:#333;white-space:pre-wrap;">${preview}</div>
-        ${isPending ? `<div style="margin-top:8px;"><button class="btn" style="font-size:12px;background:#ffebee;color:#c62828;" onclick="deleteQueueItem(${item.id})">🗑 Supprimer</button></div>` : ''}
-      </div>`;
-    }).join('');
-  } catch(e) {
-    el.innerHTML = `<div class="loading">Erreur: ${e.message}</div>`;
-  }
-}
-
-async function sendNextFromQueue() {
-  if (!currentQueueCategory) { toast('⚠️ Sélectionne une catégorie d\'abord'); return; }
-  if (!confirm(`Envoyer le prochain item de la queue "${currentQueueCategory}" sur WhatsApp ?`)) return;
-  try {
-    const data = await apiFetch(`/api/queue/send/${currentQueueCategory}`, { method: 'POST' });
-    if (data.status === 'sent') {
-      toast(`✅ Envoyé ! FR=${data.sent_fr} RU=${data.sent_ru}`);
-      await loadQueue(currentQueueCategory);
-    } else if (data.status === 'empty') {
-      toast('⚠️ Queue vide pour cette catégorie');
-    } else {
-      toast(`❌ Erreur: ${data.reason || JSON.stringify(data)}`);
-    }
-  } catch(e) { toast(`❌ ${e.message}`); }
-}
-
-async function deleteQueueItem(id) {
-  if (!confirm('Supprimer cet item de la queue ?')) return;
-  try {
-    await apiFetch(`/api/queue/${id}`, { method: 'DELETE' });
-    toast('🗑 Supprimé');
-    if (currentQueueCategory) await loadQueue(currentQueueCategory);
   } catch(e) { toast(`❌ ${e.message}`); }
 }
 
