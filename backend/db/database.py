@@ -325,6 +325,20 @@ async def init_db():
                  'scrape_prestataire', 'generate_prestataire')""",
             """UPDATE schedules SET enabled = 1 WHERE job_key IN
                 ('queue_send_guide', 'queue_send_droits', 'queue_send_prestataire', 'queue_send_kids')""",
+            # Drop old locally-scraped content tables (replaced by content_queue)
+            "DROP TABLE IF EXISTS tips",
+            "DROP TABLE IF EXISTS weekly_rights",
+            "DROP TABLE IF EXISTS weekly_prestataire",
+            "DROP TABLE IF EXISTS weekly_events_kids",
+            # Delete old schedule rows for these categories
+            """DELETE FROM schedules WHERE job_key IN (
+                'send_tip', 'send_rights', 'send_kids', 'send_prestataire',
+                'scrape_kol_zchut', 'generate_kol_zchut',
+                'scrape_rights', 'generate_rights',
+                'scrape_kids_events', 'generate_kids_events',
+                'scrape_prestataire', 'generate_prestataire',
+                'kol_zchut', 'prestataire', 'kids_events'
+            )""",
         ]:
             try:
                 await db.execute(migration)
