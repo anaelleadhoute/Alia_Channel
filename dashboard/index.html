@@ -181,7 +181,6 @@
   <button class="tab" onclick="switchTab('prestataire')">🏅 Prestataire</button>
   <button class="tab" onclick="switchTab('rights')">💰 Droits</button>
   <button class="tab" onclick="switchTab('doctors')">🏥 Médecin</button>
-  <button class="tab" onclick="switchTab('contests')">🎁 Concours</button>
 <button class="tab" onclick="switchTab('automation')">⚙️ Automation</button>
   <button class="tab" onclick="switchTab('maintenance')">🧹 Maintenance</button>
   <button class="tab" onclick="switchTab('send')">✏️ Send</button>
@@ -263,22 +262,6 @@
   </div>
 
   <!-- CONTESTS -->
-  <div class="section" id="section-contests">
-    <div class="manual-panel">
-      <h2>🎁 Nouveau concours / cadeau</h2>
-      <input type="text" id="contestTitle" placeholder="Titre (ex: Concours été 2026)" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;margin-bottom:12px;font-family:inherit;">
-      <label style="font-size:13px;font-weight:600;color:#666;display:block;margin-bottom:6px;">🇫🇷 Message français</label>
-      <textarea id="contestFr" placeholder="Écris le message en français…" style="width:100%;height:140px;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:14px;resize:vertical;font-family:inherit;margin-bottom:12px;"></textarea>
-      <label style="font-size:13px;font-weight:600;color:#666;display:block;margin-bottom:6px;">🇷🇺 Message russe <span style="font-weight:400;color:#aaa">(laisser vide pour traduction automatique)</span></label>
-      <textarea id="contestRu" placeholder="Traduction automatique si vide…" style="width:100%;height:140px;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:14px;resize:vertical;font-family:inherit;margin-bottom:12px;"></textarea>
-      <div class="manual-actions">
-        <button class="btn btn-both" onclick="createContest()">✨ Créer</button>
-        <span style="color:#999;font-size:13px;">Le RU sera auto-traduit si laissé vide</span>
-      </div>
-    </div>
-    <div class="queue-header"><h2>Concours & Cadeaux</h2></div>
-    <div class="cards" id="contestCards"><div class="loading">Loading…</div></div>
-  </div>
 
 
 <!-- AUTOMATION -->
