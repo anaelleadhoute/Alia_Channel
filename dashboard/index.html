@@ -206,10 +206,13 @@
   <div class="section" id="section-tips">
     <div class="actions-bar">
       <span>Actions:</span>
-      <button class="btn btn-primary" onclick="generateTipForce()">🔄 Regénérer Guide</button>
+      <button class="btn btn-primary" onclick="generateTipForce()">🔄 Regénérer Guide semaine</button>
+      <button class="btn btn-primary" onclick="sendNextFromQueueInline('guide')" style="background:#2e7d32;">▶ Envoyer suivant (queue)</button>
     </div>
-    <div class="queue-header"><h2>📄 Guide Alia</h2></div>
+    <div class="queue-header"><h2>📄 Guide Alia — cette semaine</h2></div>
     <div class="cards" id="tipCards"><div class="loading">Loading…</div></div>
+    <div class="queue-header" style="margin-top:24px;"><h2>📦 Queue Guide <span id="queue-guide-count" style="font-size:13px;font-weight:400;color:#888;"></span></h2></div>
+    <div id="queue-guide-list"><div class="loading">Loading…</div></div>
   </div>
 
   <!-- DEALS -->
@@ -227,10 +230,13 @@
   <div class="section" id="section-events-kids">
     <div class="actions-bar">
       <span>Actions:</span>
-      <button class="btn btn-primary" onclick="generateKidsForce()">🔄 Regénérer Kids</button>
+      <button class="btn btn-primary" onclick="generateKidsForce()">🔄 Regénérer Kids semaine</button>
+      <button class="btn btn-primary" onclick="sendNextFromQueueInline('kids')" style="background:#2e7d32;">▶ Envoyer suivant (queue)</button>
     </div>
-    <div class="queue-header"><h2>👧 Événements familles & enfants</h2></div>
+    <div class="queue-header"><h2>👧 Événements familles & enfants — cette semaine</h2></div>
     <div class="cards" id="eventKidsCards"><div class="loading">Loading…</div></div>
+    <div class="queue-header" style="margin-top:24px;"><h2>📦 Queue Kids <span id="queue-kids-count" style="font-size:13px;font-weight:400;color:#888;"></span></h2></div>
+    <div id="queue-kids-list"><div class="loading">Loading…</div></div>
   </div>
 
   <!-- PRESTATAIRE -->
@@ -238,10 +244,13 @@
     <div class="actions-bar">
       <span>Actions:</span>
       <button class="btn btn-primary" onclick="scrapePrestataire()">🏅 Scraper & Générer Prestataire</button>
-      <button class="btn btn-primary" onclick="generatePrestataireForce()">🔄 Regénérer Prestataire</button>
+      <button class="btn btn-primary" onclick="generatePrestataireForce()">🔄 Regénérer Prestataire semaine</button>
+      <button class="btn btn-primary" onclick="sendNextFromQueueInline('prestataire')" style="background:#2e7d32;">▶ Envoyer suivant (queue)</button>
     </div>
-    <div class="queue-header"><h2>🏅 Prestataire de la semaine</h2></div>
+    <div class="queue-header"><h2>🏅 Prestataire de la semaine — cette semaine</h2></div>
     <div class="cards" id="prestataireCards"><div class="loading">Loading…</div></div>
+    <div class="queue-header" style="margin-top:24px;"><h2>📦 Queue Prestataire <span id="queue-prestataire-count" style="font-size:13px;font-weight:400;color:#888;"></span></h2></div>
+    <div id="queue-prestataire-list"><div class="loading">Loading…</div></div>
   </div>
 
   <!-- DROITS -->
@@ -249,10 +258,13 @@
     <div class="actions-bar">
       <span>Actions:</span>
       <button class="btn btn-primary" onclick="generateRights()">💰 Générer Droits</button>
-      <button class="btn btn-primary" onclick="generateRightsForce()">🔄 Regénérer Droits</button>
+      <button class="btn btn-primary" onclick="generateRightsForce()">🔄 Regénérer Droits semaine</button>
+      <button class="btn btn-primary" onclick="sendNextFromQueueInline('droits')" style="background:#2e7d32;">▶ Envoyer suivant (queue)</button>
     </div>
-    <div class="queue-header"><h2>💰 Les Droits Alia</h2></div>
+    <div class="queue-header"><h2>💰 Les Droits Alia — cette semaine</h2></div>
     <div class="cards" id="rightsCards"><div class="loading">Loading…</div></div>
+    <div class="queue-header" style="margin-top:24px;"><h2>📦 Queue Droits <span id="queue-droits-count" style="font-size:13px;font-weight:400;color:#888;"></span></h2></div>
+    <div id="queue-droits-list"><div class="loading">Loading…</div></div>
   </div>
 
   <!-- MÉDECIN -->
@@ -417,6 +429,10 @@ function switchTab(name) {
   document.getElementById(`section-${name}`).classList.add('active');
   event.target.classList.add('active');
   if (name === 'queue') loadQueueStats();
+  if (name === 'tips') loadInlineQueue('guide');
+  if (name === 'rights') loadInlineQueue('droits');
+  if (name === 'prestataire') loadInlineQueue('prestataire');
+  if (name === 'events-kids') loadInlineQueue('kids');
 }
 
 // ── Queue (all pending content) ──────────────────────────────────────────────
@@ -1555,6 +1571,63 @@ function toast(msg, isError = false) {
   el.textContent = msg;
   el.className = 'toast show' + (isError ? ' error' : '');
   setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ── Inline queue (inside each category tab) ──────────────────────────────────
+async function loadInlineQueue(category) {
+  const listEl = document.getElementById(`queue-${category}-list`);
+  const countEl = document.getElementById(`queue-${category}-count`);
+  if (!listEl) return;
+  listEl.innerHTML = '<div class="loading">Chargement…</div>';
+  try {
+    const data = await apiFetch(`/api/queue?category=${category}&limit=100`);
+    const items = data.items || [];
+    const pending = items.filter(i => i.status === 'pending');
+    const sent = items.filter(i => i.status === 'sent');
+    if (countEl) countEl.textContent = `— ${pending.length} en attente · ${sent.length} envoyés`;
+    if (!items.length) { listEl.innerHTML = '<div class="loading">Queue vide — lance batch_scrape.py pour remplir.</div>'; return; }
+    listEl.innerHTML = items.map(item => {
+      const isPending = item.status === 'pending';
+      return `<div class="card" style="border-left:4px solid ${isPending ? '#1565c0' : '#ccc'};opacity:${isPending ? 1 : 0.55};">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <span style="font-weight:600;font-size:13px;">#${item.queue_order}</span>
+          <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:${isPending ? '#e3f2fd' : '#f5f5f5'};color:${isPending ? '#1565c0' : '#888'};">
+            ${isPending ? '⏳ En attente' : '✅ Envoyé'}
+          </span>
+        </div>
+        <div style="font-size:12px;color:#555;white-space:pre-wrap;">${item.content_fr || '(non généré)'}</div>
+        ${isPending ? `<div style="margin-top:8px;"><button class="btn" style="font-size:11px;background:#ffebee;color:#c62828;" onclick="deleteQueueItem(${item.id}, '${category}')">🗑</button></div>` : ''}
+      </div>`;
+    }).join('');
+  } catch(e) {
+    listEl.innerHTML = `<div class="loading">Erreur: ${e.message}</div>`;
+  }
+}
+
+async function sendNextFromQueueInline(category) {
+  if (!confirm(`Envoyer le prochain item "${category}" de la queue sur WhatsApp ?`)) return;
+  try {
+    const data = await apiFetch(`/api/queue/send/${category}`, { method: 'POST' });
+    if (data.status === 'sent') {
+      toast(`✅ Envoyé ! FR=${data.sent_fr} RU=${data.sent_ru}`);
+      await loadInlineQueue(category);
+    } else if (data.status === 'empty') {
+      toast('⚠️ Queue vide pour cette catégorie');
+    } else {
+      toast(`❌ Erreur: ${data.reason || JSON.stringify(data)}`);
+    }
+  } catch(e) { toast(`❌ ${e.message}`); }
+}
+
+// Override deleteQueueItem to also refresh inline view
+async function deleteQueueItem(id, category) {
+  if (!confirm('Supprimer cet item de la queue ?')) return;
+  try {
+    await apiFetch(`/api/queue/${id}`, { method: 'DELETE' });
+    toast('🗑 Supprimé');
+    if (category) await loadInlineQueue(category);
+    else if (currentQueueCategory) await loadQueue(currentQueueCategory);
+  } catch(e) { toast(`❌ ${e.message}`); }
 }
 
 // ── Queue ──────────────────────────────────────────────────────────────────
