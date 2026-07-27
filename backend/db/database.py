@@ -316,6 +316,15 @@ async def init_db():
                 ('queue_send_droits',      '💰 Queue → Droits',      4,    12, 0, 0, 'server'),
                 ('queue_send_prestataire', '🏅 Queue → Prestataire', 4,    10, 0, 0, 'server'),
                 ('queue_send_kids',        '👧 Queue → Kids',        1,    10, 0, 0, 'server')""",
+            # Switch to queue-based sending: disable old jobs, enable queue jobs
+            """UPDATE schedules SET enabled = 0 WHERE job_key IN
+                ('send_tip', 'send_rights', 'send_kids', 'send_prestataire',
+                 'scrape_kol_zchut', 'generate_kol_zchut',
+                 'scrape_rights', 'generate_rights',
+                 'scrape_kids_events', 'generate_kids_events',
+                 'scrape_prestataire', 'generate_prestataire')""",
+            """UPDATE schedules SET enabled = 1 WHERE job_key IN
+                ('queue_send_guide', 'queue_send_droits', 'queue_send_prestataire', 'queue_send_kids')""",
         ]:
             try:
                 await db.execute(migration)
