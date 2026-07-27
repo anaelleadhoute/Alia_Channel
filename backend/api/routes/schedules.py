@@ -44,8 +44,8 @@ async def get_due_jobs(location: str = "server"):
     now = datetime.now(timezone.utc)
     from zoneinfo import ZoneInfo
     now_il = now.astimezone(ZoneInfo("Asia/Jerusalem"))
-    current_hour = now_il.hour
-    current_minute = now_il.minute
+    current_hour = now.hour          # UTC hour for DB lookup
+    current_minute = now.minute      # UTC minute for DB lookup
     current_dow = now_il.weekday()
     current_dow_js = (current_dow + 1) % 7
     current_iso_week = now_il.isocalendar()[1]
