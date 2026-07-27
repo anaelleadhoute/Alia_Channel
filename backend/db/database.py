@@ -296,6 +296,26 @@ async def init_db():
                 status       TEXT DEFAULT 'pending',
                 created_at   DATETIME DEFAULT CURRENT_TIMESTAMP
             )""",
+            """CREATE TABLE IF NOT EXISTS content_queue (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                category    TEXT NOT NULL,
+                source_url  TEXT,
+                raw_payload TEXT,
+                content_fr  TEXT,
+                content_ru  TEXT,
+                queue_order INTEGER NOT NULL DEFAULT 0,
+                status      TEXT DEFAULT 'pending',
+                sent_wa_fr  INTEGER DEFAULT 0,
+                sent_wa_ru  INTEGER DEFAULT 0,
+                created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+                sent_at     DATETIME
+            )""",
+            # Queue send jobs for all locally-scraped categories
+            """INSERT OR IGNORE INTO schedules (job_key, label, day_of_week, hour_utc, minute_utc, enabled, location) VALUES
+                ('queue_send_guide',       '📄 Queue → Guide',       3,    11, 0, 0, 'server'),
+                ('queue_send_droits',      '💰 Queue → Droits',      4,    12, 0, 0, 'server'),
+                ('queue_send_prestataire', '🏅 Queue → Prestataire', 4,    10, 0, 0, 'server'),
+                ('queue_send_kids',        '👧 Queue → Kids',        1,    10, 0, 0, 'server')""",
         ]:
             try:
                 await db.execute(migration)

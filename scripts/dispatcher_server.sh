@@ -70,6 +70,14 @@ run_job() {
             RESULT=$(curl -s -X POST "${BASE}/api/publish/send-pending/prestataire") ;;
         send_deal)
             RESULT=$(curl -s -X POST "${BASE}/api/publish/send-pending/deal") ;;
+        queue_send_guide)
+            RESULT=$(curl -s -X POST "${BASE}/api/queue/send/guide") ;;
+        queue_send_droits)
+            RESULT=$(curl -s -X POST "${BASE}/api/queue/send/droits") ;;
+        queue_send_prestataire)
+            RESULT=$(curl -s -X POST "${BASE}/api/queue/send/prestataire") ;;
+        queue_send_kids)
+            RESULT=$(curl -s -X POST "${BASE}/api/queue/send/kids") ;;
         *)
             RESULT="unknown job: $JOB" ;;
     esac

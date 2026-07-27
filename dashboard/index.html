@@ -181,6 +181,7 @@
   <button class="tab" onclick="switchTab('rights')">💰 Droits</button>
   <button class="tab" onclick="switchTab('doctors')">🏥 Médecin</button>
   <button class="tab" onclick="switchTab('contests')">🎁 Concours</button>
+  <button class="tab" onclick="switchTab('queue')">📦 Queue</button>
   <button class="tab" onclick="switchTab('automation')">⚙️ Automation</button>
   <button class="tab" onclick="switchTab('maintenance')">🧹 Maintenance</button>
   <button class="tab" onclick="switchTab('send')">✏️ Send</button>
@@ -279,6 +280,21 @@
     </div>
     <div class="queue-header"><h2>Concours & Cadeaux</h2></div>
     <div class="cards" id="contestCards"><div class="loading">Loading…</div></div>
+  </div>
+
+  <!-- QUEUE -->
+  <div class="section" id="section-queue">
+    <div class="queue-header"><h2>📦 File d'attente de contenu</h2></div>
+    <div class="actions-bar" style="margin-bottom:12px;">
+      <span>Catégorie :</span>
+      <button class="btn" onclick="loadQueue('guide')" id="qbtn-guide">📄 Guide</button>
+      <button class="btn" onclick="loadQueue('droits')" id="qbtn-droits">💰 Droits</button>
+      <button class="btn" onclick="loadQueue('prestataire')" id="qbtn-prestataire">🏅 Prestataire</button>
+      <button class="btn" onclick="loadQueue('kids')" id="qbtn-kids">👧 Kids</button>
+      <button class="btn btn-primary" onclick="sendNextFromQueue()" id="qbtn-send" style="margin-left:auto;">▶ Envoyer le prochain</button>
+    </div>
+    <div id="queueStats" style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap;"></div>
+    <div id="queueCards"><div class="loading">Sélectionne une catégorie…</div></div>
   </div>
 
   <!-- AUTOMATION -->
@@ -399,6 +415,7 @@ function switchTab(name) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById(`section-${name}`).classList.add('active');
   event.target.classList.add('active');
+  if (name === 'queue') loadQueueStats();
 }
 
 // ── Queue (all pending content) ──────────────────────────────────────────────
@@ -1537,6 +1554,90 @@ function toast(msg, isError = false) {
   el.textContent = msg;
   el.className = 'toast show' + (isError ? ' error' : '');
   setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ── Queue ──────────────────────────────────────────────────────────────────
+let currentQueueCategory = null;
+
+async function loadQueueStats() {
+  try {
+    const data = await apiFetch('/api/queue/stats');
+    const stats = {};
+    for (const row of data.stats || []) {
+      if (!stats[row.category]) stats[row.category] = { pending: 0, sent: 0 };
+      stats[row.category][row.status] = (stats[row.category][row.status] || 0) + row.cnt;
+    }
+    const el = document.getElementById('queueStats');
+    const cats = { guide: '📄', droits: '💰', prestataire: '🏅', kids: '👧' };
+    el.innerHTML = Object.entries(cats).map(([cat, icon]) => {
+      const s = stats[cat] || { pending: 0, sent: 0 };
+      return `<div style="background:#f8f9fa;border-radius:8px;padding:10px 16px;min-width:130px;">
+        <div style="font-weight:600;margin-bottom:4px;">${icon} ${cat}</div>
+        <div style="font-size:13px;color:#2e7d32;">✅ ${s.sent || 0} envoyés</div>
+        <div style="font-size:13px;color:#1565c0;">⏳ ${s.pending || 0} en attente</div>
+      </div>`;
+    }).join('');
+  } catch(e) { console.error(e); }
+}
+
+async function loadQueue(category) {
+  currentQueueCategory = category;
+  document.querySelectorAll('[id^="qbtn-"]').forEach(b => b.style.fontWeight = '');
+  const btn = document.getElementById('qbtn-' + category);
+  if (btn) btn.style.fontWeight = '700';
+
+  const el = document.getElementById('queueCards');
+  el.innerHTML = '<div class="loading">Chargement…</div>';
+  await loadQueueStats();
+
+  try {
+    const data = await apiFetch(`/api/queue?category=${category}&limit=100`);
+    const items = data.items || [];
+    if (!items.length) { el.innerHTML = '<div class="loading">Aucun item dans la queue.</div>'; return; }
+
+    el.innerHTML = items.map(item => {
+      const isPending = item.status === 'pending';
+      const preview = item.content_fr || '(contenu non généré)';
+      return `<div class="card" style="border-left:4px solid ${isPending ? '#1565c0' : '#aaa'};">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <span style="font-weight:600;">#${item.queue_order} — ${item.category}</span>
+          <span style="font-size:12px;padding:2px 8px;border-radius:10px;background:${isPending ? '#e3f2fd' : '#f5f5f5'};color:${isPending ? '#1565c0' : '#888'};">
+            ${isPending ? '⏳ En attente' : '✅ Envoyé'}
+          </span>
+        </div>
+        <div style="font-size:12px;color:#888;margin-bottom:6px;">${item.source_url || ''}</div>
+        <div style="font-size:13px;color:#333;white-space:pre-wrap;">${preview}</div>
+        ${isPending ? `<div style="margin-top:8px;"><button class="btn" style="font-size:12px;background:#ffebee;color:#c62828;" onclick="deleteQueueItem(${item.id})">🗑 Supprimer</button></div>` : ''}
+      </div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = `<div class="loading">Erreur: ${e.message}</div>`;
+  }
+}
+
+async function sendNextFromQueue() {
+  if (!currentQueueCategory) { toast('⚠️ Sélectionne une catégorie d\'abord'); return; }
+  if (!confirm(`Envoyer le prochain item de la queue "${currentQueueCategory}" sur WhatsApp ?`)) return;
+  try {
+    const data = await apiFetch(`/api/queue/send/${currentQueueCategory}`, { method: 'POST' });
+    if (data.status === 'sent') {
+      toast(`✅ Envoyé ! FR=${data.sent_fr} RU=${data.sent_ru}`);
+      await loadQueue(currentQueueCategory);
+    } else if (data.status === 'empty') {
+      toast('⚠️ Queue vide pour cette catégorie');
+    } else {
+      toast(`❌ Erreur: ${data.reason || JSON.stringify(data)}`);
+    }
+  } catch(e) { toast(`❌ ${e.message}`); }
+}
+
+async function deleteQueueItem(id) {
+  if (!confirm('Supprimer cet item de la queue ?')) return;
+  try {
+    await apiFetch(`/api/queue/${id}`, { method: 'DELETE' });
+    toast('🗑 Supprimé');
+    if (currentQueueCategory) await loadQueue(currentQueueCategory);
+  } catch(e) { toast(`❌ ${e.message}`); }
 }
 
 init();
