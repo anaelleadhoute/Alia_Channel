@@ -182,8 +182,7 @@
   <button class="tab" onclick="switchTab('rights')">💰 Droits</button>
   <button class="tab" onclick="switchTab('doctors')">🏥 Médecin</button>
   <button class="tab" onclick="switchTab('contests')">🎁 Concours</button>
-  <button class="tab" onclick="switchTab('queue')">📦 Queue</button>
-  <button class="tab" onclick="switchTab('automation')">⚙️ Automation</button>
+<button class="tab" onclick="switchTab('automation')">⚙️ Automation</button>
   <button class="tab" onclick="switchTab('maintenance')">🧹 Maintenance</button>
   <button class="tab" onclick="switchTab('send')">✏️ Send</button>
 </div>
@@ -295,22 +294,8 @@
     <div class="cards" id="contestCards"><div class="loading">Loading…</div></div>
   </div>
 
-  <!-- QUEUE -->
-  <div class="section" id="section-queue">
-    <div class="queue-header"><h2>📦 File d'attente de contenu</h2></div>
-    <div class="actions-bar" style="margin-bottom:12px;">
-      <span>Catégorie :</span>
-      <button class="btn" onclick="loadQueue('guide')" id="qbtn-guide">📄 Guide</button>
-      <button class="btn" onclick="loadQueue('droits')" id="qbtn-droits">💰 Droits</button>
-      <button class="btn" onclick="loadQueue('prestataire')" id="qbtn-prestataire">🏅 Prestataire</button>
-      <button class="btn" onclick="loadQueue('kids')" id="qbtn-kids">👧 Kids</button>
-      <button class="btn btn-primary" onclick="sendNextFromQueue()" id="qbtn-send" style="margin-left:auto;">▶ Envoyer le prochain</button>
-    </div>
-    <div id="queueStats" style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap;"></div>
-    <div id="queueCards"><div class="loading">Sélectionne une catégorie…</div></div>
-  </div>
 
-  <!-- AUTOMATION -->
+<!-- AUTOMATION -->
   <div class="section" id="section-automation">
     <div class="queue-header"><h2>⚙️ Automatisation</h2></div>
     <div id="automationCards"><div class="loading">Loading…</div></div>
