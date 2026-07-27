@@ -324,7 +324,7 @@ async def add_to_queue(req: QueueAddRequest):
 @router.get("")
 async def list_queue(category: Optional[str] = None, status: Optional[str] = None, limit: int = 100):
     """List queue items, optionally filtered by category and status."""
-    query = "SELECT id, category, source_url, queue_order, status, sent_wa_fr, sent_wa_ru, created_at, sent_at, content_fr FROM content_queue WHERE 1=1"
+    query = "SELECT id, category, source_url, queue_order, status, sent_wa_fr, sent_wa_ru, created_at, sent_at, content_fr, content_ru FROM content_queue WHERE 1=1"
     params = []
     if category:
         query += " AND category = ?"
@@ -339,13 +339,7 @@ async def list_queue(category: Optional[str] = None, status: Optional[str] = Non
         cursor = await db.execute(query, params)
         rows = await cursor.fetchall()
 
-    items = []
-    for r in rows:
-        d = dict(r)
-        if d.get("content_fr"):
-            d["content_fr"] = d["content_fr"][:80] + "..."
-        items.append(d)
-    return {"items": items, "total": len(items)}
+    return {"items": [dict(r) for r in rows], "total": len(rows)}
 
 
 @router.get("/stats")
