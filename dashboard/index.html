@@ -39,8 +39,10 @@
   .tabs {
     display: flex; gap: 4px; padding: 16px 24px 0;
     border-bottom: 2px solid #ddd; background: white;
-    flex-wrap: wrap;
+    overflow-x: auto; white-space: nowrap; flex-wrap: nowrap;
+    scrollbar-width: none;
   }
+  .tabs::-webkit-scrollbar { display: none; }
   .tab {
     padding: 10px 20px; border: none; background: none; cursor: pointer;
     font-size: 14px; font-weight: 500; color: #666; border-radius: 8px 8px 0 0;
