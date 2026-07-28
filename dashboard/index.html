@@ -190,12 +190,25 @@
 
   <!-- DIGESTS -->
   <div class="section active" id="section-digests">
+    <div class="actions-bar">
+      <span>Actions:</span>
+      <button class="btn btn-primary" onclick="runScrape()">🔄 Scraper News</button>
+      <button class="btn btn-primary" onclick="generateDigest()">📰 Générer Digest</button>
+      <button class="btn" onclick="generateDigestForce()" style="background:#fff3e0;color:#e65100;">🔄 Regénérer</button>
+      <button class="btn btn-primary" onclick="sendPendingDigest()" style="background:#2e7d32;">▶ Envoyer</button>
+    </div>
     <div class="queue-header"><h2>News</h2></div>
     <div class="cards" id="digestCards"><div class="loading">Loading…</div></div>
   </div>
 
   <!-- FAQS -->
   <div class="section" id="section-faqs">
+    <div class="actions-bar">
+      <span>Actions:</span>
+      <button class="btn btn-primary" onclick="generateFaq()">❓ Générer FAQ</button>
+      <button class="btn" onclick="generateFaqForce()" style="background:#fff3e0;color:#e65100;">🔄 Regénérer</button>
+      <button class="btn btn-primary" onclick="sendPendingFaq()" style="background:#2e7d32;">▶ Envoyer</button>
+    </div>
     <div class="queue-header"><h2>FAQs</h2></div>
     <div class="cards" id="faqCards"><div class="loading">Loading…</div></div>
   </div>
@@ -1033,6 +1046,30 @@ async function generateFaqForce() {
     if (data.status === 'ok') toast('✅ FAQ regénérée !');
     else toast('❌ Failed', true);
     await loadQueue(); loadFaqs();
+  });
+}
+
+async function sendPendingFaq() {
+  const btn = event.target;
+  await withLoading(btn, async () => {
+    toast('📤 Envoi FAQ…');
+    const res = await fetch(`${API}/api/publish/send-pending/faq`, {method: 'POST'});
+    const data = await res.json();
+    if (data.sent > 0) toast(`✅ FAQ envoyée (${data.sent})`);
+    else toast('ℹ️ Aucune FAQ à envoyer cette semaine');
+    loadFaqs();
+  });
+}
+
+async function sendPendingDigest() {
+  const btn = event.target;
+  await withLoading(btn, async () => {
+    toast('📤 Envoi digest…');
+    const res = await fetch(`${API}/api/publish/send-pending/digest`, {method: 'POST'});
+    const data = await res.json();
+    if (data.sent > 0) toast(`✅ News envoyée (${data.sent})`);
+    else toast('ℹ️ Aucun digest à envoyer aujourd\'hui');
+    loadDigests();
   });
 }
 
