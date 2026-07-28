@@ -1550,24 +1550,46 @@ async function loadInlineQueue(category) {
     let pendingIndex = 0;
     listEl.innerHTML = items.map(item => {
       const isPending = item.status === 'pending';
+      const thisWeek = isPending && pendingIndex === 0;
       const label = isPending ? weekLabel(pendingIndex++) : '✅ Envoyé';
-      const borderColor = isPending ? (pendingIndex === 1 ? '#2e7d32' : '#1565c0') : '#ccc';
-      const bgColor = isPending ? (pendingIndex === 1 ? '#e8f5e9' : '#fff') : '#fafafa';
+      const borderColor = isPending ? (thisWeek ? '#2e7d32' : '#1565c0') : '#ccc';
+      const bgColor = isPending ? (thisWeek ? '#e8f5e9' : '#fff') : '#fafafa';
+      const editSection = thisWeek ? `
+        <div id="queue-edit-${item.id}" style="display:none;margin-top:14px;border-top:1px solid #ddd;padding-top:14px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px;">
+            <div>
+              <div style="font-size:11px;font-weight:600;color:#888;margin-bottom:4px;">🇫🇷 FRANÇAIS</div>
+              <textarea id="queue-edit-fr-${item.id}" style="width:100%;height:160px;border:1px solid #ccc;border-radius:6px;padding:8px;font-size:13px;resize:vertical;font-family:inherit;">${(item.content_fr || '').replace(/</g,'&lt;')}</textarea>
+            </div>
+            <div>
+              <div style="font-size:11px;font-weight:600;color:#888;margin-bottom:4px;">🇷🇺 RUSSE</div>
+              <textarea id="queue-edit-ru-${item.id}" style="width:100%;height:160px;border:1px solid #ccc;border-radius:6px;padding:8px;font-size:13px;resize:vertical;font-family:inherit;">${(item.content_ru || '').replace(/</g,'&lt;')}</textarea>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary" style="font-size:12px;" onclick="saveQueueEdit(${item.id},'${category}')">💾 Sauvegarder</button>
+            <button class="btn" style="font-size:12px;" onclick="toggleQueueEdit(${item.id})">Annuler</button>
+          </div>
+        </div>` : '';
       return `<div class="card" style="border-left:4px solid ${borderColor};background:${bgColor};opacity:${isPending ? 1 : 0.5};margin-bottom:16px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
           <span style="font-weight:700;font-size:13px;color:${borderColor};">${label}</span>
-          ${isPending ? `<button class="btn" style="font-size:11px;padding:3px 8px;background:#ffebee;color:#c62828;" onclick="deleteQueueItem(${item.id},'${category}')">🗑 Supprimer</button>` : ''}
+          <div style="display:flex;gap:6px;">
+            ${thisWeek ? `<button class="btn" style="font-size:11px;padding:3px 8px;background:#e3f2fd;color:#1565c0;" onclick="toggleQueueEdit(${item.id})">✏️ Modifier</button>` : ''}
+            ${isPending ? `<button class="btn" style="font-size:11px;padding:3px 8px;background:#ffebee;color:#c62828;" onclick="deleteQueueItem(${item.id},'${category}')">🗑</button>` : ''}
+          </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
           <div>
             <div style="font-size:11px;font-weight:600;color:#888;margin-bottom:6px;">🇫🇷 FRANÇAIS</div>
-            <div style="font-size:13px;color:#222;white-space:pre-wrap;line-height:1.5;">${item.content_fr || '<em style="color:#aaa">Non généré</em>'}</div>
+            <div id="queue-view-fr-${item.id}" style="font-size:13px;color:#222;white-space:pre-wrap;line-height:1.5;">${item.content_fr || '<em style="color:#aaa">Non généré</em>'}</div>
           </div>
           <div>
             <div style="font-size:11px;font-weight:600;color:#888;margin-bottom:6px;">🇷🇺 RUSSE</div>
-            <div style="font-size:13px;color:#222;white-space:pre-wrap;line-height:1.5;">${item.content_ru || '<em style="color:#aaa">Non généré</em>'}</div>
+            <div id="queue-view-ru-${item.id}" style="font-size:13px;color:#222;white-space:pre-wrap;line-height:1.5;">${item.content_ru || '<em style="color:#aaa">Non généré</em>'}</div>
           </div>
         </div>
+        ${editSection}
       </div>`;
     }).join('');
   } catch(e) {
@@ -1595,6 +1617,28 @@ async function deleteQueueItem(id, category) {
   try {
     await fetch(`${API}/api/queue/${id}`, { method: 'DELETE' });
     toast('🗑 Supprimé');
+    if (category) await loadInlineQueue(category);
+  } catch(e) { toast(`❌ ${e.message}`); }
+}
+
+function toggleQueueEdit(id) {
+  const el = document.getElementById(`queue-edit-${id}`);
+  if (!el) return;
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+async function saveQueueEdit(id, category) {
+  const frEl = document.getElementById(`queue-edit-fr-${id}`);
+  const ruEl = document.getElementById(`queue-edit-ru-${id}`);
+  if (!frEl || !ruEl) return;
+  try {
+    const resp = await fetch(`${API}/api/queue/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content_fr: frEl.value, content_ru: ruEl.value })
+    });
+    if (!resp.ok) throw new Error(await resp.text());
+    toast('✅ Sauvegardé');
     if (category) await loadInlineQueue(category);
   } catch(e) { toast(`❌ ${e.message}`); }
 }

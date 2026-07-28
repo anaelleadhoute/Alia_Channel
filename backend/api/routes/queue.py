@@ -424,6 +424,37 @@ async def send_next_from_queue(category: str):
     }
 
 
+class QueueEditBody(BaseModel):
+    content_fr: Optional[str] = None
+    content_ru: Optional[str] = None
+
+
+@router.patch("/{item_id}")
+async def edit_queue_item(item_id: int, body: QueueEditBody):
+    """Update FR and/or RU content of a pending queue item."""
+    async with get_db() as db:
+        cursor = await db.execute("SELECT status FROM content_queue WHERE id = ?", (item_id,))
+        row = await cursor.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Not found")
+    if row["status"] != "pending":
+        raise HTTPException(status_code=400, detail="Only pending items can be edited")
+    updates, params = [], []
+    if body.content_fr is not None:
+        updates.append("content_fr = ?")
+        params.append(body.content_fr)
+    if body.content_ru is not None:
+        updates.append("content_ru = ?")
+        params.append(body.content_ru)
+    if not updates:
+        return {"ok": True, "changed": 0}
+    params.append(item_id)
+    async with get_db() as db:
+        await db.execute(f"UPDATE content_queue SET {', '.join(updates)} WHERE id = ?", params)
+        await db.commit()
+    return {"ok": True, "changed": len(updates)}
+
+
 @router.delete("/{item_id}")
 async def delete_queue_item(item_id: int):
     """Delete a queue item (e.g., to re-order or remove bad content)."""
