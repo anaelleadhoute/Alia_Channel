@@ -339,6 +339,11 @@ async def init_db():
                 'scrape_prestataire', 'generate_prestataire',
                 'kol_zchut', 'prestataire', 'kids_events'
             )""",
+            """CREATE TABLE IF NOT EXISTS link_clicks (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                category    TEXT NOT NULL,
+                clicked_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+            )""",
             # Separate FAQ generate and send into two schedulable jobs
             """INSERT OR IGNORE INTO schedules (job_key, label, day_of_week, hour_utc, minute_utc, enabled, location) VALUES
                 ('generate_faq', '❓ Générer FAQ', 2, 10, 0, 1, 'server'),
