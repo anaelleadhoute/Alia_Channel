@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="ru">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Recommander un professionnel – AL.IA</title>
+  <title>Рекомендовать специалиста – AL.IA</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -93,80 +93,81 @@
     .success p { color: #888; font-size: 14px; }
     .success a { color: #4fc3f7; text-decoration: none; font-weight: 600; }
     .note { font-size: 12px; color: #aaa; margin-top: 14px; text-align: center; }
+    .lang-switch { font-size: 13px; color: #888; text-align: right; margin-bottom: 16px; }
+    .lang-switch a { color: #4fc3f7; text-decoration: none; font-weight: 600; }
   </style>
 </head>
 <body>
   <div class="card">
     <div class="logo">AL.<span>IA</span></div>
-    <div class="subtitle">La communauté des olim francophones & russophones</div>
-
-    <div style="font-size:13px;color:#888;text-align:right;margin-bottom:16px;"><a href="/recommander-ru" style="color:#4fc3f7;text-decoration:none;font-weight:600;">🇷🇺 Русская версия</a></div>
+    <div class="subtitle">Сообщество олим — франкоязычных и русскоязычных</div>
+    <div class="lang-switch"><a href="/recommander">🇫🇷 Version française</a></div>
 
     <div id="formSection">
-      <h1>🤝 Recommander un professionnel</h1>
-      <p style="font-size:14px;color:#888;margin:8px 0 24px;">Tu connais un médecin ou prestataire qui parle français ou russe ? Partage-le avec la communauté !</p>
+      <h1>🤝 Рекомендовать специалиста</h1>
+      <p style="font-size:14px;color:#888;margin:8px 0 24px;">Знаете врача или специалиста, который говорит по-русски или по-французски? Поделитесь с сообществом!</p>
 
       <div class="field">
-        <label>Type de professionnel <span class="req">*</span></label>
+        <label>Тип специалиста <span class="req">*</span></label>
         <select id="type">
-          <option value="">-- Choisir --</option>
-          <option value="medecin">🏥 Médecin</option>
-          <option value="prestataire">🔧 Prestataire de service</option>
+          <option value="">-- Выбрать --</option>
+          <option value="medecin">🏥 Врач</option>
+          <option value="prestataire">🔧 Специалист по услугам</option>
         </select>
       </div>
 
       <div class="field">
-        <label>Nom complet <span class="req">*</span></label>
-        <input type="text" id="name" placeholder="ex: Dr. Cohen, Yuval l'électricien…">
+        <label>Полное имя <span class="req">*</span></label>
+        <input type="text" id="name" placeholder="напр: Др. Коэн, Юваль-электрик…">
       </div>
 
       <div class="field">
-        <label>Spécialité / Métier <span class="req">*</span></label>
-        <input type="text" id="specialty" placeholder="ex: Cardiologue, Plombier, Avocat…">
+        <label>Специальность / Профессия <span class="req">*</span></label>
+        <input type="text" id="specialty" placeholder="напр: Кардиолог, Сантехник, Адвокат…">
       </div>
 
       <div class="row">
         <div class="field">
-          <label>Ville</label>
-          <input type="text" id="city" placeholder="ex: Tel-Aviv">
+          <label>Город</label>
+          <input type="text" id="city" placeholder="напр: Тель-Авив">
         </div>
         <div class="field">
-          <label>Téléphone</label>
-          <input type="tel" id="phone" placeholder="ex: 050-1234567">
+          <label>Телефон</label>
+          <input type="tel" id="phone" placeholder="напр: 050-1234567">
         </div>
       </div>
 
       <div class="field">
-        <label>Langue(s) parlée(s) <span class="req">*</span></label>
+        <label>Язык(и) <span class="req">*</span></label>
         <select id="language">
-          <option value="">-- Choisir --</option>
-          <option value="fr">🇫🇷 Français</option>
-          <option value="ru">🇷🇺 Russe</option>
-          <option value="both">🌍 Français + Russe</option>
+          <option value="">-- Выбрать --</option>
+          <option value="fr">🇫🇷 Французский</option>
+          <option value="ru">🇷🇺 Русский</option>
+          <option value="both">🌍 Французский + Русский</option>
         </select>
       </div>
 
       <div class="field">
-        <label>Commentaire (optionnel)</label>
-        <textarea id="notes" placeholder="Pourquoi le recommandes-tu ? Expérience personnelle, tarifs, disponibilité…"></textarea>
+        <label>Комментарий (необязательно)</label>
+        <textarea id="notes" placeholder="Почему вы рекомендуете? Личный опыт, цены, доступность…"></textarea>
       </div>
 
       <div class="field">
-        <label>Ton prénom (optionnel)</label>
-        <input type="text" id="submitted_by" placeholder="ex: Sarah">
+        <label>Ваше имя (необязательно)</label>
+        <input type="text" id="submitted_by" placeholder="напр: Сара">
       </div>
 
-      <button class="btn" id="submitBtn" onclick="submitForm()">✅ Envoyer ma recommandation</button>
-      <p class="note">Tes données sont utilisées uniquement pour enrichir l'annuaire de la communauté Alia.</p>
+      <button class="btn" id="submitBtn" onclick="submitForm()">✅ Отправить рекомендацию</button>
+      <p class="note">Ваши данные используются исключительно для пополнения справочника сообщества Alia.</p>
     </div>
 
     <div class="success" id="successSection">
       <div class="icon">🎉</div>
-      <h2>Merci pour ta recommandation !</h2>
-      <p>Elle sera vérifiée et ajoutée à l'annuaire Alia.<br><br>
-        Rejoins la communauté :<br>
-        <a href="https://tinyurl.com/Alia-community" target="_blank">🇫🇷 Groupe FR</a> &nbsp;·&nbsp;
-        <a href="https://tinyurl.com/Alia-community-RU" target="_blank">🇷🇺 Groupe RU</a>
+      <h2>Спасибо за вашу рекомендацию!</h2>
+      <p>Она будет проверена и добавлена в справочник Alia.<br><br>
+        Присоединяйтесь к сообществу:<br>
+        <a href="https://tinyurl.com/Alia-community" target="_blank">🇫🇷 Группа FR</a> &nbsp;·&nbsp;
+        <a href="https://tinyurl.com/Alia-community-RU" target="_blank">🇷🇺 Группа RU</a>
       </p>
     </div>
   </div>
@@ -181,13 +182,13 @@
       const language = document.getElementById('language').value;
 
       if (!type || !name || !specialty || !language) {
-        alert('Merci de remplir les champs obligatoires (*)');
+        alert('Пожалуйста, заполните обязательные поля (*)');
         return;
       }
 
       const btn = document.getElementById('submitBtn');
       btn.disabled = true;
-      btn.innerHTML = '⏳ Envoi en cours…';
+      btn.innerHTML = '⏳ Отправка…';
 
       const body = {
         type,
@@ -210,14 +211,14 @@
           document.getElementById('formSection').style.display = 'none';
           document.getElementById('successSection').style.display = 'block';
         } else {
-          alert('Une erreur est survenue. Réessaie.');
+          alert('Произошла ошибка. Попробуйте ещё раз.');
           btn.disabled = false;
-          btn.innerHTML = '✅ Envoyer ma recommandation';
+          btn.innerHTML = '✅ Отправить рекомендацию';
         }
       } catch (e) {
-        alert('Erreur réseau. Vérifie ta connexion.');
+        alert('Ошибка сети. Проверьте соединение.');
         btn.disabled = false;
-        btn.innerHTML = '✅ Envoyer ma recommandation';
+        btn.innerHTML = '✅ Отправить рекомендацию';
       }
     }
   </script>
