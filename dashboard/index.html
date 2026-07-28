@@ -183,6 +183,7 @@
   <button class="tab" onclick="switchTab('doctors')">🏥 Médecin</button>
 <button class="tab" onclick="switchTab('automation')">⚙️ Automation</button>
   <button class="tab" onclick="switchTab('maintenance')">🧹 Maintenance</button>
+  <button class="tab" onclick="switchTab('community-recs')">⭐ Recommandations</button>
   <button class="tab" onclick="switchTab('send')">✏️ Send</button>
 </div>
 
@@ -305,6 +306,18 @@
     <div id="cleanupLogs"><div class="loading">Loading…</div></div>
   </div>
 
+  <!-- COMMUNITY RECOMMENDATIONS -->
+  <div class="section" id="section-community-recs">
+    <div class="actions-bar">
+      <span>Filtrer:</span>
+      <button class="btn btn-primary" onclick="loadCommunityRecs('pending')" id="rec-filter-pending">⏳ En attente</button>
+      <button class="btn" onclick="loadCommunityRecs('approved')" id="rec-filter-approved">✅ Approuvées</button>
+      <button class="btn" onclick="loadCommunityRecs()" id="rec-filter-all">Toutes</button>
+    </div>
+    <div class="queue-header"><h2>⭐ Recommandations de la communauté</h2></div>
+    <div id="communityRecsCards"><div class="loading">Loading…</div></div>
+  </div>
+
   <!-- MANUAL SEND -->
   <div class="section" id="section-send">
 
@@ -379,6 +392,108 @@
 const API = '';
 let queueFilter = 'ready';
 
+// ── Community Recommendations ────────────────────────────────────────────────
+let _recFilter = 'pending';
+
+async function loadCommunityRecs(status) {
+  if (status !== undefined) _recFilter = status;
+  ['pending','approved','all'].forEach(f => {
+    const btn = document.getElementById(`rec-filter-${f}`);
+    if (btn) { btn.className = (_recFilter === f || (f==='all' && !_recFilter)) ? 'btn btn-primary' : 'btn'; }
+  });
+  const url = _recFilter ? `${API}/api/recommendations?status=${_recFilter}` : `${API}/api/recommendations`;
+  const items = await fetch(url).then(r => r.json()).catch(() => []);
+  const el = document.getElementById('communityRecsCards');
+  if (!items.length) { el.innerHTML = '<div class="empty"><div class="icon">⭐</div>Aucune recommandation</div>'; return; }
+
+  el.innerHTML = items.map(r => {
+    const langBadge = r.language === 'fr' ? '🇫🇷' : r.language === 'ru' ? '🇷🇺' : '🇫🇷🇷🇺';
+    const typeBadge = r.type === 'medecin' ? '🏥 Médecin' : '🏅 Prestataire';
+    const statusColor = r.status === 'approved' ? '#2e7d32' : r.status === 'rejected' ? '#c62828' : '#e65100';
+    const date = r.created_at ? new Date(r.created_at).toLocaleDateString('fr-FR') : '';
+    return `<div class="card" id="rec-card-${r.id}" style="margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+        <div>
+          <span style="font-weight:700;font-size:15px;">${r.name}</span>
+          <span style="margin-left:8px;font-size:12px;background:#f0f0f0;padding:2px 8px;border-radius:10px;">${typeBadge}</span>
+          <span style="margin-left:4px;font-size:13px;">${langBadge}</span>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <span style="font-size:11px;color:${statusColor};font-weight:600;text-transform:uppercase;">${r.status}</span>
+          <button class="btn" style="font-size:11px;padding:3px 8px;background:#e8f5e9;color:#2e7d32;" onclick="recSetStatus(${r.id},'approved')">✅</button>
+          <button class="btn" style="font-size:11px;padding:3px 8px;background:#ffebee;color:#c62828;" onclick="recSetStatus(${r.id},'rejected')">❌</button>
+          <button class="btn" style="font-size:11px;padding:3px 8px;background:#ffebee;color:#c62828;" onclick="recDelete(${r.id})">🗑</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px;font-size:13px;color:#555;margin-bottom:10px;">
+        ${r.specialty ? `<div>📋 <b>Spécialité:</b> ${r.specialty}</div>` : ''}
+        ${r.city ? `<div>📍 <b>Ville:</b> ${r.city}</div>` : ''}
+        ${r.phone ? `<div>📞 <b>Tél:</b> ${r.phone}</div>` : ''}
+        ${r.submitted_by ? `<div>👤 <b>Par:</b> ${r.submitted_by}</div>` : ''}
+        ${date ? `<div>📅 ${date}</div>` : ''}
+      </div>
+      ${r.notes ? `<div style="font-size:13px;color:#444;background:#f9f9f9;border-radius:6px;padding:8px 12px;margin-bottom:10px;">${r.notes}</div>` : ''}
+      <div id="rec-gen-${r.id}">
+        <button class="btn btn-primary" onclick="generateRecMessage(${r.id})">✨ Générer message WhatsApp</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function generateRecMessage(id) {
+  const btn = event.target;
+  await withLoading(btn, async () => {
+    toast('✨ Génération en cours…');
+    const res = await fetch(`${API}/api/recommendations/${id}/generate`, {method: 'POST'});
+    if (!res.ok) { toast('❌ Erreur génération', true); return; }
+    const data = await res.json();
+    const el = document.getElementById(`rec-gen-${id}`);
+    el.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px;">
+        <div>
+          <div style="font-size:11px;font-weight:600;color:#888;margin-bottom:4px;">🇫🇷 FRANÇAIS</div>
+          <textarea id="rec-msg-fr-${id}" style="width:100%;height:140px;border:1px solid #ccc;border-radius:6px;padding:8px;font-size:13px;resize:vertical;font-family:inherit;">${(data.content_fr||'').replace(/</g,'&lt;')}</textarea>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:600;color:#888;margin-bottom:4px;">🇷🇺 RUSSE</div>
+          <textarea id="rec-msg-ru-${id}" style="width:100%;height:140px;border:1px solid #ccc;border-radius:6px;padding:8px;font-size:13px;resize:vertical;font-family:inherit;">${(data.content_ru||'').replace(/</g,'&lt;')}</textarea>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-fr" onclick="sendRecMessage(${id},'fr')">🇫🇷 Envoyer FR</button>
+        <button class="btn btn-ru" onclick="sendRecMessage(${id},'ru')">🇷🇺 Envoyer RU</button>
+        <button class="btn btn-both" onclick="sendRecMessage(${id},'both')">📤 Envoyer les deux</button>
+        <button class="btn" onclick="generateRecMessage(${id})">🔄 Regénérer</button>
+      </div>`;
+  });
+}
+
+async function sendRecMessage(id, audience) {
+  const frEl = document.getElementById(`rec-msg-fr-${id}`);
+  const ruEl = document.getElementById(`rec-msg-ru-${id}`);
+  if (!frEl) return;
+  try {
+    toast('📤 Envoi…');
+    await fetch(`${API}/api/publish/manual`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({text_fr: frEl.value, text_ru: ruEl?.value || '', audience})
+    });
+    toast('✅ Envoyé !');
+  } catch(e) { toast(`❌ ${e.message}`, true); }
+}
+
+async function recSetStatus(id, status) {
+  await fetch(`${API}/api/recommendations/${id}/status?status=${status}`, {method:'PATCH'});
+  loadCommunityRecs();
+}
+
+async function recDelete(id) {
+  if (!confirm('Supprimer cette recommandation ?')) return;
+  await fetch(`${API}/api/recommendations/${id}`, {method:'DELETE'});
+  loadCommunityRecs();
+}
+
 // ── Init ────────────────────────────────────────────────────────────────────
 async function init() {
   await loadSettings();
@@ -394,6 +509,7 @@ async function init() {
   loadAutomation();
   loadMaintenance();
   loadScheduledManual();
+  loadCommunityRecs();
   initRecommendPreview();
 }
 

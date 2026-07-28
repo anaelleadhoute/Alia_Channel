@@ -1,5 +1,6 @@
+import os
+import anthropic
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from typing import Optional, Literal
 from db.database import get_db
@@ -62,3 +63,54 @@ async def delete_recommendation(id: int):
         await db.execute("DELETE FROM recommendations WHERE id = ?", (id,))
         await db.commit()
     return {"ok": True}
+
+
+@router.post("/{id}/generate")
+async def generate_recommendation_message(id: int):
+    async with get_db() as db:
+        cursor = await db.execute("SELECT * FROM recommendations WHERE id = ?", (id,))
+        row = await cursor.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Not found")
+    r = dict(row)
+
+    type_label = "médecin" if r["type"] == "medecin" else "prestataire"
+    details = f"Nom: {r['name']}"
+    if r.get("specialty"): details += f"\nSpécialité: {r['specialty']}"
+    if r.get("city"): details += f"\nVille: {r['city']}"
+    if r.get("phone"): details += f"\nTél: {r['phone']}"
+    if r.get("language"): details += f"\nLangue(s): {r['language']}"
+    if r.get("notes"): details += f"\nNotes: {r['notes']}"
+    if r.get("submitted_by"): details += f"\nRecommandé par: {r['submitted_by']}"
+
+    prompt_fr = f"""Tu es rédacteur pour AL.IA Channel, un média WhatsApp pour les olim francophones en Israël.
+Un membre de la communauté recommande un(e) {type_label}. Écris un message WhatsApp chaleureux et utile pour partager cette recommandation avec la communauté.
+Format: commence par un emoji accrocheur, présente le/la {type_label}, donne les infos pratiques, remercie la personne qui recommande si indiqué, et encourage les membres à contacter.
+Ton: chaleureux, communautaire, concis (max 200 mots).
+
+Informations:
+{details}
+
+Réponds UNIQUEMENT avec le message WhatsApp, sans explication."""
+
+    prompt_ru = f"""Ты редактор AL.IA Channel — WhatsApp-медиа для русскоязычных олим в Израиле.
+Участник сообщества рекомендует {type_label}. Напиши тёплое и полезное WhatsApp-сообщение для сообщества с этой рекомендацией.
+Формат: начни с подходящего эмодзи, представь специалиста, дай практическую информацию, поблагодари рекомендующего если указано, призови обращаться.
+Тон: тёплый, общественный, краткий (макс 200 слов).
+
+Информация:
+{details}
+
+Отвечай ТОЛЬКО текстом WhatsApp-сообщения, без пояснений."""
+
+    claude = anthropic.AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+    fr_resp, ru_resp = await __import__("asyncio").gather(
+        claude.messages.create(model="claude-haiku-4-5-20251001", max_tokens=512,
+                               messages=[{"role":"user","content":prompt_fr}]),
+        claude.messages.create(model="claude-haiku-4-5-20251001", max_tokens=512,
+                               messages=[{"role":"user","content":prompt_ru}]),
+    )
+    return {
+        "content_fr": fr_resp.content[0].text.strip(),
+        "content_ru": ru_resp.content[0].text.strip(),
+    }
