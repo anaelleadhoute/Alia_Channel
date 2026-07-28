@@ -38,7 +38,7 @@ run_job() {
             RESULT=$(curl -s -X POST "${BASE}/api/scrape/telegram-deals") ;;
         send_deals)
             RESULT=$(curl -s -X POST "${BASE}/api/publish/send-pending/deal") ;;
-        faq)
+        faq|generate_faq)
             RESULT=$(curl -s -X POST "${BASE}/api/faqs/generate") ;;
         kol_zchut)
             RESULT=$(curl -s -X POST "${BASE}/api/scrape/tips") ;;

@@ -1088,7 +1088,7 @@ const DAYS_FR = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samed
 
 const JOB_CATEGORY = {
   news_digest: 'digest', scrape_news: 'digest', send_news: 'digest',
-  faq: 'faq', generate_kol_zchut: 'tip',
+  faq: 'faq', generate_faq: 'faq', send_faq: 'faq', generate_kol_zchut: 'tip',
   generate_rights: 'rights', generate_doctor: 'doctor',
   generate_kids_events: 'kids', generate_prestataire: 'prestataire',
   telegram_deals: 'deal', scrape_deals: 'deal', send_deals: 'deal',
@@ -1125,7 +1125,7 @@ async function loadAutomation() {
           </tr>
         </thead>
         <tbody>
-          ${data.filter(s => s.location !== 'mac' && !['generate_kol_zchut','generate_kids_events','generate_prestataire','generate_rights','send_faq','send_deal','news_digest','telegram_deals'].includes(s.job_key)).map(s => {
+          ${data.filter(s => s.location !== 'mac' && !['generate_kol_zchut','generate_kids_events','generate_prestataire','generate_rights','send_deal','news_digest','telegram_deals'].includes(s.job_key)).map(s => {
             const hourIL = s.hour_utc;
             const dayLabel = s.day_of_week === null ? 'Chaque jour' : DAYS_FR[s.day_of_week];
             const lastRun = s.last_run ? new Date(s.last_run).toLocaleString('fr-FR') : '—';

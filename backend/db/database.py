@@ -339,6 +339,11 @@ async def init_db():
                 'scrape_prestataire', 'generate_prestataire',
                 'kol_zchut', 'prestataire', 'kids_events'
             )""",
+            # Separate FAQ generate and send into two schedulable jobs
+            """INSERT OR IGNORE INTO schedules (job_key, label, day_of_week, hour_utc, minute_utc, enabled, location) VALUES
+                ('generate_faq', '❓ Générer FAQ', 2, 10, 0, 1, 'server'),
+                ('send_faq',     '❓ Envoyer FAQ', 2, 11, 0, 1, 'server')""",
+            "DELETE FROM schedules WHERE job_key = 'faq'",
         ]:
             try:
                 await db.execute(migration)
