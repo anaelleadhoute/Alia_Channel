@@ -27,6 +27,8 @@ Voici les informations importantes de la journée:
 
 [3 à 5 news résumées, chacune sur une nouvelle ligne, avec un emoji pertinent au début]
 
+🤖 Des questions ? Demandez à Alia : https://alia-channel.com/api/analytics/track/news
+
 📢 Rejoignez la communauté Alia:
 https://tinyurl.com/Alia-community
 
@@ -47,6 +49,8 @@ PROMPT_RU = """Ты редактор AL.IA Channel — медиа для рус�
 👇
 
 [3-5 новостей, каждая с новой строки, с подходящим эмодзи в начале]
+
+🤖 Есть вопросы? Спросите у Alia : https://alia-channel.com/api/analytics/track/news
 
 Присоединяйтесь к сообществу Alia и получайте всё это каждую неделю :
 https://tinyurl.com/Alia-community-RU
