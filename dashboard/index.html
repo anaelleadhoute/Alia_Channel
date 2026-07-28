@@ -182,7 +182,6 @@
   <button class="tab" onclick="switchTab('prestataire')">🏅 Prestataire</button>
   <button class="tab" onclick="switchTab('doctors')">🏥 Médecin</button>
 <button class="tab" onclick="switchTab('automation')">⚙️ Automation</button>
-  <button class="tab" onclick="switchTab('maintenance')">🧹 Maintenance</button>
   <button class="tab" onclick="switchTab('analytics')">📊 Analytics</button>
   <button class="tab" onclick="switchTab('community-recs')">⭐ Recommandations</button>
   <button class="tab" onclick="switchTab('send')">✏️ Send</button>
@@ -290,15 +289,6 @@
   </div>
 
   <!-- MAINTENANCE -->
-  <div class="section" id="section-maintenance">
-    <div class="actions-bar">
-      <span>Actions:</span>
-      <button class="btn btn-primary" onclick="runCleanup()">🧹 Nettoyer maintenant</button>
-    </div>
-    <div id="maintenanceInfo" style="margin-bottom:24px;"></div>
-    <div class="queue-header"><h2>Historique des nettoyages</h2></div>
-    <div id="cleanupLogs"><div class="loading">Loading…</div></div>
-  </div>
 
   <!-- ANALYTICS -->
   <div class="section" id="section-analytics">
@@ -555,7 +545,6 @@ async function init() {
   loadRights();
   loadDoctors();
   loadAutomation();
-  loadMaintenance();
   loadScheduledManual();
   loadCommunityRecs();
   loadAnalytics();
