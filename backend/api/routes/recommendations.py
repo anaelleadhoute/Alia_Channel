@@ -49,7 +49,7 @@ async def list_recommendations(status: Optional[str] = None):
 
 @router.patch("/{id}/status")
 async def update_recommendation_status(id: int, status: str):
-    if status not in ("pending", "approved", "rejected"):
+    if status not in ("pending", "approved", "rejected", "sent"):
         raise HTTPException(status_code=400, detail="Invalid status")
     async with get_db() as db:
         await db.execute("UPDATE recommendations SET status = ? WHERE id = ?", (status, id))

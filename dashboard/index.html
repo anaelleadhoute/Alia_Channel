@@ -474,15 +474,17 @@ async function generateRecMessage(id) {
 async function sendRecMessage(id, audience) {
   const frEl = document.getElementById(`rec-msg-fr-${id}`);
   const ruEl = document.getElementById(`rec-msg-ru-${id}`);
-  if (!frEl) return;
+  if (!frEl && !ruEl) return;
   try {
     toast('📤 Envoi…');
     await fetch(`${API}/api/publish/manual`, {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({text_fr: frEl.value, text_ru: ruEl?.value || '', audience})
+      body: JSON.stringify({text_fr: frEl?.value || '', text_ru: ruEl?.value || '', audience})
     });
+    await fetch(`${API}/api/recommendations/${id}/status?status=sent`, {method:'PATCH'});
     toast('✅ Envoyé !');
+    loadCommunityRecs();
   } catch(e) { toast(`❌ ${e.message}`, true); }
 }
 
