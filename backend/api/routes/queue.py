@@ -263,15 +263,37 @@ async def _generate_content(category: str, payload: dict) -> tuple[str, str]:
     return fr_resp.content[0].text.strip(), ru_resp.content[0].text.strip()
 
 
-async def _whapi_send(group_id: str, text: str):
+CATEGORY_IMAGES_FR = {
+    "guide":       "https://alia-channel.com/alia_guide_fr.png",
+    "droits":      "https://alia-channel.com/alia_droits_fr.png",
+    "prestataire": "https://alia-channel.com/alia_prestataires_fr.png",
+    "kids":        "https://alia-channel.com/alia_enfants_fr.png",
+}
+CATEGORY_IMAGES_RU = {
+    "guide":       "https://alia-channel.com/ALIA_GUIDE_RUSSIAN.png",
+    "droits":      "https://alia-channel.com/alia_droits_russian.png",
+    "prestataire": "https://alia-channel.com/ALIA_PRESTATAIRES_RUSSIAN.png",
+    "kids":        "https://alia-channel.com/ALIA_ENFANTS_RUSSIAN.png",
+}
+
+
+async def _whapi_send(group_id: str, text: str, image_url: str | None = None):
     import httpx
     async with httpx.AsyncClient() as client:
-        resp = await client.post(
-            f"https://gate.whapi.cloud/messages/text",
-            headers={"Authorization": f"Bearer {WHAPI_TOKEN}", "Content-Type": "application/json"},
-            json={"to": group_id, "body": text},
-            timeout=30,
-        )
+        if image_url:
+            resp = await client.post(
+                "https://gate.whapi.cloud/messages/image",
+                params={"token": WHAPI_TOKEN},
+                json={"to": group_id, "media": image_url, "caption": text},
+                timeout=30,
+            )
+        else:
+            resp = await client.post(
+                "https://gate.whapi.cloud/messages/text",
+                headers={"Authorization": f"Bearer {WHAPI_TOKEN}", "Content-Type": "application/json"},
+                json={"to": group_id, "body": text},
+                timeout=30,
+            )
         resp.raise_for_status()
         return resp.json()
 
@@ -391,16 +413,19 @@ async def send_next_from_queue(category: str):
     errors = []
     sent_fr = sent_ru = False
 
+    img_fr = CATEGORY_IMAGES_FR.get(category)
+    img_ru = CATEGORY_IMAGES_RU.get(category)
+
     if WHAPI_TOKEN and WHAPI_GROUP_FR and item.get("content_fr"):
         try:
-            await _whapi_send(WHAPI_GROUP_FR, item["content_fr"])
+            await _whapi_send(WHAPI_GROUP_FR, item["content_fr"], img_fr)
             sent_fr = True
         except Exception as e:
             errors.append(f"FR: {e}")
 
     if WHAPI_TOKEN and WHAPI_GROUP_RU and item.get("content_ru"):
         try:
-            await _whapi_send(WHAPI_GROUP_RU, item["content_ru"])
+            await _whapi_send(WHAPI_GROUP_RU, item["content_ru"], img_ru)
             sent_ru = True
         except Exception as e:
             errors.append(f"RU: {e}")
