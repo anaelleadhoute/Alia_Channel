@@ -398,9 +398,10 @@ let _recFilter = 'pending';
 
 async function loadCommunityRecs(status) {
   if (status !== undefined) _recFilter = status;
-  ['pending','approved','all'].forEach(f => {
+  ['pending','approved','sent','all'].forEach(f => {
     const btn = document.getElementById(`rec-filter-${f}`);
-    if (btn) { btn.className = (_recFilter === f || (f==='all' && !_recFilter)) ? 'btn btn-primary' : 'btn'; }
+    const active = f === 'all' ? !_recFilter : _recFilter === f;
+    if (btn) btn.className = active ? 'btn btn-primary' : 'btn';
   });
   const url = _recFilter ? `${API}/api/recommendations?status=${_recFilter}` : `${API}/api/recommendations`;
   const items = await fetch(url).then(r => r.json()).catch(() => []);
