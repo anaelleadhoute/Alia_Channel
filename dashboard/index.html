@@ -302,32 +302,42 @@
   <!-- MANUAL SEND -->
   <div class="section" id="section-send">
 
-    <div class="manual-panel" style="margin-bottom:24px;border:2px solid #e8f5e9;background:#f9fffe;">
+    <!-- Appel recommandations FR -->
+    <div class="manual-panel" style="margin-bottom:24px;border:2px solid #e3f2fd;background:#f9fdff;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-        <h2>🤝 Appel à recommandations</h2>
-        <button class="btn btn-primary" style="padding:6px 14px;font-size:13px;" onclick="toggleRecommendEdit()">✏️ Modifier</button>
+        <h2>🤝 🇫🇷 Appel à recommandations — Français</h2>
+        <button class="btn btn-primary" style="padding:6px 14px;font-size:13px;" onclick="toggleRecommendEditFr()">✏️ Modifier</button>
       </div>
-      <p style="font-size:13px;color:#888;margin:0 0 16px;">Invite la communauté à recommander des médecins et prestataires via le formulaire.</p>
-
-      <!-- Preview mode -->
-      <div id="recommendPreviewMode">
-        <div style="background:#f1f8ff;border:1px solid #c9e6ff;border-radius:8px;padding:14px;margin-bottom:16px;font-size:13px;line-height:1.7;white-space:pre-wrap;" id="recommendMsgPreview"></div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <button class="btn btn-primary" style="flex:1;" onclick="sendRecommendMessage('fr')">📤 Envoyer au groupe 🇫🇷</button>
-          <button class="btn btn-primary" style="flex:1;" onclick="sendRecommendMessage('ru')">📤 Envoyer au groupe 🇷🇺</button>
-          <button class="btn btn-both" style="flex:1;" onclick="sendRecommendMessage('both')">📤 Envoyer aux deux groupes</button>
+      <p style="font-size:13px;color:#888;margin:0 0 16px;">Message envoyé au groupe 🇫🇷 avec le lien vers le formulaire français.</p>
+      <div id="recommendPreviewModeFr">
+        <div style="background:#f1f8ff;border:1px solid #c9e6ff;border-radius:8px;padding:14px;margin-bottom:16px;font-size:13px;line-height:1.7;white-space:pre-wrap;" id="recommendMsgPreviewFr"></div>
+        <button class="btn btn-primary" onclick="sendRecommendFr()">📤 Envoyer au groupe 🇫🇷</button>
+      </div>
+      <div id="recommendEditModeFr" style="display:none;">
+        <textarea id="recommendEditFr" style="width:100%;height:200px;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:13px;resize:vertical;font-family:inherit;margin-bottom:14px;box-sizing:border-box;"></textarea>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-both" onclick="saveRecommendFr()">💾 Enregistrer</button>
+          <button class="btn btn-primary" onclick="toggleRecommendEditFr()">Annuler</button>
         </div>
       </div>
+    </div>
 
-      <!-- Edit mode -->
-      <div id="recommendEditMode" style="display:none;">
-        <label style="font-size:13px;font-weight:600;color:#666;display:block;margin-bottom:6px;">🇫🇷 Message français</label>
-        <textarea id="recommendEditFr" style="width:100%;height:180px;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:13px;resize:vertical;font-family:inherit;margin-bottom:14px;box-sizing:border-box;"></textarea>
-        <label style="font-size:13px;font-weight:600;color:#666;display:block;margin-bottom:6px;">🇷🇺 Message russe</label>
-        <textarea id="recommendEditRu" style="width:100%;height:180px;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:13px;resize:vertical;font-family:inherit;margin-bottom:14px;box-sizing:border-box;"></textarea>
+    <!-- Appel recommandations RU -->
+    <div class="manual-panel" style="margin-bottom:24px;border:2px solid #fce4ec;background:#fff9fb;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <h2>🤝 🇷🇺 Appel à recommandations — Russe</h2>
+        <button class="btn btn-primary" style="padding:6px 14px;font-size:13px;" onclick="toggleRecommendEditRu()">✏️ Modifier</button>
+      </div>
+      <p style="font-size:13px;color:#888;margin:0 0 16px;">Message envoyé au groupe 🇷🇺 avec le lien vers le formulaire russe.</p>
+      <div id="recommendPreviewModeRu">
+        <div style="background:#fce4ec;border:1px solid #f8bbd0;border-radius:8px;padding:14px;margin-bottom:16px;font-size:13px;line-height:1.7;white-space:pre-wrap;" id="recommendMsgPreviewRu"></div>
+        <button class="btn btn-ru" onclick="sendRecommendRu()">📤 Envoyer au groupe 🇷🇺</button>
+      </div>
+      <div id="recommendEditModeRu" style="display:none;">
+        <textarea id="recommendEditRu" style="width:100%;height:200px;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:13px;resize:vertical;font-family:inherit;margin-bottom:14px;box-sizing:border-box;"></textarea>
         <div style="display:flex;gap:10px;">
-          <button class="btn btn-both" onclick="saveRecommendEdit()">💾 Enregistrer</button>
-          <button class="btn btn-primary" onclick="toggleRecommendEdit()">Annuler</button>
+          <button class="btn btn-both" onclick="saveRecommendRu()">💾 Enregistrer</button>
+          <button class="btn btn-primary" onclick="toggleRecommendEditRu()">Annuler</button>
         </div>
       </div>
     </div>
@@ -539,6 +549,7 @@ async function init() {
   loadScheduledManual();
   loadCommunityRecs();
   loadAnalytics();
+  await loadRecommendMessages();
   initRecommendPreview();
 }
 
@@ -975,7 +986,7 @@ async function createContest() {
   });
 }
 
-const RECOMMEND_MSG_FR = `🤝 Aidez-nous à les aider !
+const DEFAULT_RECOMMEND_FR = `🤝 Aidez-nous à les aider !
 
 Connaissez-vous un médecin ou un prestataire de service qui parle français en Israël ?
 
@@ -990,50 +1001,85 @@ Ensemble on construit l'annuaire des olim 💪
 📢 Rejoignez la communauté Alia:
 https://tinyurl.com/Alia-community`;
 
-const RECOMMEND_MSG_RU = `🤝 Помогите нам помочь им !
+const DEFAULT_RECOMMEND_RU = `🤝 Помогите нам помочь им!
 
-Вы знаете врача или специалиста, который говорит по-русски в Израиле ?
+Вы знаете врача или специалиста, который говорит по-русски в Израиле?
 
 👨‍⚕️ Врач, стоматолог, физиотерапевт, психолог…
 🔧 Сантехник, электрик, адвокат, бухгалтер…
 
 Поделитесь с сообществом Alia за 2 минуты 👇
-https://alia-channel.com/recommander
+https://alia-channel.com/recommander-ru
 
 Вместе мы строим справочник олим 💪
 
 Присоединяйтесь к сообществу Alia:
 https://tinyurl.com/Alia-community-RU`;
 
-let currentRecommendFr = RECOMMEND_MSG_FR;
-let currentRecommendRu = RECOMMEND_MSG_RU;
+let currentRecommendFr = DEFAULT_RECOMMEND_FR;
+let currentRecommendRu = DEFAULT_RECOMMEND_RU;
+
+async function loadRecommendMessages() {
+  const s = await fetch(`${API}/api/settings`).then(r => r.json()).catch(() => ({}));
+  if (s.recommend_msg_fr) currentRecommendFr = s.recommend_msg_fr;
+  if (s.recommend_msg_ru) currentRecommendRu = s.recommend_msg_ru;
+}
 
 function initRecommendPreview() {
-  document.getElementById('recommendMsgPreview').textContent = currentRecommendFr;
+  document.getElementById('recommendMsgPreviewFr').textContent = currentRecommendFr;
+  document.getElementById('recommendMsgPreviewRu').textContent = currentRecommendRu;
 }
 
-function toggleRecommendEdit() {
-  const preview = document.getElementById('recommendPreviewMode');
-  const edit = document.getElementById('recommendEditMode');
+function toggleRecommendEditFr() {
+  const preview = document.getElementById('recommendPreviewModeFr');
+  const edit = document.getElementById('recommendEditModeFr');
   const isEditing = edit.style.display !== 'none';
-  if (isEditing) {
-    preview.style.display = 'block';
-    edit.style.display = 'none';
-  } else {
-    document.getElementById('recommendEditFr').value = currentRecommendFr;
-    document.getElementById('recommendEditRu').value = currentRecommendRu;
-    preview.style.display = 'none';
-    edit.style.display = 'block';
-  }
+  if (isEditing) { preview.style.display = 'block'; edit.style.display = 'none'; }
+  else { document.getElementById('recommendEditFr').value = currentRecommendFr; preview.style.display = 'none'; edit.style.display = 'block'; }
 }
 
-function saveRecommendEdit() {
+function toggleRecommendEditRu() {
+  const preview = document.getElementById('recommendPreviewModeRu');
+  const edit = document.getElementById('recommendEditModeRu');
+  const isEditing = edit.style.display !== 'none';
+  if (isEditing) { preview.style.display = 'block'; edit.style.display = 'none'; }
+  else { document.getElementById('recommendEditRu').value = currentRecommendRu; preview.style.display = 'none'; edit.style.display = 'block'; }
+}
+
+async function saveRecommendFr() {
   currentRecommendFr = document.getElementById('recommendEditFr').value.trim();
+  document.getElementById('recommendMsgPreviewFr').textContent = currentRecommendFr;
+  document.getElementById('recommendPreviewModeFr').style.display = 'block';
+  document.getElementById('recommendEditModeFr').style.display = 'none';
+  await fetch(`${API}/api/settings`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({key:'recommend_msg_fr', value: currentRecommendFr}) });
+  toast('✅ Message FR mis à jour');
+}
+
+async function saveRecommendRu() {
   currentRecommendRu = document.getElementById('recommendEditRu').value.trim();
-  document.getElementById('recommendMsgPreview').textContent = currentRecommendFr;
-  document.getElementById('recommendPreviewMode').style.display = 'block';
-  document.getElementById('recommendEditMode').style.display = 'none';
-  toast('✅ Message mis à jour');
+  document.getElementById('recommendMsgPreviewRu').textContent = currentRecommendRu;
+  document.getElementById('recommendPreviewModeRu').style.display = 'block';
+  document.getElementById('recommendEditModeRu').style.display = 'none';
+  await fetch(`${API}/api/settings`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({key:'recommend_msg_ru', value: currentRecommendRu}) });
+  toast('✅ Message RU mis à jour');
+}
+
+async function sendRecommendFr() {
+  const btn = event.target; btn.disabled = true; const orig = btn.innerHTML; btn.innerHTML = '⏳ Envoi…';
+  try {
+    await fetch(`${API}/api/publish/manual`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({text_fr: currentRecommendFr, text_ru: '', audience: 'fr'}) });
+    toast('✅ Envoyé au groupe 🇫🇷');
+  } catch(e) { toast(`❌ ${e.message}`, true); }
+  btn.disabled = false; btn.innerHTML = orig;
+}
+
+async function sendRecommendRu() {
+  const btn = event.target; btn.disabled = true; const orig = btn.innerHTML; btn.innerHTML = '⏳ Envoi…';
+  try {
+    await fetch(`${API}/api/publish/manual`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({text_fr: '', text_ru: currentRecommendRu, audience: 'ru'}) });
+    toast('✅ Envoyé au groupe 🇷🇺');
+  } catch(e) { toast(`❌ ${e.message}`, true); }
+  btn.disabled = false; btn.innerHTML = orig;
 }
 
 async function sendRecommendMessage(audience) {
@@ -1045,7 +1091,7 @@ async function sendRecommendMessage(audience) {
     const res = await fetch(`${API}/api/publish/manual`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ text_fr: RECOMMEND_MSG_FR, text_ru: RECOMMEND_MSG_RU, audience })
+      body: JSON.stringify({ text_fr: currentRecommendFr, text_ru: currentRecommendRu, audience })
     });
     if (res.ok) toast('✅ Message envoyé !');
     else toast('❌ Erreur lors de l\'envoi', true);
