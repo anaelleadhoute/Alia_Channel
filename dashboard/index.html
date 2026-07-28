@@ -447,24 +447,27 @@ async function generateRecMessage(id) {
     const res = await fetch(`${API}/api/recommendations/${id}/generate`, {method: 'POST'});
     if (!res.ok) { toast('❌ Erreur génération', true); return; }
     const data = await res.json();
+    const audience = data.audience || 'both';
     const el = document.getElementById(`rec-gen-${id}`);
-    el.innerHTML = `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px;">
-        <div>
+    const frBlock = data.content_fr ? `<div>
           <div style="font-size:11px;font-weight:600;color:#888;margin-bottom:4px;">🇫🇷 FRANÇAIS</div>
-          <textarea id="rec-msg-fr-${id}" style="width:100%;height:140px;border:1px solid #ccc;border-radius:6px;padding:8px;font-size:13px;resize:vertical;font-family:inherit;">${(data.content_fr||'').replace(/</g,'&lt;')}</textarea>
-        </div>
-        <div>
+          <textarea id="rec-msg-fr-${id}" style="width:100%;height:140px;border:1px solid #ccc;border-radius:6px;padding:8px;font-size:13px;resize:vertical;font-family:inherit;">${data.content_fr.replace(/</g,'&lt;')}</textarea>
+        </div>` : '';
+    const ruBlock = data.content_ru ? `<div>
           <div style="font-size:11px;font-weight:600;color:#888;margin-bottom:4px;">🇷🇺 RUSSE</div>
-          <textarea id="rec-msg-ru-${id}" style="width:100%;height:140px;border:1px solid #ccc;border-radius:6px;padding:8px;font-size:13px;resize:vertical;font-family:inherit;">${(data.content_ru||'').replace(/</g,'&lt;')}</textarea>
-        </div>
-      </div>
-      <div style="display:flex;gap:8px;">
-        <button class="btn btn-fr" onclick="sendRecMessage(${id},'fr')">🇫🇷 Envoyer FR</button>
-        <button class="btn btn-ru" onclick="sendRecMessage(${id},'ru')">🇷🇺 Envoyer RU</button>
-        <button class="btn btn-both" onclick="sendRecMessage(${id},'both')">📤 Envoyer les deux</button>
-        <button class="btn" onclick="generateRecMessage(${id})">🔄 Regénérer</button>
-      </div>`;
+          <textarea id="rec-msg-ru-${id}" style="width:100%;height:140px;border:1px solid #ccc;border-radius:6px;padding:8px;font-size:13px;resize:vertical;font-family:inherit;">${data.content_ru.replace(/</g,'&lt;')}</textarea>
+        </div>` : '';
+    const cols = (frBlock && ruBlock) ? '1fr 1fr' : '1fr';
+    const sendBtn = audience === 'fr'
+      ? `<button class="btn btn-fr" onclick="sendRecMessage(${id},'fr')">🇫🇷 Envoyer au groupe FR</button>`
+      : audience === 'ru'
+      ? `<button class="btn btn-ru" onclick="sendRecMessage(${id},'ru')">🇷🇺 Envoyer au groupe RU</button>`
+      : `<button class="btn btn-fr" onclick="sendRecMessage(${id},'fr')">🇫🇷 FR</button>
+         <button class="btn btn-ru" onclick="sendRecMessage(${id},'ru')">🇷🇺 RU</button>
+         <button class="btn btn-both" onclick="sendRecMessage(${id},'both')">📤 Les deux</button>`;
+    el.innerHTML = `
+      <div style="display:grid;grid-template-columns:${cols};gap:12px;margin-bottom:10px;">${frBlock}${ruBlock}</div>
+      <div style="display:flex;gap:8px;">${sendBtn}<button class="btn" onclick="generateRecMessage(${id})">🔄 Regénérer</button></div>`;
   });
 }
 

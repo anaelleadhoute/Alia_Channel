@@ -74,43 +74,44 @@ async def generate_recommendation_message(id: int):
         raise HTTPException(status_code=404, detail="Not found")
     r = dict(row)
 
+    lang = r.get("language", "both")
     type_label = "médecin" if r["type"] == "medecin" else "prestataire"
     details = f"Nom: {r['name']}"
     if r.get("specialty"): details += f"\nSpécialité: {r['specialty']}"
     if r.get("city"): details += f"\nVille: {r['city']}"
     if r.get("phone"): details += f"\nTél: {r['phone']}"
-    if r.get("language"): details += f"\nLangue(s): {r['language']}"
     if r.get("notes"): details += f"\nNotes: {r['notes']}"
-    if r.get("submitted_by"): details += f"\nRecommandé par: {r['submitted_by']}"
 
-    prompt_fr = f"""Tu es rédacteur pour AL.IA Channel, un média WhatsApp pour les olim francophones en Israël.
+    claude = anthropic.AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+    result = {"content_fr": None, "content_ru": None, "audience": lang}
+
+    async def gen(prompt):
+        resp = await claude.messages.create(model="claude-haiku-4-5-20251001", max_tokens=512,
+                                            messages=[{"role":"user","content":prompt}])
+        return resp.content[0].text.strip()
+
+    if lang in ("fr", "both"):
+        prompt_fr = f"""Tu es rédacteur pour AL.IA Channel, un média WhatsApp pour les olim francophones en Israël.
 Un membre de la communauté recommande un(e) {type_label}. Écris un message WhatsApp chaleureux et utile pour partager cette recommandation avec la communauté.
-Format: commence par un emoji accrocheur, présente le/la {type_label}, donne les infos pratiques, remercie la personne qui recommande si indiqué, et encourage les membres à contacter.
-Ton: chaleureux, communautaire, concis (max 200 mots).
+Format: commence par un emoji accrocheur, présente le/la {type_label}, donne les infos pratiques, et encourage les membres à contacter.
+Ton: chaleureux, communautaire, concis (max 200 mots). Ne mentionne pas qui a fait la recommandation.
 
 Informations:
 {details}
 
 Réponds UNIQUEMENT avec le message WhatsApp, sans explication."""
+        result["content_fr"] = await gen(prompt_fr)
 
-    prompt_ru = f"""Ты редактор AL.IA Channel — WhatsApp-медиа для русскоязычных олим в Израиле.
+    if lang in ("ru", "both"):
+        prompt_ru = f"""Ты редактор AL.IA Channel — WhatsApp-медиа для русскоязычных олим в Израиле.
 Участник сообщества рекомендует {type_label}. Напиши тёплое и полезное WhatsApp-сообщение для сообщества с этой рекомендацией.
-Формат: начни с подходящего эмодзи, представь специалиста, дай практическую информацию, поблагодари рекомендующего если указано, призови обращаться.
-Тон: тёплый, общественный, краткий (макс 200 слов).
+Формат: начни с подходящего эмодзи, представь специалиста, дай практическую информацию, призови обращаться.
+Тон: тёплый, общественный, краткий (макс 200 слов). Не упоминай, кто сделал рекомендацию.
 
 Информация:
 {details}
 
 Отвечай ТОЛЬКО текстом WhatsApp-сообщения, без пояснений."""
+        result["content_ru"] = await gen(prompt_ru)
 
-    claude = anthropic.AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-    fr_resp, ru_resp = await __import__("asyncio").gather(
-        claude.messages.create(model="claude-haiku-4-5-20251001", max_tokens=512,
-                               messages=[{"role":"user","content":prompt_fr}]),
-        claude.messages.create(model="claude-haiku-4-5-20251001", max_tokens=512,
-                               messages=[{"role":"user","content":prompt_ru}]),
-    )
-    return {
-        "content_fr": fr_resp.content[0].text.strip(),
-        "content_ru": ru_resp.content[0].text.strip(),
-    }
+    return result
