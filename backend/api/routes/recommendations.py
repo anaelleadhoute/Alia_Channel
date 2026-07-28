@@ -99,6 +99,10 @@ Ton: chaleureux, communautaire, concis (max 200 mots). Ne mentionne pas qui a fa
 Informations:
 {details}
 
+Termine TOUJOURS le message par ces deux lignes exactes (sans les modifier) :
+💡 Vous aussi, partagez vos bonnes adresses : https://tinyurl.com/Alia-community
+👥 Rejoindre la communauté AL.IA : https://tinyurl.com/Alia-community
+
 Réponds UNIQUEMENT avec le message WhatsApp, sans explication."""
         result["content_fr"] = await gen(prompt_fr)
 
@@ -110,6 +114,10 @@ Réponds UNIQUEMENT avec le message WhatsApp, sans explication."""
 
 Информация:
 {details}
+
+Завершай сообщение ВСЕГДА этими двумя строками (без изменений) :
+💡 Поделитесь своими рекомендациями : https://tinyurl.com/Alia-community
+👥 Присоединиться к сообществу AL.IA : https://tinyurl.com/Alia-community-RU
 
 Отвечай ТОЛЬКО текстом WhatsApp-сообщения, без пояснений."""
         result["content_ru"] = await gen(prompt_ru)
