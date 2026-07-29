@@ -200,7 +200,7 @@ Sur ces 7 derniers jours, [nombre entre 2 et 6] familles d'Alia ont demandé une
 
 🎡 Cette semaine, on vous recommande [nom traduit en français], [description courte en français, 1 phrase].
 
-📞 Pour plus d'infos, cherchez [nom traduit en français] sur Google ou demandez à Alia.
+🔗 Plus d'infos : {url}
 
 🤖 Pour plus d'informations, demandez à Alia.
 https://alia-channel.com/api/analytics/track/kids
@@ -222,7 +222,7 @@ Réponds uniquement avec le texte, sans JSON.""",
 
 🎡 На этой неделе рекомендуем [название на русском], [краткое описание на русском, 1 предложение].
 
-📞 Для получения информации найдите [название на русском] в Google или спросите у Alia.
+🔗 Подробнее : {url}
 
 🤖 Для получения дополнительной информации спросите у Alia.
 https://alia-channel.com/api/analytics/track/kids
