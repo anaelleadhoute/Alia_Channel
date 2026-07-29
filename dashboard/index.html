@@ -785,12 +785,9 @@ function renderCard(item) {
     : '';
 
   const publishButtons = isRawTip || item._history ? '' : !isSent && !isRejected ? `
-    <button class="btn btn-fr" onclick="publish('${type}', ${id}, 'fr')" ${item.sent_wa_fr ? 'disabled' : ''}>🇫🇷 FR</button>
-    <button class="btn btn-ru" onclick="publish('${type}', ${id}, 'ru')" ${item.sent_wa_ru ? 'disabled' : ''}>🇷🇺 RU</button>
-    <button class="btn btn-both" onclick="publish('${type}', ${id}, 'both')">Send Both</button>
+    <button class="btn btn-both" onclick="publish('${type}', ${id}, 'both')">▶ Envoyer</button>
     ${editBtn}
     ${regenBtn}
-    ${type !== 'contest' ? `<button class="btn btn-reject" onclick="reject('${type}', ${id})">✕ Reject</button>` : ''}
     ${deleteBtn}
   ` : sentInfo + editBtn + (type === 'contest' ? ` ${deleteBtn}` : '');
 
