@@ -206,6 +206,7 @@ def batch_kids(dry_run: bool):
             post_to_queue("kids", activity["url"], {
                 "name": activity["name"],
                 "description": description,
+                "url": activity["url"],
             }, dry_run)
             time.sleep(1.5)
 
