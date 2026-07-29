@@ -665,9 +665,15 @@ function renderCategorySection(items, type, dateKey = 'week') {
   const history = items.filter(i => i[dateKey] !== thisWeek && i[dateKey] !== thisDate);
   let html = '';
   if (current.length) {
+    let nextMarked = false;
+    const currentCards = current.map(i => {
+      const isNext = !nextMarked && type === 'digest' && !i.sent_wa_fr && !i.sent_wa_ru && i.status !== 'rejected';
+      if (isNext) nextMarked = true;
+      return renderCard({...i, _type: type, _isNext: isNext});
+    });
     html += `<div style="margin-bottom:24px;">
       <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#1565c0;margin-bottom:10px;">📅 Cette semaine</div>
-      <div class="cards">${current.map(i => renderCard({...i, _type: type})).join('')}</div>
+      <div class="cards">${currentCards.join('')}</div>
     </div>`;
   }
   if (history.length) {
@@ -774,11 +780,16 @@ function renderCard(item) {
               ? `<button class="btn" style="background:#f3e5f5;color:#7b1fa2;" onclick="editRights(${id})">✏️ Modifier</button>`
               : '';
 
+  const regenBtn = item._isNext
+    ? `<button class="btn" style="background:#fff3e0;color:#e65100;" onclick="deleteAndRegenDigest(${id})">🔄 Supprimer et Regénérer</button>`
+    : '';
+
   const publishButtons = isRawTip || item._history ? '' : !isSent && !isRejected ? `
     <button class="btn btn-fr" onclick="publish('${type}', ${id}, 'fr')" ${item.sent_wa_fr ? 'disabled' : ''}>🇫🇷 FR</button>
     <button class="btn btn-ru" onclick="publish('${type}', ${id}, 'ru')" ${item.sent_wa_ru ? 'disabled' : ''}>🇷🇺 RU</button>
     <button class="btn btn-both" onclick="publish('${type}', ${id}, 'both')">Send Both</button>
     ${editBtn}
+    ${regenBtn}
     ${type !== 'contest' ? `<button class="btn btn-reject" onclick="reject('${type}', ${id})">✕ Reject</button>` : ''}
     ${deleteBtn}
   ` : sentInfo + editBtn + (type === 'contest' ? ` ${deleteBtn}` : '');
@@ -1727,6 +1738,21 @@ async function editDigest(id) {
     </div>`;
   document.body.appendChild(modal);
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
+
+async function deleteAndRegenDigest(id) {
+  if (!confirm('Supprimer ce digest et relancer le scraping + génération ?')) return;
+  const btn = event.target; btn.disabled = true; btn.innerHTML = '⏳…';
+  try {
+    await fetch(`${API}/api/digests/${id}`, { method: 'DELETE' });
+    toast('🔄 Scraping en cours…');
+    await fetch(`${API}/api/scrape/news`, { method: 'POST' });
+    toast('✅ Nouveau digest généré');
+    loadDigests();
+  } catch(e) {
+    toast(`❌ ${e.message}`, true);
+    btn.disabled = false; btn.innerHTML = '🔄 Supprimer et Regénérer';
+  }
 }
 
 async function saveDigest(id) {
