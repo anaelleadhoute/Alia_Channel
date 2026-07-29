@@ -62,3 +62,29 @@ async def generate_doctor(force: bool = False):
     """Pick a doctor not recently featured and generate FR+RU message."""
     from processors.doctor_processor import generate_weekly_doctor
     return await generate_weekly_doctor(force=force)
+
+
+@router.get("/weekly-events")
+async def list_weekly_doctors():
+    async with get_db() as db:
+        cursor = await db.execute(
+            "SELECT * FROM weekly_doctor ORDER BY week DESC LIMIT 20"
+        )
+        rows = await cursor.fetchall()
+    return [dict(r) for r in rows]
+
+
+class WeeklyDoctorUpdate(BaseModel):
+    content_fr: Optional[str] = None
+    content_ru: Optional[str] = None
+
+
+@router.patch("/weekly-events/{item_id}")
+async def update_weekly_doctor(item_id: int, body: WeeklyDoctorUpdate):
+    async with get_db() as db:
+        await db.execute(
+            "UPDATE weekly_doctor SET content_fr=COALESCE(?,content_fr), content_ru=COALESCE(?,content_ru) WHERE id=?",
+            (body.content_fr, body.content_ru, item_id),
+        )
+        await db.commit()
+    return {"status": "ok"}

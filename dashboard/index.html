@@ -575,7 +575,7 @@ async function loadQueue() {
     fetch(`${API}/api/weekly-events/kids`).then(r => r.json()),
     fetch(`${API}/api/weekly-events/prestataire`).then(r => r.json()),
     fetch(`${API}/api/weekly-events/rights`).then(r => r.json()).catch(() => []),
-    fetch(`${API}/api/weekly-events/doctors`).then(r => r.json()).catch(() => []),
+    fetch(`${API}/api/doctors/weekly-events`).then(r => r.json()).catch(() => []),
   ]);
 
   const allItems = [
@@ -940,7 +940,7 @@ async function generatePrestataireForce() {
 }
 
 async function loadDoctors() {
-  const data = await fetch(`${API}/api/weekly-events/doctors`).then(r => r.json()).catch(() => []);
+  const data = await fetch(`${API}/api/doctors/weekly-events`).then(r => r.json()).catch(() => []);
   document.getElementById('doctorsCards').innerHTML = renderCategorySection(data, 'weekly_doctor');
 }
 
@@ -1580,7 +1580,7 @@ async function saveRights(id) {
 }
 
 async function editDoctor(id) {
-  const data = await fetch(`${API}/api/weekly-events/doctors`).then(r => r.json());
+  const data = await fetch(`${API}/api/doctors/weekly-events`).then(r => r.json());
   const item = data.find(d => d.id === id);
   if (!item) return;
 
@@ -1609,7 +1609,7 @@ async function editDoctor(id) {
 async function saveDoctor(id) {
   const fr = document.getElementById('edit-doctor-fr').value;
   const ru = document.getElementById('edit-doctor-ru').value;
-  const res = await fetch(`${API}/api/weekly-events/doctors/${id}`, {
+  const res = await fetch(`${API}/api/doctors/weekly-events/${id}`, {
     method: 'PATCH',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({content_fr: fr, content_ru: ru}),
