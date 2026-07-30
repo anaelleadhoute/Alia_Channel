@@ -41,18 +41,16 @@ Answer in JSON only:
   "deal_product": "product or service name if visible, else null"
 }}
 
-audience: "fr" if only relevant to French speakers (e.g. flights to Paris), "ru" if only relevant to Russian speakers (e.g. flights to Moscow), "both" for everything else.
+audience: always "both" for household/home products.
 
-Relevance scoring hierarchy (apply to BOTH FR and RU audiences unless destination is specific):
-- Flights to France/French-speaking countries (Paris, etc.) → score 10 for FR audience
-- Flights to Russia, Ukraine, or CIS countries → score 10 for RU audience
-- Electronics deals (appliances, TV, phone) → score 8
-- Supermarket / food deals → score 7
-- Hotels in Israel → score 6
-- Anything else useful for olim → score 5
-- Not useful for olim OR expired → score 1-3, is_relevant: false
+We ONLY publish deals about household and home products. Relevance scoring:
+- Large home appliances (washing machine, fridge, dryer, oven, dishwasher, air conditioner) → score 10, is_relevant: true
+- Small kitchen/home appliances (coffee machine, vacuum, blender, microwave, etc.) → score 9, is_relevant: true
+- Electronics for the home (TV, router, speaker, smart home) → score 8, is_relevant: true
+- Home & furniture (bed, sofa, storage, mattress) → score 7, is_relevant: true
+- Anything else (flights, food, hotels, clothing, personal care, etc.) → score 1-3, is_relevant: false
 
-Score 7+ = worth publishing. Score below 7 = skip."""
+Score 7+ = worth publishing. Anything not related to household/home products = is_relevant: false."""
 
 
 async def _get_last_seen_id(username: str) -> int:
