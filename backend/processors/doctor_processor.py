@@ -5,6 +5,7 @@ import logging
 from datetime import datetime
 
 import anthropic
+import httpx
 from db.database import get_db
 
 logger = logging.getLogger(__name__)
@@ -23,10 +24,26 @@ CITIES_TRANSLATE = {
 }
 
 
-def _build_fr_prompt(doctor: dict) -> str:
+async def _check_lang_url(base_url: str, lang: str) -> str | None:
+    """Return /fr/ or /ru/ URL if it exists on medreviews, else None."""
+    if "medreviews.co.il/provider/" not in base_url:
+        return None
+    lang_url = base_url.replace("/provider/", f"/{lang}/provider/")
+    try:
+        async with httpx.AsyncClient(timeout=8, follow_redirects=True) as client:
+            resp = await client.head(lang_url)
+            if resp.status_code == 200:
+                return lang_url
+    except Exception:
+        pass
+    return None
+
+
+def _build_fr_prompt(doctor: dict, lang_url: str | None = None) -> str:
     city = CITIES_TRANSLATE.get(doctor["city_he"], doctor["city_he"])
     specialties = json.loads(doctor["specialties_he"] or "[]")
     specialty = doctor["specialty_translated"] or (specialties[0] if specialties else "")
+    profile_url = lang_url or doctor.get('url', '')
     return f"""Tu es rédacteur pour AL.IA Channel, média pour les olim francophones en Israël.
 
 Un médecin francophone recommandé :
@@ -34,7 +51,7 @@ Un médecin francophone recommandé :
 - Spécialité : {specialty}
 - Ville : {city}
 - Téléphone : {doctor['phone']}
-- Profil : {doctor.get('url', '')}
+- Profil : {profile_url}
 
 Rédige un message WhatsApp court (80-100 mots) au format EXACT :
 🏥 Le Médecin Alia
@@ -55,10 +72,11 @@ https://tinyurl.com/Alia-community
 Réponds uniquement avec le texte, sans JSON."""
 
 
-def _build_ru_prompt(doctor: dict) -> str:
+def _build_ru_prompt(doctor: dict, lang_url: str | None = None) -> str:
     city = CITIES_TRANSLATE.get(doctor["city_he"], doctor["city_he"])
     specialties = json.loads(doctor["specialties_he"] or "[]")
     specialty = doctor["specialty_translated"] or (specialties[0] if specialties else "")
+    profile_url = lang_url or doctor.get('url', '')
     return f"""Ты редактор AL.IA Channel — медиа для русскоязычных олим в Израиле.
 
 Рекомендуемый русскоязычный врач :
@@ -66,7 +84,7 @@ def _build_ru_prompt(doctor: dict) -> str:
 - Специальность : {specialty}
 - Город : {city}
 - Телефон : {doctor['phone']}
-- Профиль : {doctor.get('url', '')}
+- Профиль : {profile_url}
 
 Напиши короткое WhatsApp сообщение (80-100 слов) в точном формате :
 🏥 Врач от Alia
@@ -124,17 +142,26 @@ async def generate_weekly_doctor(force: bool = False) -> dict:
     if not doctor_fr and not doctor_ru:
         return {"status": "error", "reason": "no doctors in DB"}
 
+    # Check for /fr/ and /ru/ localized profile URLs in parallel
+    fr_url_check = _check_lang_url(doctor_fr.get("url", ""), "fr") if doctor_fr else asyncio.sleep(0, result=None)
+    ru_url_check = _check_lang_url(doctor_ru.get("url", ""), "ru") if doctor_ru else asyncio.sleep(0, result=None)
+    fr_lang_url, ru_lang_url = await asyncio.gather(fr_url_check, ru_url_check)
+    if fr_lang_url:
+        logger.info(f"[doctor] Found FR profile URL: {fr_lang_url}")
+    if ru_lang_url:
+        logger.info(f"[doctor] Found RU profile URL: {ru_lang_url}")
+
     try:
         tasks = []
         if doctor_fr:
             tasks.append(client.messages.create(
                 model="claude-haiku-4-5-20251001", max_tokens=400,
-                messages=[{"role": "user", "content": _build_fr_prompt(doctor_fr)}],
+                messages=[{"role": "user", "content": _build_fr_prompt(doctor_fr, fr_lang_url)}],
             ))
         if doctor_ru:
             tasks.append(client.messages.create(
                 model="claude-haiku-4-5-20251001", max_tokens=400,
-                messages=[{"role": "user", "content": _build_ru_prompt(doctor_ru)}],
+                messages=[{"role": "user", "content": _build_ru_prompt(doctor_ru, ru_lang_url)}],
             ))
 
         results = await asyncio.gather(*tasks)
