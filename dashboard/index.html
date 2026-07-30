@@ -1248,10 +1248,9 @@ async function generateDigest() {
   const btn = event.target;
   await withLoading(btn, async () => {
     toast('📰 Génération news…');
-    const res = await fetch(`${API}/api/digests/generate`, {method: 'POST'});
+    const res = await fetch(`${API}/api/digests/generate/force`, {method: 'POST'});
     const data = await res.json();
     if (data.status === 'ok') toast(`✅ News prête (${data.articles_used} articles)`);
-    else if (data.status === 'skipped') toast('ℹ️ News déjà générée for today');
     else toast('❌ Failed', true);
     await loadQueue(); loadDigests();
   });
