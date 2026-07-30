@@ -93,15 +93,22 @@ KARAMEL_ACTIVITIES = [
 ]
 
 # ── Midrag category URLs ──────────────────────────────────────────────────────
+# Removed: רואי חשבון (accountants), סוכן ביטוח (insurance agents)
 MIDRAG_URLS = [
-    "https://www.midrag.co.il/Search/Results?ntla=ON2C5Q5QY1S096Y802VK6458Y5Q9282ZLK0440",
-    "https://www.midrag.co.il/Search/Results?ntla=5I61Y02M82D0W5AD28IO06W7H5919H87890403",
-    "https://www.midrag.co.il/Search/Results?ntla=1K1U4H6Z69EEV6379055168876A1J900Q24RM3",
-    "https://www.midrag.co.il/Search/Results?ntla=VO7A1N3ZB3F188DR8K5D7GL4F038",
-    "https://www.midrag.co.il/Search/Results?ntla=1E53958037M8264464RJ4X800YR4098",
-    "https://www.midrag.co.il/Search/Results?ntla=N56LHX9329TP58W560647",
-    "https://www.midrag.co.il/Search/Results?ntla=5I21Y06M88D0W7AD48IO76W3H5919H77891402",
+    # רופאי שיניים (dentists) — Tel Aviv, Netanya, Jerusalem
+    ("https://www.midrag.co.il/Search/Results?ntla=1K1U4H6Z69EEV6379055168876A1J900Q24RM3", "תל אביב"),
+    ("https://www.midrag.co.il/Search/Results?ntla=1K1U4H6Z69EEV6379055168876A1J900Q24RM3&areaId=2", "ירושלים"),
+    # חשמלאי (electrician)
+    ("https://www.midrag.co.il/Search/Results?ntla=VO7A1N3ZB3F188DR8K5D7GL4F038", "תל אביב"),
+    # אינסטלטור (plumber)
+    ("https://www.midrag.co.il/Search/Results?ntla=1E53958037M8264464RJ4X800YR4098", "תל אביב"),
+    # הובלות (movers)
+    ("https://www.midrag.co.il/Search/Results?ntla=N56LHX9329TP58W560647", "תל אביב"),
+    # שיפוצניק (renovator)
+    ("https://www.midrag.co.il/Search/Results?ntla=5I21Y06M88D0W7AD48IO76W3H5919H77891402", "תל אביב"),
 ]
+
+TARGET_CITIES = {"תל אביב", "נתניה", "ירושלים", "תל-אביב", "נתניה-עיר ימים"}
 
 
 def extract_kolzchut_text(html: str) -> str:
@@ -260,7 +267,7 @@ def batch_prestataire(dry_run: bool):
             extra_http_headers={"Accept-Language": "he-IL,he;q=0.9"},
         )
         for repeat in range(weeks_per_category):
-            for idx, url in enumerate(MIDRAG_URLS):
+            for idx, (url, city_hint) in enumerate(MIDRAG_URLS):
                 if count >= MAX_WEEKS:
                     break
                 print(f"[{count+1}/{MAX_WEEKS}] Midrag category {idx} (round {repeat+1})")
@@ -274,6 +281,12 @@ def batch_prestataire(dry_run: bool):
                         return [...new Set(anchors.map(a => a.href))];
                     }""")
                     category, city, providers = parse_providers(text, title)
+                    # Skip providers not in target cities
+                    if city not in TARGET_CITIES:
+                        city = city_hint  # fall back to URL hint city
+                    if city not in TARGET_CITIES:
+                        print(f"  ✗ Skipped — city '{city}' not in target cities")
+                        continue
                     if providers:
                         top = providers[0]
                         profile_url = links[0] if links else url

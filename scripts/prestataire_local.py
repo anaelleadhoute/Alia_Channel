@@ -18,7 +18,6 @@ from playwright.sync_api import sync_playwright
 SERVER_URL = "https://alia-channel.com/api/queue/add"
 
 MIDRAG_URLS = [
-    "https://www.midrag.co.il/Search/Results?ntla=5I61Y02M82D0W5AD28IO06W7H5919H87890403",  # סוכן ביטוח
     "https://www.midrag.co.il/Search/Results?ntla=1K1U4H6Z69EEV6379055168876A1J900Q24RM3",  # רופאי שיניים
     "https://www.midrag.co.il/Search/Results?ntla=VO7A1N3ZB3F188DR8K5D7GL4F038",            # חשמלאי
     "https://www.midrag.co.il/Search/Results?ntla=1E53958037M8264464RJ4X800YR4098",          # אינסטלטור
