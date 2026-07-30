@@ -662,13 +662,19 @@ function renderCategorySection(items, type, dateKey = 'week') {
 
 // ── Individual loaders ───────────────────────────────────────────────────────
 async function loadDigests() {
-  const data = await fetch(`${API}/api/digests`).then(r => r.json());
-  document.getElementById('digestCards').innerHTML = renderCategorySection(data, 'digest', 'digest_date');
+  const [data, banner] = await Promise.all([
+    fetch(`${API}/api/digests`).then(r => r.json()),
+    nextRunBanner('send_news', 'Prochain envoi news'),
+  ]);
+  document.getElementById('digestCards').innerHTML = banner + renderCategorySection(data, 'digest', 'digest_date');
 }
 
 async function loadFaqs() {
-  const data = await fetch(`${API}/api/faqs`).then(r => r.json());
-  if (!data.length) { document.getElementById('faqCards').innerHTML = '<div class="empty"><div class="icon">📭</div>Aucun contenu</div>'; return; }
+  const [data, banner] = await Promise.all([
+    fetch(`${API}/api/faqs`).then(r => r.json()),
+    nextRunBanner('generate_faq', 'Prochaine génération FAQ'),
+  ]);
+  if (!data.length) { document.getElementById('faqCards').innerHTML = banner + '<div class="empty"><div class="icon">📭</div>Aucun contenu</div>'; return; }
   let nextMarked = false;
   const unsent = data.filter(f => !f.sent_wa_fr && !f.sent_wa_ru && f.status !== 'rejected');
   const sent   = data.filter(f =>  f.sent_wa_fr ||  f.sent_wa_ru);
@@ -677,7 +683,7 @@ async function loadFaqs() {
     if (isNext) nextMarked = true;
     return renderCard({...f, _type: 'faq', _isNext: isNext});
   };
-  let html = '';
+  let html = banner;
   if (unsent.length) html += `<div style="margin-bottom:24px;"><div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#1565c0;margin-bottom:10px;">📅 À envoyer</div><div class="cards">${unsent.map(renderFaq).join('')}</div></div>`;
   if (sent.length)   html += `<div><div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#999;margin-bottom:10px;">🕘 Historique</div><div class="cards">${sent.map(f => renderCard({...f, _type: 'faq', _history: true})).join('')}</div></div>`;
   document.getElementById('faqCards').innerHTML = html;
@@ -689,9 +695,12 @@ async function loadTips() {
 }
 
 async function loadDeals() {
-  const alerts = await fetch(`${API}/api/deals`).then(r => r.json());
+  const [alerts, banner] = await Promise.all([
+    fetch(`${API}/api/deals`).then(r => r.json()),
+    nextRunBanner('scrape_deals', 'Prochain scraping deals'),
+  ]);
   if (!alerts.length) {
-    document.getElementById('dealAlertCards').innerHTML = '<div class="empty"><div class="icon">⚡</div>Aucune alerte deal pour le moment</div>';
+    document.getElementById('dealAlertCards').innerHTML = banner + '<div class="empty"><div class="icon">⚡</div>Aucune alerte deal pour le moment</div>';
     return;
   }
   const thisWeek = currentWeekStr();
@@ -707,7 +716,7 @@ async function loadDeals() {
   };
   if (current.length) html += `<div style="margin-bottom:24px;"><div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#1565c0;margin-bottom:10px;">📅 Cette semaine</div><div class="cards">${current.map(renderDeal).join('')}</div></div>`;
   if (history.length) html += `<div><div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#999;margin-bottom:10px;">🕘 Historique</div><div class="cards">${history.map(d => renderCard({...d, _type: 'deal'})).join('')}</div></div>`;
-  document.getElementById('dealAlertCards').innerHTML = html || '<div class="empty"><div class="icon">⚡</div>Aucune alerte deal pour le moment</div>';
+  document.getElementById('dealAlertCards').innerHTML = banner + (html || '<div class="empty"><div class="icon">⚡</div>Aucune alerte deal pour le moment</div>');
 }
 
 // ── Card renderer ────────────────────────────────────────────────────────────
@@ -940,8 +949,11 @@ async function generatePrestataireForce() {
 }
 
 async function loadDoctors() {
-  const data = await fetch(`${API}/api/doctors/weekly-events`).then(r => r.json()).catch(() => []);
-  if (!data.length) { document.getElementById('doctorsCards').innerHTML = '<div class="empty"><div class="icon">📭</div>Aucun contenu</div>'; return; }
+  const [data, banner] = await Promise.all([
+    fetch(`${API}/api/doctors/weekly-events`).then(r => r.json()).catch(() => []),
+    nextRunBanner('generate_doctor', 'Prochaine génération médecin'),
+  ]);
+  if (!data.length) { document.getElementById('doctorsCards').innerHTML = banner + '<div class="empty"><div class="icon">📭</div>Aucun contenu</div>'; return; }
   const unsent = data.filter(d => !d.sent_wa_fr && !d.sent_wa_ru && d.status !== 'rejected');
   const sent   = data.filter(d =>  d.sent_wa_fr ||  d.sent_wa_ru);
   let nextMarked = false;
@@ -950,7 +962,7 @@ async function loadDoctors() {
     if (isNext) nextMarked = true;
     return renderCard({...d, _type: 'weekly_doctor', _isNext: isNext});
   };
-  let html = '';
+  let html = banner;
   if (unsent.length) html += `<div style="margin-bottom:24px;"><div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#1565c0;margin-bottom:10px;">📅 À envoyer</div><div class="cards">${unsent.map(renderDoc).join('')}</div></div>`;
   if (sent.length)   html += `<div><div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#999;margin-bottom:10px;">🕘 Historique</div><div class="cards">${sent.map(d => renderCard({...d, _type: 'weekly_doctor', _history: true})).join('')}</div></div>`;
   document.getElementById('doctorsCards').innerHTML = html;
@@ -1296,6 +1308,42 @@ async function sendPendingDigest() {
 
 const DAYS_FR = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
 
+// ── Schedule helpers ─────────────────────────────────────────────────────────
+let _schedulesCache = null;
+async function _loadSchedulesCache() {
+  if (_schedulesCache) return _schedulesCache;
+  const data = await fetch(`${API}/api/schedules`).then(r => r.json()).catch(() => ({schedules: []}));
+  _schedulesCache = data.schedules || [];
+  return _schedulesCache;
+}
+function _nextRunDate(s) {
+  if (!s || !s.enabled) return null;
+  const now = new Date();
+  for (let d = 0; d <= 14; d++) {
+    const c = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + d, s.hour_utc, s.minute_utc || 0, 0));
+    if (c <= now) continue;
+    if (s.day_of_week !== null && s.day_of_week !== undefined && c.getUTCDay() !== s.day_of_week) continue;
+    if (s.week_parity !== null && s.week_parity !== undefined) {
+      const jan1 = new Date(Date.UTC(c.getUTCFullYear(), 0, 1));
+      const wn = Math.floor((c - jan1) / (7 * 86400000));
+      if (wn % 2 !== s.week_parity) continue;
+    }
+    return c;
+  }
+  return null;
+}
+function _formatDate(date) {
+  if (!date) return '—';
+  return date.toLocaleString('fr-FR', {timeZone:'Asia/Jerusalem', weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'});
+}
+async function nextRunBanner(jobKey, label) {
+  const schedules = await _loadSchedulesCache();
+  const s = schedules.find(x => x.job_key === jobKey);
+  const date = _nextRunDate(s);
+  if (!date) return '';
+  return `<div style="font-size:12px;color:#888;margin-bottom:14px;padding:8px 12px;background:#f8f9fa;border-radius:8px;border-left:3px solid #1565c0;">📅 ${label || 'Prochain envoi'} prévu le <strong>${_formatDate(date)}</strong></div>`;
+}
+
 const JOB_CATEGORY = {
   news_digest: 'digest', scrape_news: 'digest', send_news: 'digest',
   faq: 'faq', generate_faq: 'faq', send_faq: 'faq', generate_kol_zchut: 'tip',
@@ -1333,6 +1381,7 @@ async function loadAutomation() {
             <th style="padding:14px 16px;text-align:center;color:#666;font-weight:600;">Jour</th>
             <th style="padding:14px 16px;text-align:center;color:#666;font-weight:600;">Fréquence</th>
             <th style="padding:14px 16px;text-align:center;color:#666;font-weight:600;">Heure (IL)</th>
+            <th style="padding:14px 16px;text-align:center;color:#666;font-weight:600;">Prévue le</th>
             <th style="padding:14px 16px;text-align:center;color:#666;font-weight:600;">Dernière exéc.</th>
             <th style="padding:14px 16px;text-align:center;color:#666;font-weight:600;">Auto-pub</th>
           </tr>
@@ -1374,6 +1423,7 @@ async function loadAutomation() {
                   </select>
                 </div>
               </td>
+              <td style="padding:14px 16px;text-align:center;color:#555;font-size:12px;">${_formatDate(_nextRunDate(s)) || '—'}</td>
               <td style="padding:14px 16px;text-align:center;color:#999;font-size:13px;">${lastRun}</td>
               <td style="padding:14px 16px;text-align:center;">${(() => {
                 if (!JOB_CATEGORY[s.job_key]) return '<span style="color:#ccc;font-size:12px;">—</span>';
@@ -1953,8 +2003,10 @@ async function loadInlineQueue(category) {
       return `📅 Dans ${index} semaines`;
     };
 
+    const jobKeyMap = {guide:'queue_send_guide', droits:'queue_send_droits', prestataire:'queue_send_prestataire', kids:'queue_send_kids'};
+    const banner = await nextRunBanner(jobKeyMap[category], 'Prochain envoi');
     let pendingIndex = 0;
-    listEl.innerHTML = items.map(item => {
+    listEl.innerHTML = banner + items.map(item => {
       const isPending = item.status === 'pending';
       const thisWeek = isPending && pendingIndex === 0;
       const label = isPending ? weekLabel(pendingIndex++) : '✅ Envoyé';
