@@ -941,7 +941,19 @@ async function generatePrestataireForce() {
 
 async function loadDoctors() {
   const data = await fetch(`${API}/api/doctors/weekly-events`).then(r => r.json()).catch(() => []);
-  document.getElementById('doctorsCards').innerHTML = renderCategorySection(data, 'weekly_doctor');
+  if (!data.length) { document.getElementById('doctorsCards').innerHTML = '<div class="empty"><div class="icon">📭</div>Aucun contenu</div>'; return; }
+  const unsent = data.filter(d => !d.sent_wa_fr && !d.sent_wa_ru && d.status !== 'rejected');
+  const sent   = data.filter(d =>  d.sent_wa_fr ||  d.sent_wa_ru);
+  let nextMarked = false;
+  const renderDoc = d => {
+    const isNext = !nextMarked && !d.sent_wa_fr && !d.sent_wa_ru && d.status !== 'rejected';
+    if (isNext) nextMarked = true;
+    return renderCard({...d, _type: 'weekly_doctor', _isNext: isNext});
+  };
+  let html = '';
+  if (unsent.length) html += `<div style="margin-bottom:24px;"><div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#1565c0;margin-bottom:10px;">📅 À envoyer</div><div class="cards">${unsent.map(renderDoc).join('')}</div></div>`;
+  if (sent.length)   html += `<div><div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#999;margin-bottom:10px;">🕘 Historique</div><div class="cards">${sent.map(d => renderCard({...d, _type: 'weekly_doctor', _history: true})).join('')}</div></div>`;
+  document.getElementById('doctorsCards').innerHTML = html;
 }
 
 async function generateDoctor() {
