@@ -1312,8 +1312,8 @@ const DAYS_FR = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samed
 let _schedulesCache = null;
 async function _loadSchedulesCache() {
   if (_schedulesCache) return _schedulesCache;
-  const data = await fetch(`${API}/api/schedules`).then(r => r.json()).catch(() => ({schedules: []}));
-  _schedulesCache = data.schedules || [];
+  const data = await fetch(`${API}/api/schedules`).then(r => r.json()).catch(() => []);
+  _schedulesCache = Array.isArray(data) ? data : (data.schedules || []);
   return _schedulesCache;
 }
 function _nextRunDate(s) {
