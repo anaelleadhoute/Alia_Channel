@@ -330,14 +330,19 @@
         </select>
       </div>
 
-      <div style="background:#f8f9fa;border:1px solid #e0e0e0;border-radius:8px;padding:14px;margin-bottom:14px;">
-        <label style="font-size:13px;font-weight:600;color:#666;display:block;margin-bottom:8px;">⏰ Planifier l'envoi (optionnel)</label>
-        <input type="datetime-local" id="manualScheduleAt" style="border:1px solid #ddd;border-radius:6px;padding:8px 12px;font-size:14px;font-family:inherit;">
-        <span style="font-size:12px;color:#999;margin-left:8px;">Heure d'Israël</span>
+      <div style="margin-bottom:14px;">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;font-weight:600;color:#444;">
+          <input type="checkbox" id="manualPlanifier" onchange="togglePlanifier(this.checked)" style="width:16px;height:16px;cursor:pointer;">
+          ⏰ Planifier l'envoi
+        </label>
+        <div id="manualScheduleBox" style="display:none;margin-top:10px;background:#f8f9fa;border:1px solid #e0e0e0;border-radius:8px;padding:12px;">
+          <input type="datetime-local" id="manualScheduleAt" style="border:1px solid #ddd;border-radius:6px;padding:8px 12px;font-size:14px;font-family:inherit;">
+          <span style="font-size:12px;color:#999;margin-left:8px;">Heure d'Israël</span>
+        </div>
       </div>
 
       <div class="manual-actions">
-        <button class="btn btn-both" onclick="sendManual()">📤 Envoyer</button>
+        <button class="btn btn-both" id="manualSendBtn" onclick="sendManual()">📤 Envoyer maintenant</button>
       </div>
     </div>
 
@@ -1155,14 +1160,21 @@ async function translateManual() {
   }
 }
 
+function togglePlanifier(checked) {
+  document.getElementById('manualScheduleBox').style.display = checked ? 'block' : 'none';
+  document.getElementById('manualSendBtn').textContent = checked ? '⏰ Planifier' : '📤 Envoyer maintenant';
+}
+
 async function sendManual() {
   const text_fr = document.getElementById('manualTextFr').value.trim();
   const text_ru = document.getElementById('manualTextRu').value.trim();
   const audience = document.getElementById('manualAudience').value;
-  const scheduleAt = document.getElementById('manualScheduleAt').value;
+  const planifier = document.getElementById('manualPlanifier').checked;
+  const scheduleAt = planifier ? document.getElementById('manualScheduleAt').value : '';
 
   if (!text_fr) { toast('Écris le message français', true); return; }
   if (audience !== 'fr' && !text_ru) { toast('Le message russe est vide. Traduis d\'abord ou choisis FR seulement.', true); return; }
+  if (planifier && !scheduleAt) { toast('Choisis une date et heure pour planifier', true); return; }
 
   const body = { text_fr, text_ru: text_ru || null, audience };
   if (scheduleAt) body.scheduled_at = scheduleAt;
