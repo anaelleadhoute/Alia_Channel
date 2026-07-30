@@ -234,6 +234,7 @@ async def init_db():
         # Migrations for existing DBs
         for migration in [
             "ALTER TABLE articles ADD COLUMN published_at DATETIME",
+            "ALTER TABLE articles ADD COLUMN used_in_digest_id INTEGER",
             "ALTER TABLE weekly_events_kids ADD COLUMN activity_idea_json TEXT",
             "ALTER TABLE weekly_events_kids ADD COLUMN raw_payload TEXT",
             "ALTER TABLE weekly_prestataire ADD COLUMN raw_payload TEXT",

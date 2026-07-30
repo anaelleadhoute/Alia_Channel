@@ -26,6 +26,16 @@ async def update_digest(digest_id: int, update: DigestUpdate):
     return {"ok": True}
 
 
+@router.delete("/{digest_id}")
+async def delete_digest(digest_id: int):
+    async with get_db() as db:
+        # Free up articles so they can be reused in next digest
+        await db.execute("UPDATE articles SET used_in_digest_id = NULL WHERE used_in_digest_id = ?", (digest_id,))
+        await db.execute("DELETE FROM digests WHERE id = ?", (digest_id,))
+        await db.commit()
+    return {"ok": True}
+
+
 @router.post("/generate")
 async def generate_digest():
     """Generate today's news digest in FR + RU from scraped articles."""
