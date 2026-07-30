@@ -233,6 +233,21 @@ async def init_db():
 
         # Migrations for existing DBs
         for migration in [
+            """CREATE TABLE IF NOT EXISTS faqs_new (
+                id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                week         TEXT,
+                content_fr   TEXT,
+                content_ru   TEXT,
+                generated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                status       TEXT DEFAULT 'pending',
+                sent_wa_fr   INTEGER DEFAULT 0,
+                sent_wa_ru   INTEGER DEFAULT 0
+            )""",
+            "INSERT OR IGNORE INTO faqs_new SELECT * FROM faqs",
+            "DROP TABLE IF EXISTS faqs_old",
+            "ALTER TABLE faqs RENAME TO faqs_old",
+            "ALTER TABLE faqs_new RENAME TO faqs",
+            "DROP TABLE IF EXISTS faqs_old",
             "ALTER TABLE articles ADD COLUMN published_at DATETIME",
             "ALTER TABLE articles ADD COLUMN used_in_digest_id INTEGER",
             "ALTER TABLE weekly_events_kids ADD COLUMN activity_idea_json TEXT",

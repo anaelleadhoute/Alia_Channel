@@ -62,23 +62,9 @@ https://tinyurl.com/Alia-community-RU
 
 
 async def generate_weekly_faq(force: bool = False) -> dict:
-    """Generate a weekly FAQ for olim in FR + RU and save to DB."""
-    week = f"{datetime.utcnow().isocalendar()[0]}-W{datetime.utcnow().isocalendar()[1]:02d}"
-
+    """Generate a FAQ for olim in FR + RU and save to DB."""
     async with get_db() as db:
-        existing = await db.execute(
-            "SELECT id FROM faqs WHERE week = ?", (week,)
-        )
-        row = await existing.fetchone()
-        if row and not force:
-            logger.info(f"[faq] FAQ for {week} already exists, skipping.")
-            return {"status": "skipped", "week": week}
-        if row and force:
-            async with get_db() as db2:
-                await db2.execute("DELETE FROM faqs WHERE week = ?", (week,))
-                await db2.commit()
-
-        # Fetch last 8 weeks of questions to avoid repetition
+        # Fetch last 8 FAQs to avoid repetition
         cursor = await db.execute(
             "SELECT content_fr FROM faqs ORDER BY generated_at DESC LIMIT 8"
         )
@@ -116,16 +102,16 @@ async def generate_weekly_faq(force: bool = False) -> dict:
         async with get_db() as db:
             cursor = await db.execute(
                 """
-                INSERT INTO faqs (week, content_fr, content_ru, generated_at)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO faqs (content_fr, content_ru, generated_at)
+                VALUES (?, ?, ?)
                 """,
-                (week, content_fr, content_ru, datetime.utcnow().isoformat()),
+                (content_fr, content_ru, datetime.utcnow().isoformat()),
             )
             await db.commit()
             faq_id = cursor.lastrowid
 
-        logger.info(f"[faq] Generated FAQ for {week} (id={faq_id})")
-        return {"status": "ok", "week": week, "faq_id": faq_id}
+        logger.info(f"[faq] Generated FAQ (id={faq_id})")
+        return {"status": "ok", "faq_id": faq_id}
 
     except Exception as e:
         logger.error(f"[faq] Failed: {e}")
