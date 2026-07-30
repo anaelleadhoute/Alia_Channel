@@ -1734,13 +1734,18 @@ async function editDigest(id) {
 }
 
 async function deleteAndRegenDigest(id) {
-  if (!confirm('Supprimer ce digest et relancer le scraping + génération ?')) return;
+  if (!confirm('Supprimer ce digest et regénérer ?')) return;
   const btn = event.target; btn.disabled = true; btn.innerHTML = '⏳…';
   try {
     await fetch(`${API}/api/digests/${id}`, { method: 'DELETE' });
-    toast('🔄 Scraping en cours…');
-    await fetch(`${API}/api/scrape/news`, { method: 'POST' });
-    toast('✅ Nouveau digest généré');
+    toast('🔄 Génération en cours…');
+    const res = await fetch(`${API}/api/digests/generate`, { method: 'POST' });
+    const data = await res.json();
+    if (data.digest_id || data.status === 'ok') {
+      toast('✅ Nouveau digest généré');
+    } else {
+      toast(`ℹ️ ${data.status || 'Terminé'}`);
+    }
     loadDigests();
   } catch(e) {
     toast(`❌ ${e.message}`, true);
