@@ -381,7 +381,23 @@ async def send_next_from_queue(category: str):
     if category not in PROMPTS:
         raise HTTPException(status_code=400, detail=f"Unknown category '{category}'")
 
+    job_key_map = {
+        "guide": "queue_send_guide",
+        "droits": "queue_send_droits",
+        "prestataire": "queue_send_prestataire",
+        "kids": "queue_send_kids",
+    }
     async with get_db() as db:
+        job_key = job_key_map.get(category)
+        if job_key:
+            cur = await db.execute(
+                "SELECT value FROM settings WHERE key = ?",
+                (f"auto_publish_job_{job_key}",)
+            )
+            row = await cur.fetchone()
+            if row and row[0] == "false":
+                return {"status": "skipped", "reason": "auto-publish disabled for this job"}
+
         cursor = await db.execute(
             """SELECT * FROM content_queue WHERE category = ? AND status = 'pending'
                ORDER BY queue_order ASC LIMIT 1""",
