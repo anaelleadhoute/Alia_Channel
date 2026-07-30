@@ -545,6 +545,7 @@ function switchTab(name) {
   if (name === 'rights') loadInlineQueue('droits');
   if (name === 'prestataire') loadInlineQueue('prestataire');
   if (name === 'events-kids') loadInlineQueue('kids');
+  if (name === 'automation') loadAutomation();
 }
 
 // ── Queue (all pending content) ──────────────────────────────────────────────
@@ -1289,11 +1290,13 @@ const JOB_CATEGORY = {
 };
 
 async function toggleAutoPublishCategory(category, checked) {
-  await fetch(`${API}/api/settings/auto_publish_${category}`, {
+  const res = await fetch(`${API}/api/settings/auto_publish_${category}`, {
     method: 'PATCH',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({value: checked ? 'true' : 'false'}),
   });
+  if (res.ok) toast(`✅ Auto-publish ${category} : ${checked ? 'activé' : 'désactivé'}`);
+  else toast('❌ Erreur sauvegarde', true);
 }
 
 async function loadAutomation() {
