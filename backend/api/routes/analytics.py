@@ -4,43 +4,49 @@ from db.database import get_db
 
 router = APIRouter()
 
-ALIA_BOT_URL = "https://wa.me/972549675013?text=Aide-moi"
+ALIA_BOT_BASE = "https://wa.me/972549675013"
 
 VALID_CATEGORIES = {"guide", "droits", "prestataire", "kids", "news", "faq", "doctor", "deal", "recommendation"}
 
 short_router = APIRouter()
 
 SHORT_ROUTES = {
-    "faq":          "faq",
-    "guide":        "guide",
-    "droits":       "droits",
-    "kids":         "kids",
-    "medecin":      "doctor",
-    "deals":        "deal",
-    "news":         "news",
-    "prestataire":  "prestataire",
+    "faq":          ("faq",          "FAQ Alia"),
+    "guide":        ("guide",        "Guide Alia"),
+    "droits":       ("droits",       "Droits Alia"),
+    "kids":         ("kids",         "Kids Alia"),
+    "medecin":      ("doctor",       "Medecin Alia"),
+    "deals":        ("deal",         "Deals Alia"),
+    "news":         ("news",         "News Alia"),
+    "prestataire":  ("prestataire",  "Prestataire Alia"),
 }
 
 
 @short_router.get("/go/{slug}")
 async def short_link(slug: str):
-    category = SHORT_ROUTES.get(slug)
-    if category:
+    route = SHORT_ROUTES.get(slug)
+    if route:
+        category, text = route
         async with get_db() as db:
             await db.execute("INSERT INTO link_clicks (category) VALUES (?)", (category,))
             await db.commit()
-    return RedirectResponse(url=ALIA_BOT_URL, status_code=302)
+        import urllib.parse
+        dest = f"{ALIA_BOT_BASE}?text={urllib.parse.quote(text)}"
+    else:
+        dest = f"{ALIA_BOT_BASE}?text=Aide-moi"
+    return RedirectResponse(url=dest, status_code=302)
 
 
 @router.get("/track/{category}")
 async def track_click(category: str):
+    import urllib.parse
+    text = "Aide-moi"
     if category in VALID_CATEGORIES:
         async with get_db() as db:
-            await db.execute(
-                "INSERT INTO link_clicks (category) VALUES (?)", (category,)
-            )
+            await db.execute("INSERT INTO link_clicks (category) VALUES (?)", (category,))
             await db.commit()
-    return RedirectResponse(url=ALIA_BOT_URL)
+        text = next((v[1] for v in SHORT_ROUTES.values() if v[0] == category), "Aide-moi")
+    return RedirectResponse(url=f"{ALIA_BOT_BASE}?text={urllib.parse.quote(text)}")
 
 
 @router.get("/clicks")
