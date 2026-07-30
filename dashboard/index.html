@@ -1334,12 +1334,9 @@ function _nextRunDate(s) {
 }
 function _formatDate(date) {
   if (!date) return '—';
-  // Israel is UTC+3 in summer (DST), UTC+2 in winter — approximate with +3 for summer
-  const IL_OFFSET_MS = 3 * 60 * 60 * 1000;
-  const il = new Date(date.getTime() + IL_OFFSET_MS);
   const days = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
   const months = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
-  return `${days[il.getUTCDay()]} ${il.getUTCDate()} ${months[il.getUTCMonth()]} à ${String(il.getUTCHours()).padStart(2,'0')}h${String(il.getUTCMinutes()).padStart(2,'0')} 🇮🇱`;
+  return `${days[date.getUTCDay()]} ${date.getUTCDate()} ${months[date.getUTCMonth()]} à ${String(date.getUTCHours()).padStart(2,'0')}h${String(date.getUTCMinutes()).padStart(2,'0')} 🇮🇱`;
 }
 async function nextRunBanner(jobKey, label) {
   const schedules = await _loadSchedulesCache();
