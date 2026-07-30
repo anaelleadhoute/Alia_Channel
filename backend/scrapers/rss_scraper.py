@@ -69,7 +69,7 @@ async def _fetch_feed(client: httpx.AsyncClient, source: dict) -> list[dict]:
 
 async def _save_new_articles(articles: list[dict]) -> int:
     """Insert articles, skip duplicates and articles older than 2 days. Returns count of new articles."""
-    cutoff = datetime.utcnow() - timedelta(days=2)
+    cutoff = datetime.utcnow() - timedelta(days=1)
     saved = 0
     async with get_db() as db:
         for article in articles:
