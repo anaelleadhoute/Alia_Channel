@@ -211,10 +211,6 @@
 
   <!-- DEALS -->
   <div class="section" id="section-deals">
-    <div class="actions-bar">
-      <span>Actions:</span>
-      <button class="btn btn-primary" onclick="scrapeTelegramDeals()">⚡ Scraper Deals Telegram</button>
-    </div>
     <div class="queue-header"><h2>⚡ Alertes Deals (Telegram)</h2></div>
     <div class="cards" id="dealAlertCards"><div class="loading">Loading…</div></div>
   </div>
@@ -698,7 +694,13 @@ async function loadDeals() {
   const current = alerts.filter(d => toWeek(d) === thisWeek);
   const history = alerts.filter(d => toWeek(d) !== thisWeek);
   let html = '';
-  if (current.length) html += `<div style="margin-bottom:24px;"><div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#1565c0;margin-bottom:10px;">📅 Cette semaine</div><div class="cards">${current.map(d => renderCard({...d, _type: 'deal'})).join('')}</div></div>`;
+  let nextDealMarked = false;
+  const renderDeal = d => {
+    const isNext = !nextDealMarked && !d.sent_wa_fr && !d.sent_wa_ru && d.status !== 'rejected';
+    if (isNext) nextDealMarked = true;
+    return renderCard({...d, _type: 'deal', _isNext: isNext});
+  };
+  if (current.length) html += `<div style="margin-bottom:24px;"><div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#1565c0;margin-bottom:10px;">📅 Cette semaine</div><div class="cards">${current.map(renderDeal).join('')}</div></div>`;
   if (history.length) html += `<div><div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#999;margin-bottom:10px;">🕘 Historique</div><div class="cards">${history.map(d => renderCard({...d, _type: 'deal'})).join('')}</div></div>`;
   document.getElementById('dealAlertCards').innerHTML = html || '<div class="empty"><div class="icon">⚡</div>Aucune alerte deal pour le moment</div>';
 }
@@ -754,7 +756,9 @@ function renderCard(item) {
   const deleteBtn = type === 'contest' ? `<button class="btn btn-reject" onclick="deleteContest(${id})">🗑 Supprimer</button>` : '';
   const editBtn = (type === 'tip' && !isRawTip)
     ? `<button class="btn" style="background:#f3e5f5;color:#7b1fa2;" onclick="editTip(${id})">✏️ Modifier</button>`
-    : type === 'faq'
+    : type === 'deal'
+      ? `<button class="btn" style="background:#f3e5f5;color:#7b1fa2;" onclick="editDeal(${id})">✏️ Modifier</button>`
+      : type === 'faq'
       ? `<button class="btn" style="background:#f3e5f5;color:#7b1fa2;" onclick="editFaq(${id})">✏️ Modifier</button>`
       : type === 'digest'
       ? `<button class="btn" style="background:#f3e5f5;color:#7b1fa2;" onclick="editDigest(${id})">✏️ Modifier</button>`
@@ -771,6 +775,8 @@ function renderCard(item) {
   const regenBtn = item._isNext
     ? type === 'faq'
       ? `<button class="btn" style="background:#fff3e0;color:#e65100;" onclick="deleteAndRegenFaq(${id})">🔄 Supprimer et Regénérer</button>`
+      : type === 'deal'
+      ? `<button class="btn" style="background:#fff3e0;color:#e65100;" onclick="deleteAndRegenDeal(${id})">🔄 Supprimer et Rescraper</button>`
       : `<button class="btn" style="background:#fff3e0;color:#e65100;" onclick="deleteAndRegenDigest(${id})">🔄 Supprimer et Regénérer</button>`
     : '';
 
@@ -1739,6 +1745,62 @@ async function deleteAndRegenDigest(id) {
   } catch(e) {
     toast(`❌ ${e.message}`, true);
     btn.disabled = false; btn.innerHTML = '🔄 Supprimer et Regénérer';
+  }
+}
+
+async function deleteAndRegenDeal(id) {
+  if (!confirm('Supprimer ce deal et relancer le scraping Telegram ?')) return;
+  const btn = event.target; btn.disabled = true; btn.innerHTML = '⏳…';
+  try {
+    await fetch(`${API}/api/deals/${id}`, { method: 'DELETE' });
+    toast('🔄 Scraping Telegram en cours…');
+    await fetch(`${API}/api/scrape/telegram-deals`, { method: 'POST' });
+    toast('✅ Deals rescrapés');
+    loadDeals();
+  } catch(e) {
+    toast(`❌ ${e.message}`, true);
+    btn.disabled = false; btn.innerHTML = '🔄 Supprimer et Rescraper';
+  }
+}
+
+async function editDeal(id) {
+  const data = await fetch(`${API}/api/deals`).then(r => r.json());
+  const deal = data.find(d => d.id === id);
+  if (!deal) return;
+  const existing = document.getElementById('edit-deal-modal');
+  if (existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = 'edit-deal-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;';
+  modal.innerHTML = `<div style="background:white;border-radius:16px;padding:28px;max-width:700px;width:100%;max-height:90vh;overflow-y:auto;">
+    <div style="font-size:16px;font-weight:700;margin-bottom:20px;">✏️ Modifier le Deal</div>
+    <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:6px;">🇫🇷 Français</div>
+    <textarea id="edit-deal-fr" style="width:100%;height:200px;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:13px;resize:vertical;font-family:inherit;margin-bottom:16px;">${deal.content_fr || ''}</textarea>
+    <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:6px;">🇷🇺 Russe</div>
+    <textarea id="edit-deal-ru" style="width:100%;height:200px;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:13px;resize:vertical;font-family:inherit;margin-bottom:20px;">${deal.content_ru || ''}</textarea>
+    <div style="display:flex;gap:12px;">
+      <button class="btn btn-both" onclick="saveDeal(${id})">💾 Sauvegarder</button>
+      <button class="btn btn-reject" onclick="document.getElementById('edit-deal-modal').remove()">Annuler</button>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
+
+async function saveDeal(id) {
+  const fr = document.getElementById('edit-deal-fr').value;
+  const ru = document.getElementById('edit-deal-ru').value;
+  const res = await fetch(`${API}/api/deals/${id}`, {
+    method: 'PATCH',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({content_fr: fr, content_ru: ru}),
+  });
+  if (res.ok) {
+    toast('✅ Deal modifié !');
+    document.getElementById('edit-deal-modal').remove();
+    await loadDeals();
+  } else {
+    toast('❌ Erreur lors de la sauvegarde', true);
   }
 }
 

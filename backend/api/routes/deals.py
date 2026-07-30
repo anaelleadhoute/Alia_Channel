@@ -25,6 +25,14 @@ async def update_deal(deal_id: int, update: DealUpdate):
     return {"ok": True}
 
 
+@router.delete("/{deal_id}")
+async def delete_deal(deal_id: int):
+    async with get_db() as db:
+        await db.execute("DELETE FROM deals WHERE id = ?", (deal_id,))
+        await db.commit()
+    return {"ok": True}
+
+
 @router.get("")
 async def list_deals(category: str | None = None, limit: int = 50):
     """List relevant deals, optionally filtered by category."""
