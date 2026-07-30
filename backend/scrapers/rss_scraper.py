@@ -1,7 +1,7 @@
 import asyncio
 import hashlib
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from time import mktime
 
 import feedparser
@@ -68,10 +68,19 @@ async def _fetch_feed(client: httpx.AsyncClient, source: dict) -> list[dict]:
 
 
 async def _save_new_articles(articles: list[dict]) -> int:
-    """Insert articles, skip duplicates. Returns count of new articles."""
+    """Insert articles, skip duplicates and articles older than 2 days. Returns count of new articles."""
+    cutoff = datetime.utcnow() - timedelta(days=2)
     saved = 0
     async with get_db() as db:
         for article in articles:
+            pub = article.get("published_at")
+            if pub:
+                try:
+                    pub_dt = datetime.strptime(pub, "%Y-%m-%d %H:%M:%S")
+                    if pub_dt < cutoff:
+                        continue
+                except Exception:
+                    pass
             try:
                 cursor = await db.execute(
                     """
