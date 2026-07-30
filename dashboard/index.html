@@ -1289,13 +1289,13 @@ const JOB_CATEGORY = {
   send_prestataire: 'prestataire', send_deal: 'deal',
 };
 
-async function toggleAutoPublishCategory(category, checked) {
-  const res = await fetch(`${API}/api/settings/auto_publish_${category}`, {
+async function toggleAutoPublishJob(jobKey, checked) {
+  const res = await fetch(`${API}/api/settings/auto_publish_job_${jobKey}`, {
     method: 'PATCH',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({value: checked ? 'true' : 'false'}),
   });
-  if (res.ok) toast(`✅ Auto-publish ${category} : ${checked ? 'activé' : 'désactivé'}`);
+  if (res.ok) toast(`✅ Auto-publish ${jobKey} : ${checked ? 'activé' : 'désactivé'}`);
   else toast('❌ Erreur sauvegarde', true);
 }
 
@@ -1358,11 +1358,10 @@ async function loadAutomation() {
               <td style="padding:14px 16px;text-align:center;">${locBadge}</td>
               <td style="padding:14px 16px;text-align:center;color:#999;font-size:13px;">${lastRun}</td>
               <td style="padding:14px 16px;text-align:center;">${(() => {
-                const cat = JOB_CATEGORY[s.job_key];
-                if (!cat) return '<span style="color:#ccc;font-size:12px;">—</span>';
-                const isOn = settings['auto_publish_' + cat] === 'true';
+                if (!JOB_CATEGORY[s.job_key]) return '<span style="color:#ccc;font-size:12px;">—</span>';
+                const isOn = settings['auto_publish_job_' + s.job_key] === 'true';
                 return `<label class="toggle-switch" style="margin:0 auto;">
-                  <input type="checkbox" ${isOn ? 'checked' : ''} onchange="toggleAutoPublishCategory('${cat}',this.checked)">
+                  <input type="checkbox" ${isOn ? 'checked' : ''} onchange="toggleAutoPublishJob('${s.job_key}',this.checked)">
                   <span class="slider"></span>
                 </label>`;
               })()}</td>
