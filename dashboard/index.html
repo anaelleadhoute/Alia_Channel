@@ -1331,7 +1331,6 @@ async function loadAutomation() {
             <th style="padding:14px 16px;text-align:center;color:#666;font-weight:600;">Jour</th>
             <th style="padding:14px 16px;text-align:center;color:#666;font-weight:600;">Fréquence</th>
             <th style="padding:14px 16px;text-align:center;color:#666;font-weight:600;">Heure (IL)</th>
-            <th style="padding:14px 16px;text-align:center;color:#666;font-weight:600;">Serveur</th>
             <th style="padding:14px 16px;text-align:center;color:#666;font-weight:600;">Dernière exéc.</th>
             <th style="padding:14px 16px;text-align:center;color:#666;font-weight:600;">Auto-pub</th>
           </tr>
@@ -1373,7 +1372,6 @@ async function loadAutomation() {
                   </select>
                 </div>
               </td>
-              <td style="padding:14px 16px;text-align:center;">${locBadge}</td>
               <td style="padding:14px 16px;text-align:center;color:#999;font-size:13px;">${lastRun}</td>
               <td style="padding:14px 16px;text-align:center;">${(() => {
                 if (!JOB_CATEGORY[s.job_key]) return '<span style="color:#ccc;font-size:12px;">—</span>';
