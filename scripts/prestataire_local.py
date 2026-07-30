@@ -18,7 +18,6 @@ from playwright.sync_api import sync_playwright
 SERVER_URL = "https://alia-channel.com/api/scrape/prestataire/manual"
 
 MIDRAG_URLS = [
-    "https://www.midrag.co.il/Search/Results?ntla=ON2C5Q5QY1S096Y802VK6458Y5Q9282ZLK0440",  # רואי חשבון
     "https://www.midrag.co.il/Search/Results?ntla=5I61Y02M82D0W5AD28IO06W7H5919H87890403",  # סוכן ביטוח
     "https://www.midrag.co.il/Search/Results?ntla=1K1U4H6Z69EEV6379055168876A1J900Q24RM3",  # רופאי שיניים
     "https://www.midrag.co.il/Search/Results?ntla=VO7A1N3ZB3F188DR8K5D7GL4F038",            # חשמלאי
@@ -26,6 +25,8 @@ MIDRAG_URLS = [
     "https://www.midrag.co.il/Search/Results?ntla=N56LHX9329TP58W560647",                    # הובלות
     "https://www.midrag.co.il/Search/Results?ntla=5I21Y06M88D0W7AD48IO76W3H5919H77891402",  # שיפוצניק
 ]
+
+TARGET_CITIES = ["תל אביב", "נתניה", "ירושלים", "תל-אביב"]
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36",
@@ -113,6 +114,10 @@ def scrape_prestataire(page) -> dict | None:
     top = providers[0]
     # Use the first profile link as the specific provider URL
     profile_url = profile_links[0] if profile_links else url
+
+    # Override city if not in target cities — default to Tel Aviv
+    if city not in TARGET_CITIES:
+        city = "תל אביב"
     print(f"[midrag] Top provider: {top['name']} | {category} | ⭐ {top['rating']} | {top['reviews']} avis")
     print(f"[midrag] Profile URL: {profile_url}")
 

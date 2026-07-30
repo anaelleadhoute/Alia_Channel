@@ -157,7 +157,7 @@ Grâce à notre partenariat avec Midrag, Alia peut désormais vous orienter vers
 https://tinyurl.com/Alia-community
 
 IMPORTANT : traduis en français le nom du service ({category}) et le titre professionnel hébreu. Écris le nom du prestataire en translittération latine si nécessaire.
-N'invente rien. Pas de markdown, pas de titre.""",
+Mentionne la ville (Tel-Aviv, Netanya ou Jérusalem). N'invente rien. Pas de markdown, pas de titre.""",
         "ru": """Ты редактор Alia Channel — WhatsApp-сообщества для русскоязычных олим в Израиле.
 Вот данные рекомендованного специалиста с сайта Мидраг :
 
