@@ -672,7 +672,19 @@ async function loadDigests() {
 
 async function loadFaqs() {
   const data = await fetch(`${API}/api/faqs`).then(r => r.json());
-  document.getElementById('faqCards').innerHTML = renderCategorySection(data, 'faq');
+  if (!data.length) { document.getElementById('faqCards').innerHTML = '<div class="empty"><div class="icon">📭</div>Aucun contenu</div>'; return; }
+  let nextMarked = false;
+  const unsent = data.filter(f => !f.sent_wa_fr && !f.sent_wa_ru && f.status !== 'rejected');
+  const sent   = data.filter(f =>  f.sent_wa_fr ||  f.sent_wa_ru);
+  const renderFaq = f => {
+    const isNext = !nextMarked && !f.sent_wa_fr && !f.sent_wa_ru && f.status !== 'rejected';
+    if (isNext) nextMarked = true;
+    return renderCard({...f, _type: 'faq', _isNext: isNext});
+  };
+  let html = '';
+  if (unsent.length) html += `<div style="margin-bottom:24px;"><div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#1565c0;margin-bottom:10px;">📅 À envoyer</div><div class="cards">${unsent.map(renderFaq).join('')}</div></div>`;
+  if (sent.length)   html += `<div><div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#999;margin-bottom:10px;">🕘 Historique</div><div class="cards">${sent.map(f => renderCard({...f, _type: 'faq', _history: true})).join('')}</div></div>`;
+  document.getElementById('faqCards').innerHTML = html;
 }
 
 async function loadTips() {
