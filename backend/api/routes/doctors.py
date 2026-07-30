@@ -88,3 +88,11 @@ async def update_weekly_doctor(item_id: int, body: WeeklyDoctorUpdate):
         )
         await db.commit()
     return {"status": "ok"}
+
+
+@router.delete("/weekly-events/{item_id}")
+async def delete_weekly_doctor(item_id: int):
+    async with get_db() as db:
+        await db.execute("DELETE FROM weekly_doctor WHERE id = ?", (item_id,))
+        await db.commit()
+    return {"ok": True}

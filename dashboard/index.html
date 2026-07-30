@@ -642,7 +642,7 @@ function renderCategorySection(items, type, dateKey = 'week') {
   if (current.length) {
     let nextMarked = false;
     const currentCards = current.map(i => {
-      const isNext = !nextMarked && (type === 'digest' || type === 'faq') && !i.sent_wa_fr && !i.sent_wa_ru && i.status !== 'rejected';
+      const isNext = !nextMarked && (type === 'digest' || type === 'faq' || type === 'weekly_doctor') && !i.sent_wa_fr && !i.sent_wa_ru && i.status !== 'rejected';
       if (isNext) nextMarked = true;
       return renderCard({...i, _type: type, _isNext: isNext});
     });
@@ -782,6 +782,8 @@ function renderCard(item) {
       ? `<button class="btn" style="background:#fff3e0;color:#e65100;" onclick="deleteAndRegenFaq(${id})">🔄 Supprimer et Regénérer</button>`
       : type === 'deal'
       ? `<button class="btn" style="background:#fff3e0;color:#e65100;" onclick="deleteAndRegenDeal(${id})">🔄 Supprimer et Rescraper</button>`
+      : type === 'weekly_doctor'
+      ? `<button class="btn" style="background:#fff3e0;color:#e65100;" onclick="deleteAndRegenDoctor(${id})">🔄 Supprimer et Regénérer</button>`
       : `<button class="btn" style="background:#fff3e0;color:#e65100;" onclick="deleteAndRegenDigest(${id})">🔄 Supprimer et Regénérer</button>`
     : '';
 
@@ -1812,6 +1814,21 @@ async function saveDeal(id) {
     await loadDeals();
   } else {
     toast('❌ Erreur lors de la sauvegarde', true);
+  }
+}
+
+async function deleteAndRegenDoctor(id) {
+  if (!confirm('Supprimer ce médecin et regénérer ?')) return;
+  const btn = event.target; btn.disabled = true; btn.innerHTML = '⏳…';
+  try {
+    await fetch(`${API}/api/doctors/weekly-events/${id}`, { method: 'DELETE' });
+    toast('🔄 Génération médecin en cours…');
+    await fetch(`${API}/api/doctors/generate?force=true`, { method: 'POST' });
+    toast('✅ Nouveau médecin généré');
+    loadDoctors();
+  } catch(e) {
+    toast(`❌ ${e.message}`, true);
+    btn.disabled = false; btn.innerHTML = '🔄 Supprimer et Regénérer';
   }
 }
 
