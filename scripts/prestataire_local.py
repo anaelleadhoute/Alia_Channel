@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 from playwright.sync_api import sync_playwright
 
-SERVER_URL = "https://alia-channel.com/api/scrape/prestataire/manual"
+SERVER_URL = "https://alia-channel.com/api/queue/add"
 
 MIDRAG_URLS = [
     "https://www.midrag.co.il/Search/Results?ntla=5I61Y02M82D0W5AD28IO06W7H5919H87890403",  # סוכן ביטוח
@@ -151,7 +151,11 @@ def run():
         print("[send] Nothing scraped, aborting.")
         return
 
-    payload = {"data": data, "force": force}
+    payload = {
+        "category": "prestataire",
+        "source_url": data["url"],
+        "raw_payload": data,
+    }
     print(f"\n[send] Sending to server...")
     with httpx.Client(timeout=60) as client:
         resp = client.post(SERVER_URL, json=payload)
