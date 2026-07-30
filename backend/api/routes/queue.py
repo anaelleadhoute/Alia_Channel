@@ -153,7 +153,7 @@ Grâce à notre partenariat avec Midrag, Alia peut désormais vous orienter vers
 
 🔗 Voir son profil Midrag : {url}
 
-🤖 Besoin d'un professionnel ou d'un conseil ? Demandez à Alia.
+👉 Vous cherchez un autre professionnel ? Parlez directement à Lotem, notre assistante Midrag :
 https://alia-channel.com/go/prestataire
 
 📢 Rejoignez la communauté Alia:
@@ -183,7 +183,7 @@ Mentionne la ville (Tel-Aviv, Netanya ou Jérusalem). N'invente rien. Pas de mar
 
 🔗 Профиль на Midrag : {url}
 
-🤖 Нужен специалист или совет? Спросите у Alia.
+👉 Ищете другого специалиста? Напишите Лотем, нашему ассистенту Midrag :
 https://alia-channel.com/go/prestataire
 
 Присоединяйтесь к сообществу Alia и получайте всё это каждую неделю :
