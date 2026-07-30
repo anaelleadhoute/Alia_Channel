@@ -667,7 +667,7 @@ function renderCategorySection(items, type, dateKey = 'week') {
   if (current.length) {
     let nextMarked = false;
     const currentCards = current.map(i => {
-      const isNext = !nextMarked && type === 'digest' && !i.sent_wa_fr && !i.sent_wa_ru && i.status !== 'rejected';
+      const isNext = !nextMarked && (type === 'digest' || type === 'faq') && !i.sent_wa_fr && !i.sent_wa_ru && i.status !== 'rejected';
       if (isNext) nextMarked = true;
       return renderCard({...i, _type: type, _isNext: isNext});
     });
@@ -768,7 +768,9 @@ function renderCard(item) {
   const deleteBtn = type === 'contest' ? `<button class="btn btn-reject" onclick="deleteContest(${id})">🗑 Supprimer</button>` : '';
   const editBtn = (type === 'tip' && !isRawTip)
     ? `<button class="btn" style="background:#f3e5f5;color:#7b1fa2;" onclick="editTip(${id})">✏️ Modifier</button>`
-    : type === 'digest'
+    : type === 'faq'
+      ? `<button class="btn" style="background:#f3e5f5;color:#7b1fa2;" onclick="editFaq(${id})">✏️ Modifier</button>`
+      : type === 'digest'
       ? `<button class="btn" style="background:#f3e5f5;color:#7b1fa2;" onclick="editDigest(${id})">✏️ Modifier</button>`
       : type === 'weekly_event_kids'
         ? `<button class="btn" style="background:#f3e5f5;color:#7b1fa2;" onclick="editKids(${id})">✏️ Modifier</button>`
@@ -781,7 +783,9 @@ function renderCard(item) {
               : '';
 
   const regenBtn = item._isNext
-    ? `<button class="btn" style="background:#fff3e0;color:#e65100;" onclick="deleteAndRegenDigest(${id})">🔄 Supprimer et Regénérer</button>`
+    ? type === 'faq'
+      ? `<button class="btn" style="background:#fff3e0;color:#e65100;" onclick="deleteAndRegenFaq(${id})">🔄 Supprimer et Regénérer</button>`
+      : `<button class="btn" style="background:#fff3e0;color:#e65100;" onclick="deleteAndRegenDigest(${id})">🔄 Supprimer et Regénérer</button>`
     : '';
 
   const publishButtons = isRawTip || item._history ? '' : !isSent && !isRejected ? `
@@ -1749,6 +1753,62 @@ async function deleteAndRegenDigest(id) {
   } catch(e) {
     toast(`❌ ${e.message}`, true);
     btn.disabled = false; btn.innerHTML = '🔄 Supprimer et Regénérer';
+  }
+}
+
+async function deleteAndRegenFaq(id) {
+  if (!confirm('Supprimer cette FAQ et regénérer ?')) return;
+  const btn = event.target; btn.disabled = true; btn.innerHTML = '⏳…';
+  try {
+    await fetch(`${API}/api/faqs/${id}`, { method: 'DELETE' });
+    toast('🔄 Génération FAQ en cours…');
+    await fetch(`${API}/api/faqs/generate?force=true`, { method: 'POST' });
+    toast('✅ Nouvelle FAQ générée');
+    loadFaqs();
+  } catch(e) {
+    toast(`❌ ${e.message}`, true);
+    btn.disabled = false; btn.innerHTML = '🔄 Supprimer et Regénérer';
+  }
+}
+
+async function editFaq(id) {
+  const data = await fetch(`${API}/api/faqs`).then(r => r.json());
+  const faq = data.find(f => f.id === id);
+  if (!faq) return;
+  const existing = document.getElementById('edit-faq-modal');
+  if (existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = 'edit-faq-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;';
+  modal.innerHTML = `<div style="background:white;border-radius:16px;padding:28px;max-width:700px;width:100%;max-height:90vh;overflow-y:auto;">
+    <div style="font-size:16px;font-weight:700;margin-bottom:20px;">✏️ Modifier la FAQ — ${faq.week || ''}</div>
+    <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:6px;">🇫🇷 Français</div>
+    <textarea id="edit-faq-fr" style="width:100%;height:220px;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:13px;resize:vertical;font-family:inherit;margin-bottom:16px;">${faq.content_fr || ''}</textarea>
+    <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:6px;">🇷🇺 Russe</div>
+    <textarea id="edit-faq-ru" style="width:100%;height:220px;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:13px;resize:vertical;font-family:inherit;margin-bottom:20px;">${faq.content_ru || ''}</textarea>
+    <div style="display:flex;gap:12px;">
+      <button class="btn btn-both" onclick="saveFaq(${id})">💾 Sauvegarder</button>
+      <button class="btn btn-reject" onclick="document.getElementById('edit-faq-modal').remove()">Annuler</button>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
+
+async function saveFaq(id) {
+  const fr = document.getElementById('edit-faq-fr').value;
+  const ru = document.getElementById('edit-faq-ru').value;
+  const res = await fetch(`${API}/api/faqs/${id}`, {
+    method: 'PATCH',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({content_fr: fr, content_ru: ru}),
+  });
+  if (res.ok) {
+    toast('✅ FAQ modifiée !');
+    document.getElementById('edit-faq-modal').remove();
+    await loadFaqs();
+  } else {
+    toast('❌ Erreur lors de la sauvegarde', true);
   }
 }
 

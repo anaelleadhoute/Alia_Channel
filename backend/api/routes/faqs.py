@@ -43,6 +43,14 @@ async def update_faq(faq_id: int, update: FaqUpdate):
     return {"ok": True}
 
 
+@router.delete("/{faq_id}")
+async def delete_faq(faq_id: int):
+    async with get_db() as db:
+        await db.execute("DELETE FROM faqs WHERE id = ?", (faq_id,))
+        await db.commit()
+    return {"ok": True}
+
+
 @router.get("")
 async def list_faqs(limit: int = 10):
     """List recent FAQs."""
