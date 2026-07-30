@@ -75,7 +75,6 @@ async def generate_daily_digest(force: bool = False) -> dict:
             return {"status": "skipped", "date": today}
         if row and force:
             async with get_db() as db2:
-                await db2.execute("UPDATE articles SET used_in_digest_id = NULL WHERE used_in_digest_id = ?", (row["id"],))
                 await db2.execute("DELETE FROM digests WHERE digest_date = ?", (week_day,))
                 await db2.commit()
 
