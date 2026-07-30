@@ -220,11 +220,19 @@ async def _save_deal(deal: dict) -> None:
         await db.commit()
 
 
-async def run_telegram_scraper(category_filter: str | None = None) -> dict:
+async def run_telegram_scraper(category_filter: str | None = None, force: bool = False) -> dict:
     """
     Scrape all Telegram deal channels, analyze with Claude, save relevant deals.
     Optionally filter by category (supermarket, electronics, flights, hotels).
     """
+    if not force:
+        async with get_db() as db:
+            cursor = await db.execute(
+                "SELECT id FROM deals WHERE sent_wa_fr=0 AND sent_wa_ru=0 AND status != 'rejected' AND is_relevant=1 LIMIT 1"
+            )
+            if await cursor.fetchone():
+                return {"status": "skipped", "reason": "unsent deal already exists"}
+
     channels = TELEGRAM_CHANNELS
     if category_filter:
         channels = [c for c in channels if c["category"] == category_filter]

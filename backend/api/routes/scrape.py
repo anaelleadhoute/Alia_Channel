@@ -19,8 +19,8 @@ async def scrape_news():
 
 
 @router.post("/telegram-deals")
-async def scrape_telegram_deals():
-    scrape_result = await run_telegram_scraper()
+async def scrape_telegram_deals(force: bool = False):
+    scrape_result = await run_telegram_scraper(force=force)
     ai_result = await process_pending_deals()
     best_id = None
     if ai_result.get("deal_ids"):

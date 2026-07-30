@@ -1779,7 +1779,7 @@ async function deleteAndRegenDeal(id) {
   try {
     await fetch(`${API}/api/deals/${id}`, { method: 'DELETE' });
     toast('🔄 Scraping Telegram en cours…');
-    await fetch(`${API}/api/scrape/telegram-deals`, { method: 'POST' });
+    await fetch(`${API}/api/scrape/telegram-deals?force=true`, { method: 'POST' });
     toast('✅ Deals rescrapés');
     loadDeals();
   } catch(e) {
