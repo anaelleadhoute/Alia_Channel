@@ -8,6 +8,29 @@ ALIA_BOT_URL = "https://wa.me/972549675013?text=Aide-moi"
 
 VALID_CATEGORIES = {"guide", "droits", "prestataire", "kids", "news", "faq", "doctor", "deal", "recommendation"}
 
+short_router = APIRouter()
+
+SHORT_ROUTES = {
+    "faq":          "faq",
+    "guide":        "guide",
+    "droits":       "droits",
+    "kids":         "kids",
+    "medecin":      "doctor",
+    "deals":        "deal",
+    "news":         "news",
+    "prestataire":  "prestataire",
+}
+
+
+@short_router.get("/go/{slug}")
+async def short_link(slug: str):
+    category = SHORT_ROUTES.get(slug)
+    if category:
+        async with get_db() as db:
+            await db.execute("INSERT INTO link_clicks (category) VALUES (?)", (category,))
+            await db.commit()
+    return RedirectResponse(url=ALIA_BOT_URL, status_code=302)
+
 
 @router.get("/track/{category}")
 async def track_click(category: str):
