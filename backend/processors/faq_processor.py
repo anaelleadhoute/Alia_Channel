@@ -64,6 +64,13 @@ https://tinyurl.com/Alia-community-RU
 async def generate_weekly_faq(force: bool = False) -> dict:
     """Generate a FAQ for olim in FR + RU and save to DB."""
     async with get_db() as db:
+        if not force:
+            unsent = await db.execute(
+                "SELECT id FROM faqs WHERE sent_wa_fr=0 AND sent_wa_ru=0 AND status != 'rejected' LIMIT 1"
+            )
+            if await unsent.fetchone():
+                return {"status": "skipped", "reason": "unsent FAQ already exists"}
+
         # Fetch last 8 FAQs to avoid repetition
         cursor = await db.execute(
             "SELECT content_fr FROM faqs ORDER BY generated_at DESC LIMIT 8"
