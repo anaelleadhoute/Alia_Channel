@@ -11,10 +11,10 @@ router = APIRouter()
 
 
 @router.post("/news")
-async def scrape_news():
+async def scrape_news(force: bool = False):
     scrape_result = await run_scraper()
     ai_result = await process_pending_articles()
-    digest_result = await generate_daily_digest()
+    digest_result = await generate_daily_digest(force=force)
     return {"scrape": scrape_result, "ai": ai_result, "digest": digest_result}
 
 
