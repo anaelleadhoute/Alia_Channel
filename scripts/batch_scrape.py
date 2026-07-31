@@ -92,20 +92,15 @@ KARAMEL_ACTIVITIES = [
     {"name": "מדעטק חיפה",                          "url": "https://www.karamel.co.il/%D7%9E%D7%93%D7%A2%D7%98%D7%A7_%D7%97%D7%99%D7%A4%D7%94.asp?cat=682&tag=719"},
 ]
 
-# ── Midrag category URLs ──────────────────────────────────────────────────────
-# Removed: רואי חשבון (accountants), סוכן ביטוח (insurance agents)
+# ── Midrag category URLs (user-provided, Tel Aviv / Netanya / Jerusalem) ──────
 MIDRAG_URLS = [
-    # רופאי שיניים (dentists) — Tel Aviv, Netanya, Jerusalem
-    ("https://www.midrag.co.il/Search/Results?ntla=1K1U4H6Z69EEV6379055168876A1J900Q24RM3", "תל אביב"),
-    ("https://www.midrag.co.il/Search/Results?ntla=1K1U4H6Z69EEV6379055168876A1J900Q24RM3&areaId=2", "ירושלים"),
-    # חשמלאי (electrician)
-    ("https://www.midrag.co.il/Search/Results?ntla=VO7A1N3ZB3F188DR8K5D7GL4F038", "תל אביב"),
-    # אינסטלטור (plumber)
-    ("https://www.midrag.co.il/Search/Results?ntla=1E53958037M8264464RJ4X800YR4098", "תל אביב"),
-    # הובלות (movers)
-    ("https://www.midrag.co.il/Search/Results?ntla=N56LHX9329TP58W560647", "תל אביב"),
-    # שיפוצניק (renovator)
+    ("https://www.midrag.co.il/Search/Results?serviceId=102&cityId=900", "נתניה"),
     ("https://www.midrag.co.il/Search/Results?ntla=5I21Y06M88D0W7AD48IO76W3H5919H77891402", "תל אביב"),
+    ("https://www.midrag.co.il/Search/Results?ntla=QO2FYN67T8YZG6Z56OYE77N80611378GMD6H58", "ירושלים"),
+    ("https://www.midrag.co.il/Search/Results?ntla=152NGC63B7N6594078T757O5F8241E4OQ935Y2", "ירושלים"),
+    ("https://www.midrag.co.il/Search/Results?ntla=N56LHX9329TP58W560647", "תל אביב"),
+    ("https://www.midrag.co.il/Search/Results?ntla=ZN7C2105U243N7IU6LE28", "נתניה"),
+    ("https://www.midrag.co.il/Search/Results?ntla=VO7A1N3ZB3F188DR8K5D7GL4F038", "תל אביב"),
 ]
 
 TARGET_CITIES = {"תל אביב", "נתניה", "ירושלים", "תל-אביב", "נתניה-עיר ימים"}

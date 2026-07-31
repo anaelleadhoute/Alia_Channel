@@ -355,11 +355,6 @@ async def init_db():
                 'scrape_prestataire', 'generate_prestataire',
                 'kol_zchut', 'prestataire', 'kids_events'
             )""",
-            """CREATE TABLE IF NOT EXISTS link_clicks (
-                id          INTEGER PRIMARY KEY AUTOINCREMENT,
-                category    TEXT NOT NULL,
-                clicked_at  DATETIME DEFAULT CURRENT_TIMESTAMP
-            )""",
             """CREATE TABLE IF NOT EXISTS contest_submissions (
                 id              INTEGER PRIMARY KEY AUTOINCREMENT,
                 contest_id      INTEGER,

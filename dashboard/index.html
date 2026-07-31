@@ -185,8 +185,7 @@
   <button class="tab" onclick="switchTab('doctors')">🏥 Médecin</button>
 <button class="tab" onclick="switchTab('automation')">⚙️ Automation</button>
   <button class="tab" onclick="switchTab('concours')">🎉 Concours</button>
-<button class="tab" onclick="switchTab('analytics')">📊 Analytics</button>
-  <button class="tab" onclick="switchTab('community-recs')">⭐ Recommandations</button>
+<button class="tab" onclick="switchTab('community-recs')">⭐ Recommandations</button>
   <button class="tab" onclick="switchTab('send')">✏️ Send</button>
 </div>
 
@@ -291,11 +290,6 @@
       </div>
       <div id="detail-table"><div class="loading">Loading…</div></div>
     </div>
-  </div>
-
-  <div class="section" id="section-analytics">
-    <div class="queue-header"><h2>📊 Analytics — Clics sur le bot Alia</h2></div>
-    <div id="analyticsCards"><div class="loading">Loading…</div></div>
   </div>
 
   <!-- COMMUNITY RECOMMENDATIONS -->
@@ -528,41 +522,6 @@ function exportContestCSV() {
   window.location.href = `${API}/api/contests/${_currentContestId}/submissions/export`;
 }
 
-async function loadAnalytics() {
-  const data = await fetch(`${API}/api/analytics/clicks`).then(r => r.json()).catch(() => []);
-  const el = document.getElementById('analyticsCards');
-  if (!data.length) {
-    el.innerHTML = '<div class="empty"><div class="icon">📊</div>Aucun clic enregistré pour l\'instant</div>';
-    return;
-  }
-  const maxTotal = Math.max(...data.map(d => d.total), 1);
-  el.innerHTML = `
-    <div style="background:white;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.06);padding:24px;margin-bottom:24px;">
-      <div style="display:grid;gap:16px;">
-        ${data.map(d => {
-          const pct = Math.round((d.total / maxTotal) * 100);
-          const label = CATEGORY_LABELS[d.category] || d.category;
-          return `<div>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-              <span style="font-weight:600;font-size:14px;">${label}</span>
-              <div style="display:flex;gap:16px;font-size:13px;color:#666;">
-                <span>7j: <b style="color:#1565c0;">${d.last_7d}</b></span>
-                <span>30j: <b style="color:#2e7d32;">${d.last_30d}</b></span>
-                <span>Total: <b>${d.total}</b></span>
-              </div>
-            </div>
-            <div style="background:#f0f0f0;border-radius:4px;height:10px;overflow:hidden;">
-              <div style="background:#1565c0;height:100%;width:${pct}%;border-radius:4px;transition:width 0.4s;"></div>
-            </div>
-          </div>`;
-        }).join('')}
-      </div>
-    </div>
-    <div style="font-size:12px;color:#999;padding:0 4px;">
-      Les clics sont enregistrés quand un membre clique sur le lien Alia dans un message WhatsApp.
-    </div>`;
-}
-
 // ── Community Recommendations ────────────────────────────────────────────────
 let _recFilter = 'pending';
 
@@ -686,7 +645,6 @@ async function init() {
   loadAutomation();
   loadScheduledManual();
   loadCommunityRecs();
-  loadAnalytics();
   await loadRecommendMessages();
   initRecommendPreview();
 }
