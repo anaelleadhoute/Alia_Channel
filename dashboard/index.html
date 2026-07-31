@@ -538,6 +538,10 @@ function switchTab(name) {
   document.getElementById(`section-${name}`).classList.add('active');
   event.target.classList.add('active');
   if (name === 'queue') loadQueueStats();
+  if (name === 'digests') loadDigests();
+  if (name === 'faqs') loadFaqs();
+  if (name === 'deals') loadDeals();
+  if (name === 'doctors') loadDoctors();
   if (name === 'tips') loadInlineQueue('guide');
   if (name === 'rights') loadInlineQueue('droits');
   if (name === 'prestataire') loadInlineQueue('prestataire');
