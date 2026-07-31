@@ -1162,30 +1162,6 @@ async function loadContests() {
     : '<div class="empty"><div class="icon">🎁</div>Aucun concours pour le moment</div>';
 }
 
-async function createContest() {
-  const btn = event.target;
-  const title = document.getElementById('contestTitle').value.trim();
-  const fr = document.getElementById('contestFr').value.trim();
-  const ru = document.getElementById('contestRu').value.trim();
-  if (!title || !fr) { toast('Titre et message FR requis', true); return; }
-  await withLoading(btn, async () => {
-    toast('✨ Création en cours…');
-    const res = await fetch(`${API}/api/contests`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({title, content_fr: fr, content_ru: ru || null, auto_translate: !ru})
-    });
-    if (res.ok) {
-      toast('✅ Concours créé !');
-      document.getElementById('contestTitle').value = '';
-      document.getElementById('contestFr').value = '';
-      document.getElementById('contestRu').value = '';
-      await loadContests();
-    } else {
-      toast('❌ Erreur', true);
-    }
-  });
-}
 
 const DEFAULT_RECOMMEND_FR = `🤝 Aidez-nous à les aider !
 
