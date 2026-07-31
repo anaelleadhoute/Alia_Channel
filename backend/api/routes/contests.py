@@ -1,4 +1,5 @@
 import csv
+import html
 import io
 import re
 import os
@@ -109,13 +110,13 @@ async def contest_form(slug: str, lang: str = "fr"):
 
     template = "/app/static/concours-ru.html" if lang == "ru" else "/app/static/concours.html"
     with open(template, "r") as f:
-        html = f.read()
+        page = f.read()
 
-    html = html.replace("{{CONTEST_TITLE}}", contest["title"])
     default_desc = "Заполни анкету для участия!" if lang == "ru" else "Remplis ce formulaire pour participer !"
-    html = html.replace("{{CONTEST_DESCRIPTION}}", contest["description"] or default_desc)
-    html = html.replace("{{CONTEST_ID}}", str(contest["id"]))
-    return HTMLResponse(html)
+    page = page.replace("{{CONTEST_TITLE}}", html.escape(contest["title"]))
+    page = page.replace("{{CONTEST_DESCRIPTION}}", html.escape(contest["description"] or default_desc))
+    page = page.replace("{{CONTEST_ID}}", str(contest["id"]))
+    return HTMLResponse(page)
 
 
 # ── Submissions ───────────────────────────────────────────────────────────────

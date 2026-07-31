@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from db.database import init_db
+from api.auth import AdminAuthMiddleware
 from api.routes import articles, publish, scrape, deals, faqs, digests, settings, contests, maintenance, schedules, doctors, recommendations, queue
 from api.routes.shortcuts import short_router
 
@@ -19,6 +20,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(AdminAuthMiddleware)
 
 
 @app.on_event("startup")

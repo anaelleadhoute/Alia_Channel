@@ -389,9 +389,23 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="config.js"></script>
 <script>
 const API = '';
 let queueFilter = 'ready';
+
+// Every /api/* call from this dashboard needs the admin key (see config.js).
+(function() {
+  const realFetch = window.fetch;
+  window.fetch = function(input, init) {
+    const url = typeof input === 'string' ? input : input.url;
+    if (url.includes('/api/')) {
+      init = init || {};
+      init.headers = Object.assign({}, init.headers, { 'X-Admin-Key': window.ADMIN_KEY || '' });
+    }
+    return realFetch(input, init);
+  };
+})();
 
 // ── Analytics ────────────────────────────────────────────────────────────────
 const CATEGORY_LABELS = {
