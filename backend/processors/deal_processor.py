@@ -45,7 +45,7 @@ Alia a cherché pour vous et a trouvé le meilleur prix du moment sur [nom du pr
 https://tinyurl.com/Alia-community
 
 🤖 Des questions ? Parlez à Alia :
-https://alia-channel.com/go/deals
+https://wa.me/972549675013?text=Aide-moi
 
 Réponds uniquement avec le texte du message, sans JSON, sans commentaire."""
 
@@ -74,7 +74,7 @@ Alia искала для вас и нашла лучшую цену на [наз
 https://tinyurl.com/Alia-community-RU
 
 🤖 Есть вопросы? Напишите Alia :
-https://alia-channel.com/go/deals
+https://wa.me/972549675013?text=Помоги
 
 Отвечай только текстом сообщения, без JSON, без комментариев."""
 

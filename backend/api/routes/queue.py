@@ -47,7 +47,7 @@ Beaucoup d'utilisateurs d'Alia nous demandent :
 ⚠️ [Une mise en garde ou nuance importante, si pertinente]
 
 🤖 Pour connaître la procédure adaptée à votre situation, demandez à Alia.
-https://alia-channel.com/go/guide
+https://wa.me/972549675013?text=Aide-moi
 
 📢 Rejoignez la communauté Alia:
 https://tinyurl.com/Alia-community
@@ -73,7 +73,7 @@ Réponds uniquement avec le texte du guide, sans JSON, sans commentaire.""",
 ⚠️ [Важная оговорка или нюанс, если есть]
 
 🤖 Чтобы узнать процедуру для вашей ситуации, спросите у Alia.
-https://alia-channel.com/go/guide
+https://wa.me/972549675013?text=Помоги
 
 Присоединяйтесь к сообществу Alia и получайте всё это каждую неделю :
 https://tinyurl.com/Alia-community-RU
@@ -99,7 +99,7 @@ Format EXACT :
 ✅ [Ce que vous pouvez faire concrètement pour en bénéficier]
 
 🤖 Pour plus d'informations, demandez à Alia.
-https://alia-channel.com/go/droits
+https://wa.me/972549675013?text=Aide-moi
 
 📢 Rejoignez la communauté Alia:
 https://tinyurl.com/Alia-community
@@ -123,7 +123,7 @@ Réponds uniquement avec le texte, sans JSON.""",
 ✅ [Что можно сделать конкретно, чтобы воспользоваться этим правом]
 
 🤖 Для получения дополнительной информации спросите у Alia.
-https://alia-channel.com/go/droits
+https://wa.me/972549675013?text=Помоги
 
 Присоединяйтесь к сообществу Alia и получайте всё это каждую неделю :
 https://tinyurl.com/Alia-community-RU
@@ -209,7 +209,7 @@ Sur ces 7 derniers jours, [nombre entre 2 et 6] familles d'Alia ont demandé une
 🔗 Plus d'infos : {url}
 
 🤖 Pour plus d'informations, demandez à Alia.
-https://alia-channel.com/go/kids
+https://wa.me/972549675013?text=Aide-moi
 
 📢 Rejoignez la communauté Alia:
 https://tinyurl.com/Alia-community
@@ -231,7 +231,7 @@ Réponds uniquement avec le texte, sans JSON.""",
 🔗 Подробнее : {url}
 
 🤖 Для получения дополнительной информации спросите у Alia.
-https://alia-channel.com/go/kids
+https://wa.me/972549675013?text=Помоги
 
 Присоединяйтесь к сообществу Alia и получайте всё это каждую неделю :
 https://tinyurl.com/Alia-community-RU
