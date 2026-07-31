@@ -30,12 +30,16 @@
   .question { margin-bottom: 22px; }
   label { display: block; font-weight: 600; color: #1a1a2e; margin-bottom: 8px; font-size: 15px; }
   .required { color: #e74c3c; }
-  input[type="text"], textarea {
+  .row { display: flex; gap: 12px; }
+  .row .field { flex: 1; }
+  input[type="text"], input[type="email"], input[type="tel"], textarea {
     width: 100%; padding: 12px 14px; border: 2px solid #e8e8e8;
     border-radius: 10px; font-size: 15px; transition: border 0.2s;
     font-family: inherit;
   }
-  input[type="text"]:focus, textarea:focus { outline: none; border-color: #667eea; }
+  input[type="text"]:focus, input[type="email"]:focus, input[type="tel"]:focus, textarea:focus {
+    outline: none; border-color: #667eea;
+  }
   textarea { resize: vertical; min-height: 80px; }
   .options { display: flex; flex-direction: column; gap: 10px; }
   .option {
@@ -55,14 +59,12 @@
   }
   .btn:hover { opacity: 0.9; }
   .btn:disabled { opacity: 0.6; cursor: not-allowed; }
-  .success {
-    text-align: center; padding: 40px 20px;
-    display: none;
-  }
+  .success { text-align: center; padding: 40px 20px; display: none; }
   .success .big { font-size: 64px; margin-bottom: 16px; }
   .success h2 { font-size: 22px; color: #1a1a2e; margin-bottom: 8px; }
   .success p { color: #666; font-size: 15px; }
   .error-msg { color: #e74c3c; font-size: 13px; margin-top: 6px; display: none; }
+  @media (max-width: 480px) { .row { flex-direction: column; gap: 0; } }
 </style>
 </head>
 <body>
@@ -77,18 +79,31 @@
 
       <div class="question">
         <label>1. Prénom et nom <span class="required">*</span></label>
-        <input type="text" id="full_name" placeholder="Ex: Sophie Cohen" required>
-        <div class="error-msg" id="err_name">Ce champ est obligatoire.</div>
+        <div class="row">
+          <div class="field">
+            <input type="text" id="first_name" placeholder="Prénom" required>
+          </div>
+          <div class="field">
+            <input type="text" id="last_name" placeholder="Nom" required>
+          </div>
+        </div>
+        <div class="error-msg" id="err_name">Prénom et nom obligatoires.</div>
       </div>
 
       <div class="question">
-        <label>2. Numéro WhatsApp et e-mail <span class="required">*</span></label>
-        <input type="text" id="contact" placeholder="Ex: 0541234567 / sophie@gmail.com" required>
-        <div class="error-msg" id="err_contact">Ce champ est obligatoire.</div>
+        <label>2. Numéro WhatsApp <span class="required">*</span></label>
+        <input type="tel" id="phone" placeholder="Ex: 0541234567" required>
+        <div class="error-msg" id="err_phone">Ce champ est obligatoire.</div>
       </div>
 
       <div class="question">
-        <label>3. Depuis combien de temps vis-tu en Israël ? <span class="required">*</span></label>
+        <label>3. Adresse e-mail <span class="required">*</span></label>
+        <input type="email" id="email" placeholder="Ex: sophie@gmail.com" required>
+        <div class="error-msg" id="err_email">Ce champ est obligatoire.</div>
+      </div>
+
+      <div class="question">
+        <label>4. Depuis combien de temps vis-tu en Israël ? <span class="required">*</span></label>
         <div class="options" id="time_options">
           <label class="option"><input type="radio" name="time" value="Je prépare mon alyah"><span>✈️ Je prépare mon alyah</span></label>
           <label class="option"><input type="radio" name="time" value="Moins d'1 an"><span>🌱 Moins d'1 an</span></label>
@@ -99,7 +114,7 @@
       </div>
 
       <div class="question">
-        <label>4. Qu'est-ce qui t'intéresse le plus ? <span style="font-weight:400;color:#888">(plusieurs choix possibles)</span></label>
+        <label>5. Qu'est-ce qui t'intéresse le plus ? <span style="font-weight:400;color:#888">(plusieurs choix possibles)</span></label>
         <div class="options">
           <label class="option"><input type="checkbox" value="💰 Bons plans"><span>💰 Bons plans</span></label>
           <label class="option"><input type="checkbox" value="📄 Démarches & droits"><span>📄 Démarches & droits</span></label>
@@ -112,7 +127,7 @@
       </div>
 
       <div class="question">
-        <label>5. Comment as-tu découvert Alia ? <span class="required">*</span></label>
+        <label>6. Comment as-tu découvert Alia ? <span class="required">*</span></label>
         <div class="options" id="discovery_options">
           <label class="option"><input type="radio" name="discovery" value="Influenceur"><span>⭐ Influenceur</span></label>
           <label class="option"><input type="radio" name="discovery" value="Instagram"><span>📸 Instagram</span></label>
@@ -122,11 +137,6 @@
           <label class="option"><input type="radio" name="discovery" value="Autre"><span>🔍 Autre</span></label>
         </div>
         <div class="error-msg" id="err_discovery">Sélectionne une option.</div>
-      </div>
-
-      <div class="question">
-        <label>6. Qu'est-ce que tu préfères chez Alia ? 💬</label>
-        <textarea id="best_opinion" placeholder="Dis-nous ce que tu aimes le plus…"></textarea>
       </div>
 
       <button type="submit" class="btn" id="submitBtn">🎯 Participer au concours</button>
@@ -141,7 +151,6 @@
 </div>
 
 <script>
-  // Highlight selected radio/checkbox options
   document.querySelectorAll('.option input').forEach(input => {
     input.addEventListener('change', () => {
       if (input.type === 'radio') {
@@ -157,19 +166,21 @@
     e.preventDefault();
     let valid = true;
 
-    const fullName = document.getElementById('full_name').value.trim();
-    const contact = document.getElementById('contact').value.trim();
-    const time = document.querySelector('input[name="time"]:checked')?.value;
+    const firstName = document.getElementById('first_name').value.trim();
+    const lastName  = document.getElementById('last_name').value.trim();
+    const phone     = document.getElementById('phone').value.trim();
+    const email     = document.getElementById('email').value.trim();
+    const time      = document.querySelector('input[name="time"]:checked')?.value;
     const discovery = document.querySelector('input[name="discovery"]:checked')?.value;
     const interests = [...document.querySelectorAll('input[type="checkbox"]:checked')].map(c => c.value);
-    const bestOpinion = document.getElementById('best_opinion').value.trim();
 
-    const show = (id, show) => document.getElementById(id).style.display = show ? 'block' : 'none';
+    const show = (id, v) => document.getElementById(id).style.display = v ? 'block' : 'none';
 
-    show('err_name', !fullName); if (!fullName) valid = false;
-    show('err_contact', !contact); if (!contact) valid = false;
-    show('err_time', !time); if (!time) valid = false;
-    show('err_discovery', !discovery); if (!discovery) valid = false;
+    show('err_name',      !firstName || !lastName); if (!firstName || !lastName) valid = false;
+    show('err_phone',     !phone);                  if (!phone)     valid = false;
+    show('err_email',     !email);                  if (!email)     valid = false;
+    show('err_time',      !time);                   if (!time)      valid = false;
+    show('err_discovery', !discovery);              if (!discovery) valid = false;
 
     if (!valid) return;
 
@@ -181,12 +192,21 @@
       const res = await fetch('/api/contests/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contest_id: parseInt(document.getElementById('contest_id').value), full_name: fullName, contact, time_in_israel: time, interests, discovery, best_opinion: bestOpinion }),
+        body: JSON.stringify({
+          contest_id: parseInt(document.getElementById('contest_id').value),
+          first_name: firstName,
+          last_name: lastName,
+          phone,
+          email,
+          time_in_israel: time,
+          interests,
+          discovery,
+        }),
       });
       if (res.status === 409) {
         btn.disabled = false;
         btn.textContent = '🎯 Participer au concours';
-        alert('Tu as déjà participé à ce concours avec ce contact. 😊');
+        alert('Tu as déjà participé à ce concours avec ce numéro ou cet email. 😊');
         return;
       }
       if (!res.ok) throw new Error('Server error');

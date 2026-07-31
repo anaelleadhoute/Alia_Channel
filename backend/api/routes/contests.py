@@ -120,12 +120,13 @@ async def contest_form(slug: str):
 
 class SubmissionCreate(BaseModel):
     contest_id: int
-    full_name: str
-    contact: str
+    first_name: str
+    last_name: str
+    phone: str
+    email: str
     time_in_israel: str
     interests: List[str]
     discovery: str
-    best_opinion: Optional[str] = ""
 
 
 @router.post("/submit")
@@ -135,17 +136,17 @@ async def submit_contest(body: SubmissionCreate):
         if not await existing.fetchone():
             raise HTTPException(status_code=404, detail="Concours introuvable")
         dup = await db.execute(
-            "SELECT id FROM contest_submissions WHERE contest_id = ? AND contact = ?",
-            (body.contest_id, body.contact)
+            "SELECT id FROM contest_submissions WHERE contest_id = ? AND (phone = ? OR email = ?)",
+            (body.contest_id, body.phone, body.email)
         )
         if await dup.fetchone():
-            raise HTTPException(status_code=409, detail="Ce numéro/email a déjà participé à ce concours.")
+            raise HTTPException(status_code=409, detail="Ce numéro ou cet email a déjà participé à ce concours.")
         await db.execute(
             """INSERT INTO contest_submissions
-               (contest_id, full_name, contact, time_in_israel, interests, discovery, best_opinion)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
-            (body.contest_id, body.full_name, body.contact, body.time_in_israel,
-             ", ".join(body.interests), body.discovery, body.best_opinion),
+               (contest_id, first_name, last_name, phone, email, time_in_israel, interests, discovery)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (body.contest_id, body.first_name, body.last_name, body.phone, body.email,
+             body.time_in_israel, ", ".join(body.interests), body.discovery),
         )
         await db.commit()
     return {"ok": True}
@@ -174,12 +175,13 @@ async def export_submissions_csv(contest_id: int):
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["ID", "Prénom & Nom", "Contact", "Temps en Israël",
-                     "Centres d'intérêt", "Découverte", "Avis", "Date"])
+    writer.writerow(["ID", "Prénom", "Nom", "Téléphone", "Email", "Temps en Israël",
+                     "Centres d'intérêt", "Découverte", "Date"])
     for r in rows:
         r = dict(r)
-        writer.writerow([r["id"], r["full_name"], r["contact"], r["time_in_israel"],
-                         r["interests"], r["discovery"], r["best_opinion"], r["submitted_at"]])
+        writer.writerow([r["id"], r.get("first_name",""), r.get("last_name",""),
+                         r.get("phone",""), r.get("email",""), r["time_in_israel"],
+                         r["interests"], r["discovery"], r["submitted_at"]])
 
     output.seek(0)
     filename = f"concours-{contest_id}.csv"

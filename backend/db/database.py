@@ -362,6 +362,7 @@ async def init_db():
             )""",
             """CREATE TABLE IF NOT EXISTS contest_submissions (
                 id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                contest_id      INTEGER,
                 full_name       TEXT,
                 contact         TEXT,
                 time_in_israel  TEXT,
@@ -370,6 +371,13 @@ async def init_db():
                 best_opinion    TEXT,
                 submitted_at    DATETIME DEFAULT CURRENT_TIMESTAMP
             )""",
+            "ALTER TABLE contests ADD COLUMN slug TEXT",
+            "ALTER TABLE contests ADD COLUMN description TEXT",
+            "ALTER TABLE contest_submissions ADD COLUMN contest_id INTEGER",
+            "ALTER TABLE contest_submissions ADD COLUMN first_name TEXT",
+            "ALTER TABLE contest_submissions ADD COLUMN last_name TEXT",
+            "ALTER TABLE contest_submissions ADD COLUMN phone TEXT",
+            "ALTER TABLE contest_submissions ADD COLUMN email TEXT",
             # Separate FAQ generate and send into two schedulable jobs
             """INSERT OR IGNORE INTO schedules (job_key, label, day_of_week, hour_utc, minute_utc, enabled, location) VALUES
                 ('generate_faq', '❓ Générer FAQ', 2, 10, 0, 1, 'server'),
