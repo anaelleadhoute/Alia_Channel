@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 
 from db.database import init_db
 from api.routes import articles, publish, scrape, deals, faqs, digests, settings, contests, maintenance, schedules, doctors, recommendations, queue
-from api.routes.analytics import short_router
+from api.routes.shortcuts import short_router
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 
