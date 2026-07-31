@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Конкурс Alia 🎉</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .card {
+    background: #fff;
+    border-radius: 20px;
+    padding: 36px 32px;
+    max-width: 560px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    margin: 20px auto;
+  }
+  .logo { text-align: center; margin-bottom: 8px; }
+  h1 { text-align: center; font-size: 22px; color: #1a1a2e; margin-bottom: 4px; }
+  .subtitle { text-align: center; color: #666; font-size: 14px; margin-bottom: 28px; }
+  .question { margin-bottom: 22px; }
+  label { display: block; font-weight: 600; color: #1a1a2e; margin-bottom: 8px; font-size: 15px; }
+  .required { color: #e74c3c; }
+  .row { display: flex; gap: 12px; }
+  .row .field { flex: 1; }
+  input[type="text"], input[type="email"], input[type="tel"], textarea {
+    width: 100%; padding: 12px 14px; border: 2px solid #e8e8e8;
+    border-radius: 10px; font-size: 15px; transition: border 0.2s;
+    font-family: inherit;
+  }
+  input[type="text"]:focus, input[type="email"]:focus, input[type="tel"]:focus, textarea:focus {
+    outline: none; border-color: #667eea;
+  }
+  textarea { resize: vertical; min-height: 80px; }
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  .option {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 14px; border: 2px solid #e8e8e8; border-radius: 10px;
+    cursor: pointer; transition: all 0.15s; user-select: none;
+  }
+  .option:hover { border-color: #667eea; background: #f8f7ff; }
+  .option input { width: 18px; height: 18px; accent-color: #667eea; cursor: pointer; }
+  .option span { font-size: 15px; color: #333; }
+  .option.selected { border-color: #667eea; background: #f0eeff; }
+  .btn {
+    width: 100%; padding: 16px; background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff; border: none; border-radius: 12px; font-size: 17px;
+    font-weight: 700; cursor: pointer; margin-top: 10px; transition: opacity 0.2s;
+    font-family: inherit;
+  }
+  .btn:hover { opacity: 0.9; }
+  .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .success { text-align: center; padding: 40px 20px; display: none; }
+  .success .big { font-size: 64px; margin-bottom: 16px; }
+  .success h2 { font-size: 22px; color: #1a1a2e; margin-bottom: 8px; }
+  .success p { color: #666; font-size: 15px; }
+  .error-msg { color: #e74c3c; font-size: 13px; margin-top: 6px; display: none; }
+  @media (max-width: 480px) { .row { flex-direction: column; gap: 0; } }
+</style>
+</head>
+<body>
+<div class="card">
+  <div id="form-section">
+    <div class="logo"><img src="/alia_final_avatar.png" alt="Alia" style="width:80px;height:80px;border-radius:50%;object-fit:cover;box-shadow:0 4px 16px rgba(102,126,234,0.3);"></div>
+    <h1>{{CONTEST_TITLE}}</h1>
+    <p class="subtitle">{{CONTEST_DESCRIPTION}}</p>
+
+    <form id="contestForm" novalidate>
+      <input type="hidden" id="contest_id" value="{{CONTEST_ID}}">
+
+      <div class="question">
+        <label>1. Имя и фамилия <span class="required">*</span></label>
+        <div class="row">
+          <div class="field">
+            <input type="text" id="first_name" placeholder="Имя" required>
+          </div>
+          <div class="field">
+            <input type="text" id="last_name" placeholder="Фамилия" required>
+          </div>
+        </div>
+        <div class="error-msg" id="err_name">Это поле обязательно для заполнения.</div>
+      </div>
+
+      <div class="question">
+        <label>2. Номер WhatsApp <span class="required">*</span></label>
+        <input type="tel" id="phone" placeholder="Например: 0541234567" required>
+        <div class="error-msg" id="err_phone">Это поле обязательно для заполнения.</div>
+      </div>
+
+      <div class="question">
+        <label>3. Адрес электронной почты <span class="required">*</span></label>
+        <input type="email" id="email" placeholder="Например: anna@gmail.com" required>
+        <div class="error-msg" id="err_email">Это поле обязательно для заполнения.</div>
+      </div>
+
+      <div class="question">
+        <label>4. Как давно ты живёшь в Израиле? <span class="required">*</span></label>
+        <div class="options" id="time_options">
+          <label class="option"><input type="radio" name="time" value="Готовлюсь к репатриации"><span>✈️ Готовлюсь к репатриации</span></label>
+          <label class="option"><input type="radio" name="time" value="Менее 1 года"><span>🌱 Менее 1 года</span></label>
+          <label class="option"><input type="radio" name="time" value="От 1 до 5 лет"><span>📅 От 1 до 5 лет</span></label>
+          <label class="option"><input type="radio" name="time" value="Более 5 лет"><span>🏡 Более 5 лет</span></label>
+        </div>
+        <div class="error-msg" id="err_time">Выбери один из вариантов.</div>
+      </div>
+
+      <div class="question">
+        <label>5. Что тебя интересует больше всего? <span style="font-weight:400;color:#888">(можно выбрать несколько)</span></label>
+        <div class="options">
+          <label class="option"><input type="checkbox" value="💰 Выгодные предложения"><span>💰 Выгодные предложения</span></label>
+          <label class="option"><input type="checkbox" value="📄 Права и оформление документов"><span>📄 Права и оформление документов</span></label>
+          <label class="option"><input type="checkbox" value="👨‍⚕️ Здоровье"><span>👨‍⚕️ Здоровье</span></label>
+          <label class="option"><input type="checkbox" value="👨‍👩‍👧 Семья"><span>👨‍👩‍👧 Семья</span></label>
+          <label class="option"><input type="checkbox" value="📰 Новости"><span>📰 Новости</span></label>
+          <label class="option"><input type="checkbox" value="🛠️ Рекомендации"><span>🛠️ Рекомендации (врачи, специалисты…)</span></label>
+          <label class="option"><input type="checkbox" value="🎉 Всего понемногу"><span>🎉 Всего понемногу</span></label>
+        </div>
+      </div>
+
+      <div class="question">
+        <label>6. Как ты узнал(а) об Alia? <span class="required">*</span></label>
+        <div class="options" id="discovery_options">
+          <label class="option"><input type="radio" name="discovery" value="Инфлюенсер"><span>⭐ Инфлюенсер</span></label>
+          <label class="option"><input type="radio" name="discovery" value="Instagram"><span>📸 Instagram</span></label>
+          <label class="option"><input type="radio" name="discovery" value="Facebook"><span>👍 Facebook</span></label>
+          <label class="option"><input type="radio" name="discovery" value="Друг"><span>🤝 Друг</span></label>
+          <label class="option"><input type="radio" name="discovery" value="WhatsApp"><span>💬 WhatsApp</span></label>
+          <label class="option"><input type="radio" name="discovery" value="Другое"><span>🔍 Другое</span></label>
+        </div>
+        <div class="error-msg" id="err_discovery">Выбери один из вариантов.</div>
+      </div>
+
+      <button type="submit" class="btn" id="submitBtn">🎯 Участвовать в конкурсе</button>
+    </form>
+  </div>
+
+  <div class="success" id="success-section">
+    <div class="big">🎊</div>
+    <h2>Спасибо за участие!</h2>
+    <p>Твоя анкета успешно получена.<br>Удачи в конкурсе! 🤞</p>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('.option input').forEach(input => {
+    input.addEventListener('change', () => {
+      if (input.type === 'radio') {
+        document.querySelectorAll(`input[name="${input.name}"]`).forEach(r => {
+          r.closest('.option').classList.remove('selected');
+        });
+      }
+      input.closest('.option').classList.toggle('selected', input.checked);
+    });
+  });
+
+  document.getElementById('contestForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    let valid = true;
+
+    const firstName = document.getElementById('first_name').value.trim();
+    const lastName  = document.getElementById('last_name').value.trim();
+    const phone     = document.getElementById('phone').value.trim();
+    const email     = document.getElementById('email').value.trim();
+    const time      = document.querySelector('input[name="time"]:checked')?.value;
+    const discovery = document.querySelector('input[name="discovery"]:checked')?.value;
+    const interests = [...document.querySelectorAll('input[type="checkbox"]:checked')].map(c => c.value);
+
+    const show = (id, v) => document.getElementById(id).style.display = v ? 'block' : 'none';
+
+    show('err_name',      !firstName || !lastName); if (!firstName || !lastName) valid = false;
+    show('err_phone',     !phone);                  if (!phone)     valid = false;
+    show('err_email',     !email);                  if (!email)     valid = false;
+    show('err_time',      !time);                   if (!time)      valid = false;
+    show('err_discovery', !discovery);              if (!discovery) valid = false;
+
+    if (!valid) return;
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳ Отправка…';
+
+    try {
+      const res = await fetch('/api/contests/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contest_id: parseInt(document.getElementById('contest_id').value),
+          first_name: firstName,
+          last_name: lastName,
+          phone,
+          email,
+          time_in_israel: time,
+          interests,
+          discovery,
+        }),
+      });
+      if (res.status === 409) {
+        btn.disabled = false;
+        btn.textContent = '🎯 Участвовать в конкурсе';
+        alert('Ты уже участвовал(а) в этом конкурсе с этим номером или email. 😊');
+        return;
+      }
+      if (!res.ok) throw new Error('Server error');
+      document.getElementById('form-section').style.display = 'none';
+      document.getElementById('success-section').style.display = 'block';
+    } catch {
+      btn.disabled = false;
+      btn.textContent = '🎯 Участвовать в конкурсе';
+      alert('Произошла ошибка. Попробуй ещё раз.');
+    }
+  });
+</script>
+</body>
+</html>

@@ -97,7 +97,7 @@ async def delete_contest(contest_id: int):
 # ── Public form page ──────────────────────────────────────────────────────────
 
 @router.get("/form/{slug}", response_class=HTMLResponse)
-async def contest_form(slug: str):
+async def contest_form(slug: str, lang: str = "fr"):
     async with get_db() as db:
         cursor = await db.execute(
             "SELECT id, title, description FROM contests WHERE slug = ?", (slug,)
@@ -107,11 +107,13 @@ async def contest_form(slug: str):
         raise HTTPException(status_code=404, detail="Concours introuvable")
     contest = dict(contest)
 
-    with open("/app/static/concours.html", "r") as f:
+    template = "/app/static/concours-ru.html" if lang == "ru" else "/app/static/concours.html"
+    with open(template, "r") as f:
         html = f.read()
 
     html = html.replace("{{CONTEST_TITLE}}", contest["title"])
-    html = html.replace("{{CONTEST_DESCRIPTION}}", contest["description"] or "Remplis ce formulaire pour participer !")
+    default_desc = "Заполни анкету для участия!" if lang == "ru" else "Remplis ce formulaire pour participer !"
+    html = html.replace("{{CONTEST_DESCRIPTION}}", contest["description"] or default_desc)
     html = html.replace("{{CONTEST_ID}}", str(contest["id"]))
     return HTMLResponse(html)
 
