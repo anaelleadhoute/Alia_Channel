@@ -183,6 +183,12 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contest_id: parseInt(document.getElementById('contest_id').value), full_name: fullName, contact, time_in_israel: time, interests, discovery, best_opinion: bestOpinion }),
       });
+      if (res.status === 409) {
+        btn.disabled = false;
+        btn.textContent = '🎯 Participer au concours';
+        alert('Tu as déjà participé à ce concours avec ce contact. 😊');
+        return;
+      }
       if (!res.ok) throw new Error('Server error');
       document.getElementById('form-section').style.display = 'none';
       document.getElementById('success-section').style.display = 'block';

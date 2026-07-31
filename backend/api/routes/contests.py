@@ -134,6 +134,12 @@ async def submit_contest(body: SubmissionCreate):
         existing = await db.execute("SELECT id FROM contests WHERE id = ?", (body.contest_id,))
         if not await existing.fetchone():
             raise HTTPException(status_code=404, detail="Concours introuvable")
+        dup = await db.execute(
+            "SELECT id FROM contest_submissions WHERE contest_id = ? AND contact = ?",
+            (body.contest_id, body.contact)
+        )
+        if await dup.fetchone():
+            raise HTTPException(status_code=409, detail="Ce numéro/email a déjà participé à ce concours.")
         await db.execute(
             """INSERT INTO contest_submissions
                (contest_id, full_name, contact, time_in_israel, interests, discovery, best_opinion)
