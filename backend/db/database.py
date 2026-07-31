@@ -360,6 +360,16 @@ async def init_db():
                 category    TEXT NOT NULL,
                 clicked_at  DATETIME DEFAULT CURRENT_TIMESTAMP
             )""",
+            """CREATE TABLE IF NOT EXISTS contest_submissions (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                full_name       TEXT,
+                contact         TEXT,
+                time_in_israel  TEXT,
+                interests       TEXT,
+                discovery       TEXT,
+                best_opinion    TEXT,
+                submitted_at    DATETIME DEFAULT CURRENT_TIMESTAMP
+            )""",
             # Separate FAQ generate and send into two schedulable jobs
             """INSERT OR IGNORE INTO schedules (job_key, label, day_of_week, hour_utc, minute_utc, enabled, location) VALUES
                 ('generate_faq', '❓ Générer FAQ', 2, 10, 0, 1, 'server'),

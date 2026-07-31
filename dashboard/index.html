@@ -184,7 +184,8 @@
   <button class="tab" onclick="switchTab('prestataire')">🏅 Prestataire</button>
   <button class="tab" onclick="switchTab('doctors')">🏥 Médecin</button>
 <button class="tab" onclick="switchTab('automation')">⚙️ Automation</button>
-  <button class="tab" onclick="switchTab('analytics')">📊 Analytics</button>
+  <button class="tab" onclick="switchTab('concours')">🎉 Concours</button>
+<button class="tab" onclick="switchTab('analytics')">📊 Analytics</button>
   <button class="tab" onclick="switchTab('community-recs')">⭐ Recommandations</button>
   <button class="tab" onclick="switchTab('send')">✏️ Send</button>
 </div>
@@ -252,6 +253,23 @@
   <!-- MAINTENANCE -->
 
   <!-- ANALYTICS -->
+  <div class="section" id="section-concours">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
+      <div>
+        <h2 style="font-size:20px;font-weight:700;">🎉 Concours — Participations</h2>
+        <p style="color:#666;font-size:13px;margin-top:4px;">Lien du formulaire : <a href="https://alia-channel.com/concours" target="_blank" style="color:#1565c0;">alia-channel.com/concours</a></p>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn" onclick="loadConcours()" style="background:#e3f2fd;color:#1565c0;">🔄 Actualiser</button>
+        <a href="/api/contests/submissions/export" download="concours.csv">
+          <button class="btn" style="background:#e8f5e9;color:#2e7d32;">📥 Exporter CSV</button>
+        </a>
+      </div>
+    </div>
+    <div id="concoursStats" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;"></div>
+    <div id="concoursTable"><div class="loading">Loading…</div></div>
+  </div>
+
   <div class="section" id="section-analytics">
     <div class="queue-header"><h2>📊 Analytics — Clics sur le bot Alia</h2></div>
     <div id="analyticsCards"><div class="loading">Loading…</div></div>
@@ -364,6 +382,65 @@ const CATEGORY_LABELS = {
   kids: '👧 Kids', news: '📰 News', faq: '❓ FAQ', doctor: '🏥 Médecin',
   deal: '⚡ Deal', recommendation: '⭐ Recommandation'
 };
+
+async function loadConcours() {
+  document.getElementById('concoursTable').innerHTML = '<div class="loading">Loading…</div>';
+  const data = await fetch(`${API}/api/contests/submissions`).then(r => r.json()).catch(() => []);
+  const stats = document.getElementById('concoursStats');
+
+  // Stats
+  const byTime = {}, byDiscovery = {};
+  data.forEach(r => {
+    byTime[r.time_in_israel] = (byTime[r.time_in_israel] || 0) + 1;
+    byDiscovery[r.discovery] = (byDiscovery[r.discovery] || 0) + 1;
+  });
+  stats.innerHTML = `
+    <div style="background:#e3f2fd;border-radius:12px;padding:14px 20px;min-width:120px;text-align:center;">
+      <div style="font-size:28px;font-weight:700;color:#1565c0;">${data.length}</div>
+      <div style="font-size:12px;color:#666;margin-top:2px;">Participants</div>
+    </div>
+    ${Object.entries(byTime).map(([k,v]) => `
+    <div style="background:#f3e5f5;border-radius:12px;padding:14px 20px;min-width:120px;text-align:center;">
+      <div style="font-size:22px;font-weight:700;color:#7b1fa2;">${v}</div>
+      <div style="font-size:11px;color:#666;margin-top:2px;">${k}</div>
+    </div>`).join('')}`;
+
+  if (!data.length) {
+    document.getElementById('concoursTable').innerHTML = '<div class="empty"><div class="icon">📭</div>Aucune participation pour l\'instant</div>';
+    return;
+  }
+
+  const rows = data.map(r => `
+    <tr>
+      <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;">${r.id}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-weight:600;">${escHtml(r.full_name || '')}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;">${escHtml(r.contact || '')}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;">${escHtml(r.time_in_israel || '')}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-size:12px;">${escHtml(r.interests || '')}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;">${escHtml(r.discovery || '')}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-size:12px;color:#555;">${escHtml(r.best_opinion || '')}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-size:12px;color:#999;">${r.submitted_at ? new Date(r.submitted_at).toLocaleDateString('fr-FR') : ''}</td>
+    </tr>`).join('');
+
+  document.getElementById('concoursTable').innerHTML = `
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+          <tr style="background:#f8f9fa;text-align:left;">
+            <th style="padding:10px 12px;color:#666;font-weight:600;">#</th>
+            <th style="padding:10px 12px;color:#666;font-weight:600;">Nom</th>
+            <th style="padding:10px 12px;color:#666;font-weight:600;">Contact</th>
+            <th style="padding:10px 12px;color:#666;font-weight:600;">Temps en Israël</th>
+            <th style="padding:10px 12px;color:#666;font-weight:600;">Intérêts</th>
+            <th style="padding:10px 12px;color:#666;font-weight:600;">Découverte</th>
+            <th style="padding:10px 12px;color:#666;font-weight:600;">Avis</th>
+            <th style="padding:10px 12px;color:#666;font-weight:600;">Date</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
 
 async function loadAnalytics() {
   const data = await fetch(`${API}/api/analytics/clicks`).then(r => r.json()).catch(() => []);
@@ -546,6 +623,7 @@ function switchTab(name) {
   if (name === 'rights') loadInlineQueue('droits');
   if (name === 'prestataire') loadInlineQueue('prestataire');
   if (name === 'events-kids') loadInlineQueue('kids');
+  if (name === 'concours') loadConcours();
   if (name === 'automation') loadAutomation();
 }
 

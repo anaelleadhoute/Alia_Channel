@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concours Alia 🎉</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .card {
+    background: #fff;
+    border-radius: 20px;
+    padding: 36px 32px;
+    max-width: 560px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    margin: 20px auto;
+  }
+  .logo { text-align: center; font-size: 42px; margin-bottom: 8px; }
+  h1 { text-align: center; font-size: 22px; color: #1a1a2e; margin-bottom: 4px; }
+  .subtitle { text-align: center; color: #666; font-size: 14px; margin-bottom: 28px; }
+  .question { margin-bottom: 22px; }
+  label { display: block; font-weight: 600; color: #1a1a2e; margin-bottom: 8px; font-size: 15px; }
+  .required { color: #e74c3c; }
+  input[type="text"], textarea {
+    width: 100%; padding: 12px 14px; border: 2px solid #e8e8e8;
+    border-radius: 10px; font-size: 15px; transition: border 0.2s;
+    font-family: inherit;
+  }
+  input[type="text"]:focus, textarea:focus { outline: none; border-color: #667eea; }
+  textarea { resize: vertical; min-height: 80px; }
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  .option {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 14px; border: 2px solid #e8e8e8; border-radius: 10px;
+    cursor: pointer; transition: all 0.15s; user-select: none;
+  }
+  .option:hover { border-color: #667eea; background: #f8f7ff; }
+  .option input { width: 18px; height: 18px; accent-color: #667eea; cursor: pointer; }
+  .option span { font-size: 15px; color: #333; }
+  .option.selected { border-color: #667eea; background: #f0eeff; }
+  .btn {
+    width: 100%; padding: 16px; background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff; border: none; border-radius: 12px; font-size: 17px;
+    font-weight: 700; cursor: pointer; margin-top: 10px; transition: opacity 0.2s;
+    font-family: inherit;
+  }
+  .btn:hover { opacity: 0.9; }
+  .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .success {
+    text-align: center; padding: 40px 20px;
+    display: none;
+  }
+  .success .big { font-size: 64px; margin-bottom: 16px; }
+  .success h2 { font-size: 22px; color: #1a1a2e; margin-bottom: 8px; }
+  .success p { color: #666; font-size: 15px; }
+  .error-msg { color: #e74c3c; font-size: 13px; margin-top: 6px; display: none; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div id="form-section">
+    <div class="logo">🎉</div>
+    <h1>Concours Alia</h1>
+    <p class="subtitle">Remplis ce formulaire pour participer !</p>
+
+    <form id="contestForm" novalidate>
+
+      <div class="question">
+        <label>1. Prénom et nom <span class="required">*</span></label>
+        <input type="text" id="full_name" placeholder="Ex: Sophie Cohen" required>
+        <div class="error-msg" id="err_name">Ce champ est obligatoire.</div>
+      </div>
+
+      <div class="question">
+        <label>2. Numéro WhatsApp et e-mail <span class="required">*</span></label>
+        <input type="text" id="contact" placeholder="Ex: 0541234567 / sophie@gmail.com" required>
+        <div class="error-msg" id="err_contact">Ce champ est obligatoire.</div>
+      </div>
+
+      <div class="question">
+        <label>3. Depuis combien de temps vis-tu en Israël ? <span class="required">*</span></label>
+        <div class="options" id="time_options">
+          <label class="option"><input type="radio" name="time" value="Je prépare mon alyah"><span>✈️ Je prépare mon alyah</span></label>
+          <label class="option"><input type="radio" name="time" value="Moins d'1 an"><span>🌱 Moins d'1 an</span></label>
+          <label class="option"><input type="radio" name="time" value="1 à 5 ans"><span>📅 1 à 5 ans</span></label>
+          <label class="option"><input type="radio" name="time" value="Plus de 5 ans"><span>🏡 Plus de 5 ans</span></label>
+        </div>
+        <div class="error-msg" id="err_time">Sélectionne une option.</div>
+      </div>
+
+      <div class="question">
+        <label>4. Qu'est-ce qui t'intéresse le plus ? <span style="font-weight:400;color:#888">(plusieurs choix possibles)</span></label>
+        <div class="options">
+          <label class="option"><input type="checkbox" value="💰 Bons plans"><span>💰 Bons plans</span></label>
+          <label class="option"><input type="checkbox" value="📄 Démarches & droits"><span>📄 Démarches & droits</span></label>
+          <label class="option"><input type="checkbox" value="👨‍⚕️ Santé"><span>👨‍⚕️ Santé</span></label>
+          <label class="option"><input type="checkbox" value="👨‍👩‍👧 Famille"><span>👨‍👩‍👧 Famille</span></label>
+          <label class="option"><input type="checkbox" value="📰 Actualités"><span>📰 Actualités</span></label>
+          <label class="option"><input type="checkbox" value="🛠️ Recommandations"><span>🛠️ Recommandations (médecins, pros…)</span></label>
+          <label class="option"><input type="checkbox" value="🎉 Un peu de tout"><span>🎉 Un peu de tout</span></label>
+        </div>
+      </div>
+
+      <div class="question">
+        <label>5. Comment as-tu découvert Alia ? <span class="required">*</span></label>
+        <div class="options" id="discovery_options">
+          <label class="option"><input type="radio" name="discovery" value="Influenceur"><span>⭐ Influenceur</span></label>
+          <label class="option"><input type="radio" name="discovery" value="Instagram"><span>📸 Instagram</span></label>
+          <label class="option"><input type="radio" name="discovery" value="Facebook"><span>👍 Facebook</span></label>
+          <label class="option"><input type="radio" name="discovery" value="Un ami"><span>🤝 Un ami</span></label>
+          <label class="option"><input type="radio" name="discovery" value="WhatsApp"><span>💬 WhatsApp</span></label>
+          <label class="option"><input type="radio" name="discovery" value="Autre"><span>🔍 Autre</span></label>
+        </div>
+        <div class="error-msg" id="err_discovery">Sélectionne une option.</div>
+      </div>
+
+      <div class="question">
+        <label>6. Qu'est-ce que tu préfères chez Alia ? 💬</label>
+        <textarea id="best_opinion" placeholder="Dis-nous ce que tu aimes le plus…"></textarea>
+      </div>
+
+      <button type="submit" class="btn" id="submitBtn">🎯 Participer au concours</button>
+    </form>
+  </div>
+
+  <div class="success" id="success-section">
+    <div class="big">🎊</div>
+    <h2>Merci pour ta participation !</h2>
+    <p>Ton formulaire a bien été reçu.<br>Bonne chance pour le concours ! 🤞</p>
+  </div>
+</div>
+
+<script>
+  // Highlight selected radio/checkbox options
+  document.querySelectorAll('.option input').forEach(input => {
+    input.addEventListener('change', () => {
+      if (input.type === 'radio') {
+        document.querySelectorAll(`input[name="${input.name}"]`).forEach(r => {
+          r.closest('.option').classList.remove('selected');
+        });
+      }
+      input.closest('.option').classList.toggle('selected', input.checked);
+    });
+  });
+
+  document.getElementById('contestForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    let valid = true;
+
+    const fullName = document.getElementById('full_name').value.trim();
+    const contact = document.getElementById('contact').value.trim();
+    const time = document.querySelector('input[name="time"]:checked')?.value;
+    const discovery = document.querySelector('input[name="discovery"]:checked')?.value;
+    const interests = [...document.querySelectorAll('input[type="checkbox"]:checked')].map(c => c.value);
+    const bestOpinion = document.getElementById('best_opinion').value.trim();
+
+    const show = (id, show) => document.getElementById(id).style.display = show ? 'block' : 'none';
+
+    show('err_name', !fullName); if (!fullName) valid = false;
+    show('err_contact', !contact); if (!contact) valid = false;
+    show('err_time', !time); if (!time) valid = false;
+    show('err_discovery', !discovery); if (!discovery) valid = false;
+
+    if (!valid) return;
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳ Envoi en cours…';
+
+    try {
+      const res = await fetch('/api/contests/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ full_name: fullName, contact, time_in_israel: time, interests, discovery, best_opinion: bestOpinion }),
+      });
+      if (!res.ok) throw new Error('Server error');
+      document.getElementById('form-section').style.display = 'none';
+      document.getElementById('success-section').style.display = 'block';
+    } catch {
+      btn.disabled = false;
+      btn.textContent = '🎯 Participer au concours';
+      alert('Une erreur est survenue. Réessaie dans quelques instants.');
+    }
+  });
+</script>
+</body>
+</html>

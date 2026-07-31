@@ -1,8 +1,11 @@
+import csv
+import io
 import os
 import logging
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 import anthropic
 from db.database import get_db
@@ -91,3 +94,63 @@ async def delete_contest(contest_id: int):
         await db.execute("DELETE FROM contests WHERE id = ?", (contest_id,))
         await db.commit()
     return {"ok": True}
+
+
+# ── Contest form submissions ──────────────────────────────────────────────────
+
+class SubmissionCreate(BaseModel):
+    full_name: str
+    contact: str
+    time_in_israel: str
+    interests: List[str]
+    discovery: str
+    best_opinion: Optional[str] = ""
+
+
+@router.post("/submit")
+async def submit_contest(body: SubmissionCreate):
+    async with get_db() as db:
+        await db.execute(
+            """INSERT INTO contest_submissions
+               (full_name, contact, time_in_israel, interests, discovery, best_opinion)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (body.full_name, body.contact, body.time_in_israel,
+             ", ".join(body.interests), body.discovery, body.best_opinion),
+        )
+        await db.commit()
+    return {"ok": True}
+
+
+@router.get("/submissions")
+async def list_submissions():
+    async with get_db() as db:
+        cursor = await db.execute(
+            "SELECT * FROM contest_submissions ORDER BY submitted_at DESC"
+        )
+        rows = await cursor.fetchall()
+    return [dict(r) for r in rows]
+
+
+@router.get("/submissions/export")
+async def export_submissions_csv():
+    async with get_db() as db:
+        cursor = await db.execute(
+            "SELECT * FROM contest_submissions ORDER BY submitted_at ASC"
+        )
+        rows = await cursor.fetchall()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["ID", "Prénom & Nom", "Contact", "Temps en Israël",
+                     "Centres d'intérêt", "Découverte", "Avis", "Date"])
+    for r in rows:
+        r = dict(r)
+        writer.writerow([r["id"], r["full_name"], r["contact"], r["time_in_israel"],
+                         r["interests"], r["discovery"], r["best_opinion"], r["submitted_at"]])
+
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=concours.csv"},
+    )
