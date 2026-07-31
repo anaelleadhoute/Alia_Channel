@@ -1,9 +1,10 @@
 import csv
 import io
+import re
 import os
 import logging
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, HTMLResponse
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
@@ -15,64 +16,61 @@ logger = logging.getLogger(__name__)
 client = anthropic.AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
 
+def _slugify(text: str) -> str:
+    text = text.lower().strip()
+    text = re.sub(r'[àâä]', 'a', text)
+    text = re.sub(r'[éèêë]', 'e', text)
+    text = re.sub(r'[îï]', 'i', text)
+    text = re.sub(r'[ôö]', 'o', text)
+    text = re.sub(r'[ùûü]', 'u', text)
+    text = re.sub(r'[ç]', 'c', text)
+    text = re.sub(r'[^a-z0-9]+', '-', text)
+    return text.strip('-')[:50]
+
+
+# ── Contest management ────────────────────────────────────────────────────────
+
 class ContestCreate(BaseModel):
     title: str
-    content_fr: str
-    content_ru: Optional[str] = None  # if None, Claude translates from FR
-    auto_translate: bool = True
+    description: Optional[str] = ""
+    slug: Optional[str] = None
 
 
 class ContestUpdate(BaseModel):
     title: Optional[str] = None
-    content_fr: Optional[str] = None
-    content_ru: Optional[str] = None
+    description: Optional[str] = None
+    slug: Optional[str] = None
     status: Optional[str] = None
 
 
 @router.post("")
 async def create_contest(body: ContestCreate):
-    """Create a contest/giveaway manually. Optionally auto-translate FR → RU."""
-    content_ru = body.content_ru
-
-    if not content_ru and body.auto_translate:
-        try:
-            response = await client.messages.create(
-                model="claude-haiku-4-5-20251001",
-                max_tokens=600,
-                messages=[{"role": "user", "content": f"""Traduis ce message en russe pour des olim en Israël.
-Garde le même ton, les emojis, et les liens.
-Ne traduis pas les noms propres, marques, ou liens.
-
-Message français :
-{body.content_fr}
-
-Réponds uniquement avec la traduction."""}],
-            )
-            content_ru = response.content[0].text.strip()
-        except Exception as e:
-            logger.error(f"[contests] Translation failed: {e}")
-            content_ru = body.content_fr  # fallback to FR
-
+    slug = body.slug or _slugify(body.title)
     async with get_db() as db:
+        # ensure unique slug
+        existing = await db.execute("SELECT id FROM contests WHERE slug = ?", (slug,))
+        if await existing.fetchone():
+            slug = f"{slug}-{datetime.utcnow().strftime('%m%d%H%M')}"
         cursor = await db.execute(
-            "INSERT INTO contests (title, content_fr, content_ru, created_at) VALUES (?, ?, ?, ?)",
-            (body.title, body.content_fr, content_ru, datetime.utcnow().isoformat()),
+            "INSERT INTO contests (title, description, slug, created_at) VALUES (?, ?, ?, ?)",
+            (body.title, body.description, slug, datetime.utcnow().isoformat()),
         )
         await db.commit()
         contest_id = cursor.lastrowid
-
-    return {"ok": True, "contest_id": contest_id, "translated": body.auto_translate and not body.content_ru}
+    return {"ok": True, "contest_id": contest_id, "slug": slug, "url": f"/concours/{slug}"}
 
 
 @router.get("")
-async def list_contests(limit: int = 20):
+async def list_contests(limit: int = 50):
     async with get_db() as db:
         cursor = await db.execute(
-            "SELECT id, title, content_fr, content_ru, status, sent_wa_fr, sent_wa_ru, created_at FROM contests ORDER BY created_at DESC LIMIT ?",
+            """SELECT c.id, c.title, c.description, c.slug, c.status, c.created_at,
+               (SELECT COUNT(*) FROM contest_submissions s WHERE s.contest_id = c.id) as submissions
+               FROM contests ORDER BY c.created_at DESC LIMIT ?""",
             (limit,),
         )
         rows = await cursor.fetchall()
-    return [dict(row) for row in rows]
+    return [dict(r) for r in rows]
 
 
 @router.patch("/{contest_id}")
@@ -96,9 +94,32 @@ async def delete_contest(contest_id: int):
     return {"ok": True}
 
 
-# ── Contest form submissions ──────────────────────────────────────────────────
+# ── Public form page ──────────────────────────────────────────────────────────
+
+@router.get("/form/{slug}", response_class=HTMLResponse)
+async def contest_form(slug: str):
+    async with get_db() as db:
+        cursor = await db.execute(
+            "SELECT id, title, description FROM contests WHERE slug = ?", (slug,)
+        )
+        contest = await cursor.fetchone()
+    if not contest:
+        raise HTTPException(status_code=404, detail="Concours introuvable")
+    contest = dict(contest)
+
+    with open("/app/static/concours.html", "r") as f:
+        html = f.read()
+
+    html = html.replace("{{CONTEST_TITLE}}", contest["title"])
+    html = html.replace("{{CONTEST_DESCRIPTION}}", contest["description"] or "Remplis ce formulaire pour participer !")
+    html = html.replace("{{CONTEST_ID}}", str(contest["id"]))
+    return HTMLResponse(html)
+
+
+# ── Submissions ───────────────────────────────────────────────────────────────
 
 class SubmissionCreate(BaseModel):
+    contest_id: int
     full_name: str
     contact: str
     time_in_israel: str
@@ -110,32 +131,38 @@ class SubmissionCreate(BaseModel):
 @router.post("/submit")
 async def submit_contest(body: SubmissionCreate):
     async with get_db() as db:
+        existing = await db.execute("SELECT id FROM contests WHERE id = ?", (body.contest_id,))
+        if not await existing.fetchone():
+            raise HTTPException(status_code=404, detail="Concours introuvable")
         await db.execute(
             """INSERT INTO contest_submissions
-               (full_name, contact, time_in_israel, interests, discovery, best_opinion)
-               VALUES (?, ?, ?, ?, ?, ?)""",
-            (body.full_name, body.contact, body.time_in_israel,
+               (contest_id, full_name, contact, time_in_israel, interests, discovery, best_opinion)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (body.contest_id, body.full_name, body.contact, body.time_in_israel,
              ", ".join(body.interests), body.discovery, body.best_opinion),
         )
         await db.commit()
     return {"ok": True}
 
 
-@router.get("/submissions")
-async def list_submissions():
+@router.get("/{contest_id}/submissions")
+async def list_submissions(contest_id: int):
     async with get_db() as db:
         cursor = await db.execute(
-            "SELECT * FROM contest_submissions ORDER BY submitted_at DESC"
+            "SELECT * FROM contest_submissions WHERE contest_id = ? ORDER BY submitted_at DESC",
+            (contest_id,)
         )
         rows = await cursor.fetchall()
     return [dict(r) for r in rows]
 
 
-@router.get("/submissions/export")
-async def export_submissions_csv():
+@router.get("/{contest_id}/submissions/export")
+async def export_submissions_csv(contest_id: int):
     async with get_db() as db:
+        contest = dict((await (await db.execute("SELECT title FROM contests WHERE id = ?", (contest_id,))).fetchone()) or {})
         cursor = await db.execute(
-            "SELECT * FROM contest_submissions ORDER BY submitted_at ASC"
+            "SELECT * FROM contest_submissions WHERE contest_id = ? ORDER BY submitted_at ASC",
+            (contest_id,)
         )
         rows = await cursor.fetchall()
 
@@ -149,8 +176,9 @@ async def export_submissions_csv():
                          r["interests"], r["discovery"], r["best_opinion"], r["submitted_at"]])
 
     output.seek(0)
+    filename = f"concours-{contest_id}.csv"
     return StreamingResponse(
         iter([output.getvalue()]),
         media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=concours.csv"},
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
     )

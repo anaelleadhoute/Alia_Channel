@@ -254,20 +254,43 @@
 
   <!-- ANALYTICS -->
   <div class="section" id="section-concours">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
-      <div>
-        <h2 style="font-size:20px;font-weight:700;">🎉 Concours — Participations</h2>
-        <p style="color:#666;font-size:13px;margin-top:4px;">Lien du formulaire : <a href="https://alia-channel.com/concours" target="_blank" style="color:#1565c0;">alia-channel.com/concours</a></p>
+    <!-- Contest list view -->
+    <div id="concours-list-view">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
+        <h2 style="font-size:20px;font-weight:700;">🎉 Concours</h2>
+        <div style="display:flex;gap:10px;">
+          <button class="btn" onclick="loadConcours()" style="background:#e3f2fd;color:#1565c0;">🔄 Actualiser</button>
+          <button class="btn btn-primary" onclick="showCreateContest()">+ Nouveau concours</button>
+        </div>
       </div>
-      <div style="display:flex;gap:10px;">
-        <button class="btn" onclick="loadConcours()" style="background:#e3f2fd;color:#1565c0;">🔄 Actualiser</button>
-        <a href="/api/contests/submissions/export" download="concours.csv">
-          <button class="btn" style="background:#e8f5e9;color:#2e7d32;">📥 Exporter CSV</button>
-        </a>
+      <!-- Create form (hidden by default) -->
+      <div id="create-contest-form" style="display:none;background:#f8f9fa;border-radius:12px;padding:20px;margin-bottom:20px;">
+        <h3 style="margin-bottom:14px;font-size:15px;">Nouveau concours</h3>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <input id="new-contest-title" type="text" placeholder="Titre du concours (ex: Concours Été 2025)" style="padding:10px 12px;border:2px solid #e8e8e8;border-radius:8px;font-size:14px;font-family:inherit;">
+          <input id="new-contest-slug" type="text" placeholder="Slug URL (optionnel — auto-généré si vide)" style="padding:10px 12px;border:2px solid #e8e8e8;border-radius:8px;font-size:14px;font-family:inherit;">
+          <textarea id="new-contest-desc" placeholder="Description courte (optionnel)" style="padding:10px 12px;border:2px solid #e8e8e8;border-radius:8px;font-size:14px;font-family:inherit;resize:vertical;min-height:60px;"></textarea>
+          <div style="display:flex;gap:10px;">
+            <button class="btn btn-primary" onclick="createContest()">✅ Créer</button>
+            <button class="btn" onclick="hideCreateContest()">Annuler</button>
+          </div>
+        </div>
       </div>
+      <div id="concoursList"><div class="loading">Loading…</div></div>
     </div>
-    <div id="concoursStats" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;"></div>
-    <div id="concoursTable"><div class="loading">Loading…</div></div>
+    <!-- Contest detail view -->
+    <div id="concours-detail-view" style="display:none;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+        <button class="btn" onclick="backToContestList()">← Retour</button>
+        <h2 id="detail-contest-title" style="font-size:20px;font-weight:700;"></h2>
+        <span id="detail-contest-link" style="font-size:13px;color:#666;"></span>
+      </div>
+      <div id="detail-stats" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;"></div>
+      <div style="margin-bottom:14px;">
+        <button id="detail-export-btn" class="btn" style="background:#e8f5e9;color:#2e7d32;" onclick="exportContestCSV()">📥 Exporter CSV</button>
+      </div>
+      <div id="detail-table"><div class="loading">Loading…</div></div>
+    </div>
   </div>
 
   <div class="section" id="section-analytics">
@@ -383,18 +406,69 @@ const CATEGORY_LABELS = {
   deal: '⚡ Deal', recommendation: '⭐ Recommandation'
 };
 
-async function loadConcours() {
-  document.getElementById('concoursTable').innerHTML = '<div class="loading">Loading…</div>';
-  const data = await fetch(`${API}/api/contests/submissions`).then(r => r.json()).catch(() => []);
-  const stats = document.getElementById('concoursStats');
+let _currentContestId = null;
 
-  // Stats
-  const byTime = {}, byDiscovery = {};
-  data.forEach(r => {
-    byTime[r.time_in_israel] = (byTime[r.time_in_israel] || 0) + 1;
-    byDiscovery[r.discovery] = (byDiscovery[r.discovery] || 0) + 1;
-  });
-  stats.innerHTML = `
+async function loadConcours() {
+  document.getElementById('concoursList').innerHTML = '<div class="loading">Loading…</div>';
+  const contests = await fetch(`${API}/api/contests`).then(r => r.json()).catch(() => []);
+  if (!contests.length) {
+    document.getElementById('concoursList').innerHTML = '<div class="empty"><div class="icon">🎁</div>Aucun concours pour le moment</div>';
+    return;
+  }
+  document.getElementById('concoursList').innerHTML = contests.map(c => `
+    <div style="background:#fff;border:1px solid #e8e8e8;border-radius:12px;padding:18px 20px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;cursor:pointer;" onclick="openContest(${c.id}, '${escHtml(c.title)}', '${escHtml(c.slug || '')}')">
+      <div>
+        <div style="font-weight:700;font-size:16px;">${escHtml(c.title)}</div>
+        <div style="font-size:12px;color:#888;margin-top:4px;">
+          🔗 alia-channel.com/concours/${escHtml(c.slug || '')} &nbsp;·&nbsp;
+          ${c.submissions} participation${c.submissions !== 1 ? 's' : ''} &nbsp;·&nbsp;
+          Créé le ${c.created_at ? new Date(c.created_at).toLocaleDateString('fr-FR') : ''}
+        </div>
+        ${c.description ? `<div style="font-size:13px;color:#555;margin-top:4px;">${escHtml(c.description)}</div>` : ''}
+      </div>
+      <button class="btn" style="background:#e3f2fd;color:#1565c0;white-space:nowrap;" onclick="event.stopPropagation();openContest(${c.id}, '${escHtml(c.title)}', '${escHtml(c.slug || '')}')">Voir →</button>
+    </div>`).join('');
+}
+
+function showCreateContest() {
+  document.getElementById('create-contest-form').style.display = 'block';
+}
+function hideCreateContest() {
+  document.getElementById('create-contest-form').style.display = 'none';
+  document.getElementById('new-contest-title').value = '';
+  document.getElementById('new-contest-slug').value = '';
+  document.getElementById('new-contest-desc').value = '';
+}
+
+async function createContest() {
+  const title = document.getElementById('new-contest-title').value.trim();
+  if (!title) { alert('Titre obligatoire'); return; }
+  const slug = document.getElementById('new-contest-slug').value.trim() || null;
+  const description = document.getElementById('new-contest-desc').value.trim() || null;
+  const res = await fetch(`${API}/api/contests`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({title, slug, description})
+  }).then(r => r.json()).catch(() => null);
+  if (!res?.ok) { alert('Erreur lors de la création'); return; }
+  toast(`✅ Concours créé ! Lien : alia-channel.com/concours/${res.slug}`);
+  hideCreateContest();
+  loadConcours();
+}
+
+async function openContest(id, title, slug) {
+  _currentContestId = id;
+  document.getElementById('concours-list-view').style.display = 'none';
+  document.getElementById('concours-detail-view').style.display = 'block';
+  document.getElementById('detail-contest-title').textContent = title;
+  document.getElementById('detail-contest-link').innerHTML = `<a href="https://alia-channel.com/concours/${slug}" target="_blank" style="color:#1565c0;">alia-channel.com/concours/${escHtml(slug)}</a>`;
+  document.getElementById('detail-table').innerHTML = '<div class="loading">Loading…</div>';
+
+  const data = await fetch(`${API}/api/contests/${id}/submissions`).then(r => r.json()).catch(() => []);
+
+  const byTime = {};
+  data.forEach(r => { byTime[r.time_in_israel] = (byTime[r.time_in_israel] || 0) + 1; });
+  document.getElementById('detail-stats').innerHTML = `
     <div style="background:#e3f2fd;border-radius:12px;padding:14px 20px;min-width:120px;text-align:center;">
       <div style="font-size:28px;font-weight:700;color:#1565c0;">${data.length}</div>
       <div style="font-size:12px;color:#666;margin-top:2px;">Participants</div>
@@ -402,14 +476,13 @@ async function loadConcours() {
     ${Object.entries(byTime).map(([k,v]) => `
     <div style="background:#f3e5f5;border-radius:12px;padding:14px 20px;min-width:120px;text-align:center;">
       <div style="font-size:22px;font-weight:700;color:#7b1fa2;">${v}</div>
-      <div style="font-size:11px;color:#666;margin-top:2px;">${k}</div>
+      <div style="font-size:11px;color:#666;margin-top:2px;">${escHtml(k)}</div>
     </div>`).join('')}`;
 
   if (!data.length) {
-    document.getElementById('concoursTable').innerHTML = '<div class="empty"><div class="icon">📭</div>Aucune participation pour l\'instant</div>';
+    document.getElementById('detail-table').innerHTML = '<div class="empty"><div class="icon">📭</div>Aucune participation pour l\'instant</div>';
     return;
   }
-
   const rows = data.map(r => `
     <tr>
       <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;">${r.id}</td>
@@ -421,8 +494,7 @@ async function loadConcours() {
       <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-size:12px;color:#555;">${escHtml(r.best_opinion || '')}</td>
       <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-size:12px;color:#999;">${r.submitted_at ? new Date(r.submitted_at).toLocaleDateString('fr-FR') : ''}</td>
     </tr>`).join('');
-
-  document.getElementById('concoursTable').innerHTML = `
+  document.getElementById('detail-table').innerHTML = `
     <div style="overflow-x:auto;">
       <table style="width:100%;border-collapse:collapse;font-size:13px;">
         <thead>
@@ -440,6 +512,17 @@ async function loadConcours() {
         <tbody>${rows}</tbody>
       </table>
     </div>`;
+}
+
+function backToContestList() {
+  _currentContestId = null;
+  document.getElementById('concours-detail-view').style.display = 'none';
+  document.getElementById('concours-list-view').style.display = 'block';
+}
+
+function exportContestCSV() {
+  if (!_currentContestId) return;
+  window.location.href = `${API}/api/contests/${_currentContestId}/submissions/export`;
 }
 
 async function loadAnalytics() {

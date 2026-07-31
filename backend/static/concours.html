@@ -69,10 +69,11 @@
 <div class="card">
   <div id="form-section">
     <div class="logo">🎉</div>
-    <h1>Concours Alia</h1>
-    <p class="subtitle">Remplis ce formulaire pour participer !</p>
+    <h1>{{CONTEST_TITLE}}</h1>
+    <p class="subtitle">{{CONTEST_DESCRIPTION}}</p>
 
     <form id="contestForm" novalidate>
+      <input type="hidden" id="contest_id" value="{{CONTEST_ID}}">
 
       <div class="question">
         <label>1. Prénom et nom <span class="required">*</span></label>
@@ -180,7 +181,7 @@
       const res = await fetch('/api/contests/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ full_name: fullName, contact, time_in_israel: time, interests, discovery, best_opinion: bestOpinion }),
+        body: JSON.stringify({ contest_id: parseInt(document.getElementById('contest_id').value), full_name: fullName, contact, time_in_israel: time, interests, discovery, best_opinion: bestOpinion }),
       });
       if (!res.ok) throw new Error('Server error');
       document.getElementById('form-section').style.display = 'none';
