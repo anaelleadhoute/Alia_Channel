@@ -65,8 +65,8 @@ async def list_contests(limit: int = 50):
     async with get_db() as db:
         cursor = await db.execute(
             """SELECT c.id, c.title, c.description, c.slug, c.status, c.created_at,
-               (SELECT COUNT(*) FROM contest_submissions s WHERE s.contest_id = c.id) as submissions
-               FROM contests ORDER BY c.created_at DESC LIMIT ?""",
+               (SELECT COUNT(*) FROM contest_submissions WHERE contest_id = c.id) as submissions
+               FROM contests c ORDER BY c.created_at DESC LIMIT ?""",
             (limit,),
         )
         rows = await cursor.fetchall()
