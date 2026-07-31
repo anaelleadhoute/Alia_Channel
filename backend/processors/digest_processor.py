@@ -67,25 +67,31 @@ async def generate_daily_digest(force: bool = False) -> dict:
 
     async with get_db() as db:
         existing = await db.execute(
-            "SELECT id FROM digests WHERE digest_date = ?", (week_day,)
+            "SELECT id, sent_wa_fr, sent_wa_ru FROM digests WHERE digest_date = ?", (week_day,)
         )
         row = await existing.fetchone()
         if row and not force:
-            logger.info(f"[digest] Digest for {today} already exists, skipping.")
-            return {"status": "skipped", "date": today}
-        if row and force:
+            # Skip only if digest is unsent — if already sent, regenerate with today's fresh articles
+            if not row["sent_wa_fr"] and not row["sent_wa_ru"]:
+                logger.info(f"[digest] Unsent digest for {today} already exists, skipping.")
+                return {"status": "skipped", "date": today}
+            # Digest was sent — delete and regenerate with today-only articles
+            async with get_db() as db2:
+                await db2.execute("DELETE FROM digests WHERE digest_date = ?", (week_day,))
+                await db2.commit()
+        elif row and force:
             async with get_db() as db2:
                 await db2.execute("DELETE FROM digests WHERE digest_date = ?", (week_day,))
                 await db2.commit()
 
-        # Fetch recent articles not yet used in a digest
+        # Fetch today's articles not yet used in a digest
         cursor = await db.execute(
             """
             SELECT id, title_raw, summary_fr, summary_ru, source, language, score,
                    COALESCE(published_at, scraped_at) AS article_date
             FROM articles
-            WHERE DATE(scraped_at) >= DATE('now', '-2 days')
-            AND (published_at IS NULL OR DATE(published_at) >= DATE('now', '-3 days'))
+            WHERE DATE(scraped_at) = DATE('now')
+            AND (published_at IS NULL OR DATE(published_at) >= DATE('now', '-1 days'))
             AND ai_processed_at IS NOT NULL
             AND score >= 0.6
             AND used_in_digest_id IS NULL
