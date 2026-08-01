@@ -94,6 +94,7 @@ async def generate_daily_digest(force: bool = False) -> dict:
             AND (published_at IS NULL OR DATE(published_at) >= DATE('now', '-1 days'))
             AND ai_processed_at IS NOT NULL
             AND score >= 0.6
+            AND category IN ('Sécurité', 'Politique', 'Société')
             AND used_in_digest_id IS NULL
             ORDER BY score DESC, article_date DESC
             LIMIT 20
