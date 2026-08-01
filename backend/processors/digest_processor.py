@@ -70,17 +70,16 @@ async def generate_daily_digest(force: bool = False) -> dict:
             "SELECT id, sent_wa_fr, sent_wa_ru FROM digests WHERE digest_date = ?", (week_day,)
         )
         row = await existing.fetchone()
-        if row and not force:
-            # Skip only if digest is unsent — if already sent, regenerate with today's fresh articles
-            if not row["sent_wa_fr"] and not row["sent_wa_ru"]:
+        if row:
+            if not force and not row["sent_wa_fr"] and not row["sent_wa_ru"]:
+                # Skip only if digest is unsent — if already sent (or force=True), regenerate below
                 logger.info(f"[digest] Unsent digest for {today} already exists, skipping.")
                 return {"status": "skipped", "date": today}
-            # Digest was sent — delete and regenerate with today-only articles
+            # Regenerating: free the articles this digest had claimed so they're eligible again
             async with get_db() as db2:
-                await db2.execute("DELETE FROM digests WHERE digest_date = ?", (week_day,))
-                await db2.commit()
-        elif row and force:
-            async with get_db() as db2:
+                await db2.execute(
+                    "UPDATE articles SET used_in_digest_id = NULL WHERE used_in_digest_id = ?", (row["id"],)
+                )
                 await db2.execute("DELETE FROM digests WHERE digest_date = ?", (week_day,))
                 await db2.commit()
 
