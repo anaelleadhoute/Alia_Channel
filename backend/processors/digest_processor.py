@@ -105,9 +105,15 @@ async def generate_daily_digest(force: bool = False) -> dict:
         logger.info("[digest] No articles found for today.")
         return {"status": "no_articles"}
 
-    # Build article list for prompt
-    articles_text = "\n".join([
-        f"- {row['title_raw']} ({row['source']})"
+    # Build article list for prompt — use each article's already-generated summary
+    # (written from the full article text) instead of the bare headline, which loses
+    # nuance and can read backwards (e.g. who supports/opposes whom in a story).
+    articles_text_fr = "\n".join([
+        f"- {row['summary_fr'] or row['title_raw']} ({row['source']})"
+        for row in articles
+    ])
+    articles_text_ru = "\n".join([
+        f"- {row['summary_ru'] or row['title_raw']} ({row['source']})"
         for row in articles
     ])
 
@@ -118,7 +124,7 @@ async def generate_daily_digest(force: bool = False) -> dict:
                 max_tokens=600,
                 messages=[{"role": "user", "content": PROMPT_FR.format(
                     today=today,
-                    articles=articles_text,
+                    articles=articles_text_fr,
                 )}],
             ),
             client.messages.create(
@@ -126,7 +132,7 @@ async def generate_daily_digest(force: bool = False) -> dict:
                 max_tokens=600,
                 messages=[{"role": "user", "content": PROMPT_RU.format(
                     today=today,
-                    articles=articles_text,
+                    articles=articles_text_ru,
                 )}],
             ),
         )
