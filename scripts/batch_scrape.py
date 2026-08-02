@@ -18,12 +18,26 @@ import argparse
 import sys
 import time
 import urllib.parse
+from pathlib import Path
 
 import httpx
 from bs4 import BeautifulSoup
 
 SERVER_URL = "https://alia-channel.com/api/queue/add"
 MAX_WEEKS = 50
+
+
+def _load_admin_key() -> str:
+    """Read ADMIN_API_KEY from the repo-root .env (required by the backend's auth middleware)."""
+    env_path = Path(__file__).resolve().parent.parent / ".env"
+    if env_path.exists():
+        for line in env_path.read_text().splitlines():
+            if line.startswith("ADMIN_API_KEY="):
+                return line.split("=", 1)[1].strip()
+    return ""
+
+
+ADMIN_API_KEY = _load_admin_key()
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36",
@@ -92,7 +106,7 @@ KARAMEL_ACTIVITIES = [
     {"name": "מדעטק חיפה",                          "url": "https://www.karamel.co.il/%D7%9E%D7%93%D7%A2%D7%98%D7%A7_%D7%97%D7%99%D7%A4%D7%94.asp?cat=682&tag=719"},
 ]
 
-# ── Midrag category URLs (user-provided, Tel Aviv / Netanya / Jerusalem) ──────
+# ── Midrag category URLs (user-provided, Tel Aviv / Netanya / Jerusalem / Haifa / Holon-Bat Yam / Ashdod) ──
 MIDRAG_URLS = [
     ("https://www.midrag.co.il/Search/Results?serviceId=102&cityId=900", "נתניה"),
     ("https://www.midrag.co.il/Search/Results?ntla=5I21Y06M88D0W7AD48IO76W3H5919H77891402", "תל אביב"),
@@ -101,9 +115,19 @@ MIDRAG_URLS = [
     ("https://www.midrag.co.il/Search/Results?ntla=N56LHX9329TP58W560647", "תל אביב"),
     ("https://www.midrag.co.il/Search/Results?ntla=ZN7C2105U243N7IU6LE28", "נתניה"),
     ("https://www.midrag.co.il/Search/Results?ntla=VO7A1N3ZB3F188DR8K5D7GL4F038", "תל אביב"),
+    ("https://www.midrag.co.il/Search/Results?ntla=1C24N46V57B9E8KL6DAS75883RN185160G4847", "חיפה"),
+    ("https://www.midrag.co.il/Search/Results?serviceId=119&cityId=237", "חולון-בת ים"),
+    ("https://www.midrag.co.il/Search/Results?serviceId=206&cityId=121&areaId=5", "אשדוד"),
 ]
 
-TARGET_CITIES = {"תל אביב", "נתניה", "ירושלים", "תל-אביב", "נתניה-עיר ימים"}
+TARGET_CITIES = {
+    "תל אביב", "תל-אביב",
+    "נתניה", "נתניה-עיר ימים",
+    "ירושלים",
+    "חיפה",
+    "חולון", "בת ים", "חולון-בת ים",
+    "אשדוד",
+}
 
 
 def extract_kolzchut_text(html: str) -> str:
@@ -122,6 +146,7 @@ def post_to_queue(category: str, source_url: str, payload: dict, dry_run: bool) 
         resp = httpx.post(
             SERVER_URL,
             json={"category": category, "source_url": source_url, "raw_payload": payload, "generate_now": True},
+            headers={"X-Admin-Key": ADMIN_API_KEY},
             timeout=120,
         )
         resp.raise_for_status()
