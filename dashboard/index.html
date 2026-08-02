@@ -531,9 +531,23 @@ function backToContestList() {
   document.getElementById('concours-list-view').style.display = 'block';
 }
 
-function exportContestCSV() {
+async function exportContestCSV() {
   if (!_currentContestId) return;
-  window.location.href = `${API}/api/contests/${_currentContestId}/submissions/export`;
+  try {
+    const resp = await fetch(`${API}/api/contests/${_currentContestId}/submissions/export`);
+    if (!resp.ok) throw new Error(await resp.text());
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `concours-${_currentContestId}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch(e) {
+    toast(`❌ Export échoué: ${e.message}`);
+  }
 }
 
 // ── Community Recommendations ────────────────────────────────────────────────
