@@ -81,6 +81,8 @@ run_job() {
             RESULT=$(curl -s "${AUTH[@]}" -X POST "${BASE}/api/queue/send/prestataire") ;;
         queue_send_kids)
             RESULT=$(curl -s "${AUTH[@]}" -X POST "${BASE}/api/queue/send/kids") ;;
+        queue_send_pharma)
+            RESULT=$(curl -s "${AUTH[@]}" -X POST "${BASE}/api/queue/send/pharma") ;;
         *)
             RESULT="unknown job: $JOB" ;;
     esac

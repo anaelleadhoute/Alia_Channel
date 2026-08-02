@@ -10,11 +10,15 @@ Usage:
 Targets:
     guide       — 50 weeks from Kol Zchut (general terms)
     droits      — 50 weeks from Kol Zchut (eligibility terms)
-    prestataire — up to 50 weeks from Midrag (rotates through 7 categories)
+    prestataire — up to 50 weeks from Midrag (rotates through cities/services)
     kids        — 18 weeks from Karamel (one per link)
+    pharma      — 1 item per run from Super-Pharm promotions (AI picks the most
+                  relevant one). Must run from a non-Israeli-datacenter IP —
+                  blocked (HTTP 492) from the production server.
 """
 
 import argparse
+import re
 import sys
 import time
 import urllib.parse
@@ -119,6 +123,8 @@ MIDRAG_URLS = [
     ("https://www.midrag.co.il/Search/Results?serviceId=119&cityId=237", "חולון-בת ים"),
     ("https://www.midrag.co.il/Search/Results?serviceId=206&cityId=121&areaId=5", "אשדוד"),
 ]
+
+SUPER_PHARM_URL = "https://shop.super-pharm.co.il/promotions"
 
 TARGET_CITIES = {
     "תל אביב", "תל-אביב",
@@ -331,13 +337,52 @@ def batch_prestataire(dry_run: bool):
         browser.close()
 
 
+def batch_pharma(dry_run: bool):
+    """Scrape Super-Pharm's promotions page. Must run from a non-Israeli-datacenter
+    IP — the site returns HTTP 492 (WAF block) when hit from the production server."""
+    print("\n=== PHARMA — Super-Pharm promotions ===")
+    try:
+        resp = httpx.get(SUPER_PHARM_URL, headers=HEADERS, timeout=30, follow_redirects=True)
+        resp.raise_for_status()
+    except Exception as e:
+        print(f"  ✗ Error fetching Super-Pharm: {e}")
+        return
+
+    soup = BeautifulSoup(resp.text, "html.parser")
+    seen = set()
+    promotions = []
+    for it in soup.find_all("a", attrs={"data-promotion-id": True}):
+        pid = it.get("data-promotion-id")
+        if pid in seen:
+            continue
+        seen.add(pid)
+        title = (it.get("data-promotion-title") or "").strip()
+        price_m = re.search(r"[\d.]+", it.get("data-promotion-details") or "")
+        price = price_m.group(0) if price_m else None
+        valid_m = re.search(r"בתוקף עד ([\d.]+)", it.get_text(" ", strip=True))
+        valid_until = valid_m.group(1) if valid_m else None
+        if title and price:
+            promotions.append({"title": title, "price": price, "valid_until": valid_until})
+
+    if not promotions:
+        print("  ✗ No promotions found")
+        return
+
+    print(f"  Found {len(promotions)} promotions")
+    promotions_text = "\n".join(
+        f"- {p['title']} — {p['price']} ₪" + (f" (valable jusqu'au {p['valid_until']})" if p["valid_until"] else "")
+        for p in promotions
+    )
+    post_to_queue("pharma", SUPER_PHARM_URL, {"promotions_text": promotions_text}, dry_run)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Batch scrape content into the queue")
-    parser.add_argument("--category", choices=["guide", "droits", "prestataire", "kids"], help="Only scrape this category")
+    parser.add_argument("--category", choices=["guide", "droits", "prestataire", "kids", "pharma"], help="Only scrape this category")
     parser.add_argument("--dry-run", action="store_true", help="Print without posting to server")
     args = parser.parse_args()
 
-    cats = [args.category] if args.category else ["guide", "droits", "kids", "prestataire"]
+    cats = [args.category] if args.category else ["guide", "droits", "kids", "prestataire", "pharma"]
 
     print(f"Starting batch scrape: {', '.join(cats)}")
     if args.dry_run:
@@ -352,6 +397,8 @@ def main():
             batch_kids(args.dry_run)
         elif cat == "prestataire":
             batch_prestataire(args.dry_run)
+        elif cat == "pharma":
+            batch_pharma(args.dry_run)
 
     print("\n=== Batch scrape complete ===")
 

@@ -378,6 +378,9 @@ async def init_db():
                 ('generate_faq', '❓ Générer FAQ', 2, 10, 0, 1, 'server'),
                 ('send_faq',     '❓ Envoyer FAQ', 2, 11, 0, 1, 'server')""",
             "DELETE FROM schedules WHERE job_key = 'faq'",
+            # Pharma (Super-Pharm promotions) queue send job
+            """INSERT OR IGNORE INTO schedules (job_key, label, day_of_week, hour_utc, minute_utc, enabled, location) VALUES
+                ('queue_send_pharma', '💊 Queue → Pharma', 2, 11, 0, 1, 'server')""",
         ]:
             try:
                 await db.execute(migration)

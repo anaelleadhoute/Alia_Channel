@@ -1,11 +1,12 @@
 """
 Content queue — pre-generated content sent one per week.
-Categories: guide, droits, prestataire, kids
+Categories: guide, droits, prestataire, kids, pharma
 """
 import asyncio
 import json
 import logging
 import os
+import random
 from datetime import datetime
 from typing import Optional
 
@@ -202,7 +203,7 @@ Une attraction familiale recommandée cette semaine (depuis Karamel.co.il) :
 Rédige un message WhatsApp court (80-100 mots) au format EXACT :
 👨‍👩‍👧 Sortie famille — Alia
 
-Sur ces 7 derniers jours, [nombre entre 2 et 6] familles d'Alia ont demandé une idée de sortie avec les enfants.
+Sur ces 7 derniers jours, {families_count} familles d'Alia ont demandé une idée de sortie avec les enfants.
 
 🎡 Cette semaine, on vous recommande [nom traduit en français], [description courte en français, 1 phrase].
 
@@ -224,13 +225,61 @@ Réponds uniquement avec le texte, sans JSON.""",
 Напиши короткое WhatsApp сообщение (80-100 слов) в точном формате :
 👨‍👩‍👧 Семейный досуг — от Alia
 
-За последние 7 дней [число от 2 до 6] семей из Alia спрашивали об идее для прогулки с детьми.
+За последние 7 дней {families_count} семей из Alia спрашивали об идее для прогулки с детьми.
 
 🎡 На этой неделе рекомендуем [название на русском], [краткое описание на русском, 1 предложение].
 
 🔗 Подробнее : {url}
 
 🤖 Для получения дополнительной информации спросите у Alia.
+https://wa.me/972549675013?text=Помоги
+
+Присоединяйтесь к сообществу Alia и получайте всё это каждую неделю :
+https://tinyurl.com/Alia-community-RU
+
+Отвечай только текстом, без JSON.""",
+    },
+    "pharma": {
+        "fr": """Tu es rédacteur pour AL.IA Channel, un média pour les olim francophones en Israël.
+
+Voici la liste des promotions actuelles chez Super-Pharm (grande chaîne de pharmacies/drugstores en Israël) :
+
+{promotions_text}
+
+Choisis LA SEULE promotion la plus utile et pertinente pour des olim (produits du quotidien : hygiène, soins, produits pour bébé, produits ménagers de base — évite les produits trop spécifiques, les compléments alimentaires obscurs ou les articles hors sujet). Rédige un message WhatsApp court (80-100 mots) au format EXACT :
+
+💊 Bon plan Super-Pharm — Alia
+
+Cette semaine, on a repéré une bonne affaire chez Super-Pharm !
+
+🛒 [Nom du produit traduit/expliqué clairement en français] à seulement [prix] ₪.
+
+⏰ Offre valable jusqu'au [date de validité, si disponible].
+
+🤖 Pour plus de bons plans, demandez à Alia.
+https://wa.me/972549675013?text=Aide-moi
+
+📢 Rejoignez la communauté Alia:
+https://tinyurl.com/Alia-community
+
+Réponds uniquement avec le texte, sans JSON.""",
+        "ru": """Ты редактор AL.IA Channel — медиа для русскоязычных олим в Израиле.
+
+Вот список текущих акций в сети Super-Pharm (крупная сеть аптек/дрогери в Израиле) :
+
+{promotions_text}
+
+Выбери ТОЛЬКО ОДНУ акцию — самую полезную и релевантную для олим (товары повседневного спроса: гигиена, уход, товары для малышей, базовая бытовая химия — избегай слишком специфичных товаров, непонятных БАДов или нерелевантных позиций). Напиши короткое WhatsApp сообщение (80-100 слов) в точном формате :
+
+💊 Выгодное предложение Super-Pharm — Alia
+
+На этой неделе мы заметили отличное предложение в Super-Pharm!
+
+🛒 [Название товара понятно переведено на русский] всего за [цена] ₪.
+
+⏰ Акция действует до [дата окончания, если известна].
+
+🤖 Больше выгодных предложений — спросите у Alia.
 https://wa.me/972549675013?text=Помоги
 
 Присоединяйтесь к сообществу Alia и получайте всё это каждую неделю :
@@ -245,13 +294,16 @@ def _format_prompt(template: str, payload: dict) -> str:
     try:
         return template.format(**payload)
     except KeyError:
-        return template.format_map({k: payload.get(k, "") for k in ["url", "content", "name", "category", "city", "rating", "reviews", "satisfaction", "description"]})
+        return template.format_map({k: payload.get(k, "") for k in ["url", "content", "name", "category", "city", "rating", "reviews", "satisfaction", "description", "families_count", "promotions_text"]})
 
 
 async def _generate_content(category: str, payload: dict) -> tuple[str, str]:
     prompts = PROMPTS.get(category)
     if not prompts:
         raise ValueError(f"Unknown category: {category}")
+
+    if category == "kids":
+        payload = {**payload, "families_count": random.randint(1, 7)}
 
     fr_prompt = _format_prompt(prompts["fr"], payload)
     ru_prompt = _format_prompt(prompts["ru"], payload)
@@ -274,12 +326,14 @@ CATEGORY_IMAGES_FR = {
     "droits":      "https://alia-channel.com/alia_droits_fr.png",
     "prestataire": "https://alia-channel.com/alia_prestataires_fr.png",
     "kids":        "https://alia-channel.com/alia_enfants_fr.png",
+    "pharma":      "https://alia-channel.com/alia_bon_plans_fr.png",
 }
 CATEGORY_IMAGES_RU = {
     "guide":       "https://alia-channel.com/ALIA_GUIDE_RUSSIAN.png",
     "droits":      "https://alia-channel.com/alia_droits_russian.png",
     "prestataire": "https://alia-channel.com/ALIA_PRESTATAIRES_RUSSIAN.png",
     "kids":        "https://alia-channel.com/ALIA_ENFANTS_RUSSIAN.png",
+    "pharma":      "https://alia-channel.com/ALIA_BON_PLANS_RUSSIAN.png",
 }
 
 
@@ -307,7 +361,7 @@ async def _whapi_send(group_id: str, text: str, image_url: str | None = None):
 # ── Models ────────────────────────────────────────────────────────────────────
 
 class QueueAddRequest(BaseModel):
-    category: str          # guide | droits | prestataire | kids
+    category: str          # guide | droits | prestataire | kids | pharma
     source_url: Optional[str] = None
     raw_payload: dict      # data needed to generate content (url/content or name/category/etc.)
     generate_now: bool = True  # generate FR+RU immediately
@@ -392,6 +446,7 @@ async def send_next_from_queue(category: str):
         "droits": "queue_send_droits",
         "prestataire": "queue_send_prestataire",
         "kids": "queue_send_kids",
+        "pharma": "queue_send_pharma",
     }
     async with get_db() as db:
         job_key = job_key_map.get(category)
