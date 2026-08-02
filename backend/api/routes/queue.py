@@ -256,6 +256,8 @@ Cette semaine, on a repéré une bonne affaire chez Super-Pharm !
 
 ⏰ Offre valable jusqu'au [date de validité, si disponible].
 
+🔗 Voir toutes les offres : {url}
+
 🤖 Pour plus de bons plans, demandez à Alia.
 https://wa.me/972549675013?text=Aide-moi
 
@@ -278,6 +280,8 @@ Réponds uniquement avec le texte, sans JSON.""",
 🛒 [Название товара понятно переведено на русский] всего за [цена] ₪.
 
 ⏰ Акция действует до [дата окончания, если известна].
+
+🔗 Все акции : {url}
 
 🤖 Больше выгодных предложений — спросите у Alia.
 https://wa.me/972549675013?text=Помоги

@@ -373,7 +373,7 @@ def batch_pharma(dry_run: bool):
         f"- {p['title']} — {p['price']} ₪" + (f" (valable jusqu'au {p['valid_until']})" if p["valid_until"] else "")
         for p in promotions
     )
-    post_to_queue("pharma", SUPER_PHARM_URL, {"promotions_text": promotions_text}, dry_run)
+    post_to_queue("pharma", SUPER_PHARM_URL, {"promotions_text": promotions_text, "url": SUPER_PHARM_URL}, dry_run)
 
 
 def main():
