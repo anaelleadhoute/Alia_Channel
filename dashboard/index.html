@@ -183,6 +183,7 @@
   <button class="tab" onclick="switchTab('events-kids')">👧 Kids</button>
   <button class="tab" onclick="switchTab('prestataire')">🏅 Prestataire</button>
   <button class="tab" onclick="switchTab('pharma')">💊 Pharma</button>
+  <button class="tab" onclick="switchTab('supermarket')">🛒 Supermarket</button>
   <button class="tab" onclick="switchTab('doctors')">🏥 Médecin</button>
 <button class="tab" onclick="switchTab('automation')">⚙️ Automation</button>
   <button class="tab" onclick="switchTab('concours')">🎉 Concours</button>
@@ -233,6 +234,12 @@
   <div class="section" id="section-pharma">
     <div class="queue-header"><h2>💊 Queue Pharma <span id="queue-pharma-count" style="font-size:13px;font-weight:400;color:#888;"></span></h2></div>
     <div id="queue-pharma-list"><div class="loading">Loading…</div></div>
+  </div>
+
+  <!-- SUPERMARKET -->
+  <div class="section" id="section-supermarket">
+    <div class="queue-header"><h2>🛒 Queue Supermarket <span id="queue-supermarket-count" style="font-size:13px;font-weight:400;color:#888;"></span></h2></div>
+    <div id="queue-supermarket-list"><div class="loading">Loading…</div></div>
   </div>
 
   <!-- DROITS -->
@@ -418,7 +425,7 @@ let queueFilter = 'ready';
 const CATEGORY_LABELS = {
   guide: '📄 Guide', droits: '💰 Droits', prestataire: '🏅 Prestataire',
   kids: '👧 Kids', news: '📰 News', faq: '❓ FAQ', doctor: '🏥 Médecin',
-  deal: '⚡ Deal', recommendation: '⭐ Recommandation', pharma: '💊 Pharma'
+  deal: '⚡ Deal', recommendation: '⭐ Recommandation', pharma: '💊 Pharma', supermarket: '🛒 Supermarket'
 };
 
 let _currentContestId = null;
@@ -703,6 +710,7 @@ function switchTab(name) {
   if (name === 'prestataire') loadInlineQueue('prestataire');
   if (name === 'events-kids') loadInlineQueue('kids');
   if (name === 'pharma') loadInlineQueue('pharma');
+  if (name === 'supermarket') loadInlineQueue('supermarket');
   if (name === 'concours') loadConcours();
   if (name === 'automation') loadAutomation();
 }
@@ -1506,7 +1514,7 @@ const JOB_CATEGORY = {
   send_prestataire: 'prestataire', send_deal: 'deal',
   queue_send_guide: 'tip', queue_send_droits: 'rights',
   queue_send_prestataire: 'prestataire', queue_send_kids: 'kids',
-  queue_send_pharma: 'pharma',
+  queue_send_pharma: 'pharma', queue_send_supermarket: 'supermarket',
 };
 
 async function toggleAutoPublishJob(jobKey, checked) {
@@ -2155,7 +2163,7 @@ async function loadInlineQueue(category) {
       return `📅 Dans ${index} semaines`;
     };
 
-    const jobKeyMap = {guide:'queue_send_guide', droits:'queue_send_droits', prestataire:'queue_send_prestataire', kids:'queue_send_kids', pharma:'queue_send_pharma'};
+    const jobKeyMap = {guide:'queue_send_guide', droits:'queue_send_droits', prestataire:'queue_send_prestataire', kids:'queue_send_kids', pharma:'queue_send_pharma', supermarket:'queue_send_supermarket'};
     const banner = await nextRunBanner(jobKeyMap[category], 'Prochain envoi');
     let pendingIndex = 0;
     listEl.innerHTML = banner + items.map(item => {

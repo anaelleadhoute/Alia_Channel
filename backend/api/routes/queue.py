@@ -1,6 +1,6 @@
 """
 Content queue — pre-generated content sent one per week.
-Categories: guide, droits, prestataire, kids, pharma
+Categories: guide, droits, prestataire, kids, pharma, supermarket
 """
 import asyncio
 import json
@@ -291,6 +291,54 @@ https://tinyurl.com/Alia-community-RU
 
 Отвечай только текстом, без JSON.""",
     },
+    "supermarket": {
+        "fr": """Tu es rédacteur pour AL.IA Channel, un média pour les olim francophones en Israël.
+
+Voici la liste des promotions actuelles chez Shufersal (grande chaîne de supermarchés en Israël) :
+
+{promotions_text}
+
+Choisis LA SEULE promotion la plus utile et pertinente pour des olim (produits alimentaires du quotidien, produits ménagers de base, hygiène — évite les produits trop spécifiques, l'alcool, ou les articles hors sujet). Rédige un message WhatsApp court (80-100 mots) au format EXACT :
+
+🛒 Bon plan Shufersal — Alia
+
+Cette semaine, on a repéré une bonne affaire chez Shufersal !
+
+🛍️ [Nom du produit traduit/expliqué clairement en français] à seulement [prix] ₪.
+
+🔗 Voir toutes les offres : {url}
+
+🤖 Pour plus de bons plans, demandez à Alia.
+https://wa.me/972549675013?text=Aide-moi
+
+📢 Rejoignez la communauté Alia:
+https://tinyurl.com/Alia-community
+
+Réponds uniquement avec le texte, sans JSON.""",
+        "ru": """Ты редактор AL.IA Channel — медиа для русскоязычных олим в Израиле.
+
+Вот список текущих акций в сети Shufersal (крупная сеть супермаркетов в Израиле) :
+
+{promotions_text}
+
+Выбери ТОЛЬКО ОДНУ акцию — самую полезную и релевантную для олим (повседневные продукты питания, базовая бытовая химия, гигиена — избегай слишком специфичных товаров, алкоголя или нерелевантных позиций). Напиши короткое WhatsApp сообщение (80-100 слов) в точном формате :
+
+🛒 Выгодное предложение Shufersal — Alia
+
+На этой неделе мы заметили отличное предложение в Shufersal!
+
+🛍️ [Название товара понятно переведено на русский] всего за [цена] ₪.
+
+🔗 Все акции : {url}
+
+🤖 Больше выгодных предложений — спросите у Alia.
+https://wa.me/972549675013?text=Помоги
+
+Присоединяйтесь к сообществу Alia и получайте всё это каждую неделю :
+https://tinyurl.com/Alia-community-RU
+
+Отвечай только текстом, без JSON.""",
+    },
 }
 
 
@@ -331,6 +379,7 @@ CATEGORY_IMAGES_FR = {
     "prestataire": "https://alia-channel.com/alia_prestataires_fr.png",
     "kids":        "https://alia-channel.com/alia_enfants_fr.png",
     "pharma":      "https://alia-channel.com/alia_bon_plans_fr.png",
+    "supermarket": "https://alia-channel.com/alia_bon_plans_fr.png",
 }
 CATEGORY_IMAGES_RU = {
     "guide":       "https://alia-channel.com/ALIA_GUIDE_RUSSIAN.png",
@@ -338,6 +387,7 @@ CATEGORY_IMAGES_RU = {
     "prestataire": "https://alia-channel.com/ALIA_PRESTATAIRES_RUSSIAN.png",
     "kids":        "https://alia-channel.com/ALIA_ENFANTS_RUSSIAN.png",
     "pharma":      "https://alia-channel.com/ALIA_BON_PLANS_RUSSIAN.png",
+    "supermarket": "https://alia-channel.com/ALIA_BON_PLANS_RUSSIAN.png",
 }
 
 
@@ -365,7 +415,7 @@ async def _whapi_send(group_id: str, text: str, image_url: str | None = None):
 # ── Models ────────────────────────────────────────────────────────────────────
 
 class QueueAddRequest(BaseModel):
-    category: str          # guide | droits | prestataire | kids | pharma
+    category: str          # guide | droits | prestataire | kids | pharma | supermarket
     source_url: Optional[str] = None
     raw_payload: dict      # data needed to generate content (url/content or name/category/etc.)
     generate_now: bool = True  # generate FR+RU immediately
@@ -451,6 +501,7 @@ async def send_next_from_queue(category: str):
         "prestataire": "queue_send_prestataire",
         "kids": "queue_send_kids",
         "pharma": "queue_send_pharma",
+        "supermarket": "queue_send_supermarket",
     }
     async with get_db() as db:
         job_key = job_key_map.get(category)

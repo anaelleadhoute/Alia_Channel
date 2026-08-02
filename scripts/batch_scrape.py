@@ -12,11 +12,13 @@ Targets:
     droits      — 50 weeks from Kol Zchut (eligibility terms)
     prestataire — up to 50 weeks from Midrag (rotates through cities/services)
     kids        — 18 weeks from Karamel (one per link)
-    pharma      — 1 item per run from Super-Pharm + Shufersal promotions (AI
-                  picks the most relevant one). Must run from a non-Israeli-
-                  datacenter IP (Super-Pharm blocks the production server,
-                  HTTP 492). Shufersal needs Playwright and only scrapes
-                  within its robots.txt Visit-time window (04:00-08:45 UTC).
+    pharma      — 1 item per run from Super-Pharm promotions (AI picks the
+                  most relevant one). Must run from a non-Israeli-datacenter
+                  IP — blocked (HTTP 492) from the production server.
+    supermarket — 1 item per run from Shufersal promotions (AI picks the
+                  most relevant one). Needs Playwright (JS-rendered grid)
+                  and only scrapes within robots.txt's Visit-time window
+                  (04:00-08:45 UTC) — a no-op outside that window.
 """
 
 import argparse
@@ -425,34 +427,43 @@ def scrape_shufersal() -> list[dict]:
     return promotions
 
 
-def batch_pharma(dry_run: bool):
-    """Combine Super-Pharm + Shufersal promotions; the AI picks the single most relevant one."""
-    print("\n=== PHARMA — Super-Pharm + Shufersal promotions ===")
-    promotions = scrape_super_pharm()
-    print(f"  Super-Pharm: {len(promotions)} promotions")
-    shufersal_promos = scrape_shufersal()
-    print(f"  Shufersal: {len(shufersal_promos)} promotions")
-    promotions += shufersal_promos
-
-    if not promotions:
-        print("  ✗ No promotions found from either source")
-        return
-
-    promotions_text = "\n".join(
-        f"- [{p['source']}] {p['title']} — {p['price']}" + (" ₪" if "₪" not in p['price'] else "")
+def _promotions_text(promotions: list[dict]) -> str:
+    return "\n".join(
+        f"- {p['title']} — {p['price']}" + (" ₪" if "₪" not in p['price'] else "")
         + (f" (valable jusqu'au {p['valid_until']})" if p.get("valid_until") else "")
         for p in promotions
     )
-    post_to_queue("pharma", SUPER_PHARM_URL, {"promotions_text": promotions_text, "url": SUPER_PHARM_URL}, dry_run)
+
+
+def batch_pharma(dry_run: bool):
+    """Super-Pharm promotions; the AI picks the single most relevant one."""
+    print("\n=== PHARMA — Super-Pharm promotions ===")
+    promotions = scrape_super_pharm()
+    print(f"  Found {len(promotions)} promotions")
+    if not promotions:
+        print("  ✗ No promotions found")
+        return
+    post_to_queue("pharma", SUPER_PHARM_URL, {"promotions_text": _promotions_text(promotions), "url": SUPER_PHARM_URL}, dry_run)
+
+
+def batch_supermarket(dry_run: bool):
+    """Shufersal promotions; the AI picks the single most relevant one."""
+    print("\n=== SUPERMARKET — Shufersal promotions ===")
+    promotions = scrape_shufersal()
+    print(f"  Found {len(promotions)} promotions")
+    if not promotions:
+        print("  ✗ No promotions found")
+        return
+    post_to_queue("supermarket", SHUFERSAL_URL, {"promotions_text": _promotions_text(promotions), "url": SHUFERSAL_URL}, dry_run)
 
 
 def main():
     parser = argparse.ArgumentParser(description="Batch scrape content into the queue")
-    parser.add_argument("--category", choices=["guide", "droits", "prestataire", "kids", "pharma"], help="Only scrape this category")
+    parser.add_argument("--category", choices=["guide", "droits", "prestataire", "kids", "pharma", "supermarket"], help="Only scrape this category")
     parser.add_argument("--dry-run", action="store_true", help="Print without posting to server")
     args = parser.parse_args()
 
-    cats = [args.category] if args.category else ["guide", "droits", "kids", "prestataire", "pharma"]
+    cats = [args.category] if args.category else ["guide", "droits", "kids", "prestataire", "pharma", "supermarket"]
 
     print(f"Starting batch scrape: {', '.join(cats)}")
     if args.dry_run:
@@ -469,6 +480,8 @@ def main():
             batch_prestataire(args.dry_run)
         elif cat == "pharma":
             batch_pharma(args.dry_run)
+        elif cat == "supermarket":
+            batch_supermarket(args.dry_run)
 
     print("\n=== Batch scrape complete ===")
 
