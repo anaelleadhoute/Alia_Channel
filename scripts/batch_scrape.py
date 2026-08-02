@@ -12,9 +12,11 @@ Targets:
     droits      — 50 weeks from Kol Zchut (eligibility terms)
     prestataire — up to 50 weeks from Midrag (rotates through cities/services)
     kids        — 18 weeks from Karamel (one per link)
-    pharma      — 1 item per run from Super-Pharm promotions (AI picks the most
-                  relevant one). Must run from a non-Israeli-datacenter IP —
-                  blocked (HTTP 492) from the production server.
+    pharma      — 1 item per run from Super-Pharm + Shufersal promotions (AI
+                  picks the most relevant one). Must run from a non-Israeli-
+                  datacenter IP (Super-Pharm blocks the production server,
+                  HTTP 492). Shufersal needs Playwright and only scrapes
+                  within its robots.txt Visit-time window (04:00-08:45 UTC).
 """
 
 import argparse
@@ -125,6 +127,7 @@ MIDRAG_URLS = [
 ]
 
 SUPER_PHARM_URL = "https://shop.super-pharm.co.il/promotions"
+SHUFERSAL_URL = "https://www.shufersal.co.il/online/he/promo/A"
 
 TARGET_CITIES = {
     "תל אביב", "תל-אביב",
@@ -337,16 +340,16 @@ def batch_prestataire(dry_run: bool):
         browser.close()
 
 
-def batch_pharma(dry_run: bool):
-    """Scrape Super-Pharm's promotions page. Must run from a non-Israeli-datacenter
-    IP — the site returns HTTP 492 (WAF block) when hit from the production server."""
-    print("\n=== PHARMA — Super-Pharm promotions ===")
+def scrape_super_pharm() -> list[dict]:
+    """Super-Pharm's promo grid is server-rendered — a plain GET is enough.
+    Must run from a non-Israeli-datacenter IP — the site returns HTTP 492
+    (WAF block) when hit from the production server."""
     try:
         resp = httpx.get(SUPER_PHARM_URL, headers=HEADERS, timeout=30, follow_redirects=True)
         resp.raise_for_status()
     except Exception as e:
         print(f"  ✗ Error fetching Super-Pharm: {e}")
-        return
+        return []
 
     soup = BeautifulSoup(resp.text, "html.parser")
     seen = set()
@@ -362,15 +365,82 @@ def batch_pharma(dry_run: bool):
         valid_m = re.search(r"בתוקף עד ([\d.]+)", it.get_text(" ", strip=True))
         valid_until = valid_m.group(1) if valid_m else None
         if title and price:
-            promotions.append({"title": title, "price": price, "valid_until": valid_until})
+            promotions.append({"source": "Super-Pharm", "title": title, "price": price, "valid_until": valid_until})
+    return promotions
+
+
+def _shufersal_visit_window_ok() -> bool:
+    """robots.txt: Visit-time 0400-0845 (UTC). Respect it — don't crawl outside the window."""
+    from datetime import datetime, timezone
+    now_utc = datetime.now(timezone.utc)
+    start = now_utc.replace(hour=4, minute=0, second=0, microsecond=0)
+    end = now_utc.replace(hour=8, minute=45, second=0, microsecond=0)
+    return start <= now_utc <= end
+
+
+def scrape_shufersal() -> list[dict]:
+    """Shufersal's promo grid is loaded client-side (infinite scroll) — needs Playwright.
+    Only runs inside the site's robots.txt Visit-time window (04:00-08:45 UTC) and paces
+    itself between scrolls per its Crawl-delay: 10."""
+    if not _shufersal_visit_window_ok():
+        print("  ⏭ Shufersal — outside allowed crawl window (04:00-08:45 UTC per robots.txt), skipping")
+        return []
+
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError:
+        print("  ⏭ Shufersal — skipped (playwright not installed)")
+        return []
+
+    promotions = []
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page(
+            user_agent=HEADERS["User-Agent"],
+            extra_http_headers={"Accept-Language": "he-IL,he;q=0.9"},
+        )
+        try:
+            page.goto(SHUFERSAL_URL, wait_until="networkidle", timeout=30000)
+            page.wait_for_timeout(2000)
+            # A couple of scrolls to load more tiles, paced per Crawl-delay: 10
+            for _ in range(2):
+                page.mouse.wheel(0, 3000)
+                page.wait_for_timeout(10000)
+
+            tiles = page.query_selector_all('[class*="miglog-prod"], [class*="tileBlock"], .item.pack, [class*="prod"]')
+            for t in tiles[:60]:
+                text = t.inner_text().strip()
+                if not text or "₪" not in text:
+                    continue
+                lines = [l.strip() for l in text.split("\n") if l.strip()]
+                price_line = next((l for l in lines if "₪" in l), None)
+                name_line = next((l for l in lines if "₪" not in l and len(l) > 3), None)
+                if price_line and name_line:
+                    promotions.append({"source": "Shufersal", "title": name_line, "price": price_line, "valid_until": None})
+        except Exception as e:
+            print(f"  ✗ Error scraping Shufersal: {e}")
+        finally:
+            browser.close()
+
+    return promotions
+
+
+def batch_pharma(dry_run: bool):
+    """Combine Super-Pharm + Shufersal promotions; the AI picks the single most relevant one."""
+    print("\n=== PHARMA — Super-Pharm + Shufersal promotions ===")
+    promotions = scrape_super_pharm()
+    print(f"  Super-Pharm: {len(promotions)} promotions")
+    shufersal_promos = scrape_shufersal()
+    print(f"  Shufersal: {len(shufersal_promos)} promotions")
+    promotions += shufersal_promos
 
     if not promotions:
-        print("  ✗ No promotions found")
+        print("  ✗ No promotions found from either source")
         return
 
-    print(f"  Found {len(promotions)} promotions")
     promotions_text = "\n".join(
-        f"- {p['title']} — {p['price']} ₪" + (f" (valable jusqu'au {p['valid_until']})" if p["valid_until"] else "")
+        f"- [{p['source']}] {p['title']} — {p['price']}" + (" ₪" if "₪" not in p['price'] else "")
+        + (f" (valable jusqu'au {p['valid_until']})" if p.get("valid_until") else "")
         for p in promotions
     )
     post_to_queue("pharma", SUPER_PHARM_URL, {"promotions_text": promotions_text, "url": SUPER_PHARM_URL}, dry_run)
