@@ -131,6 +131,10 @@ MIDRAG_URLS = [
 SUPER_PHARM_URL = "https://shop.super-pharm.co.il/promotions"
 SHUFERSAL_URL = "https://www.shufersal.co.il/online/he/promo/A"
 
+
+def _is_toilet_paper(title: str) -> bool:
+    return "טואלט" in title or "toilet" in title.lower()
+
 TARGET_CITIES = {
     "תל אביב", "תל-אביב",
     "נתניה", "נתניה-עיר ימים",
@@ -366,7 +370,7 @@ def scrape_super_pharm() -> list[dict]:
         price = price_m.group(0) if price_m else None
         valid_m = re.search(r"בתוקף עד ([\d.]+)", it.get_text(" ", strip=True))
         valid_until = valid_m.group(1) if valid_m else None
-        if title and price:
+        if title and price and not _is_toilet_paper(title):
             promotions.append({"source": "Super-Pharm", "title": title, "price": price, "valid_until": valid_until})
     return promotions
 
@@ -419,7 +423,7 @@ def scrape_shufersal() -> list[dict]:
                 valid_m = re.search(r"תקף עד:?\s*([\d/]+)", text)
                 valid_until = valid_m.group(1) if valid_m else None
                 key = (title, price)
-                if title and price and key not in seen:
+                if title and price and key not in seen and not _is_toilet_paper(title):
                     seen.add(key)
                     promotions.append({"source": "Shufersal", "title": title, "price": price, "valid_until": valid_until})
         except Exception as e:

@@ -228,7 +228,7 @@ Voici la liste des promotions actuelles chez Super-Pharm (grande chaîne de phar
 
 {promotions_text}
 
-Choisis LA SEULE promotion la plus utile et pertinente pour des olim (produits du quotidien : hygiène, soins, produits pour bébé, produits ménagers de base — évite les produits trop spécifiques, les compléments alimentaires obscurs ou les articles hors sujet). Rédige un message WhatsApp court (80-100 mots) au format EXACT :
+Choisis LA SEULE promotion la plus utile et pertinente pour des olim (produits du quotidien : hygiène, soins, produits pour bébé, produits ménagers de base — évite les produits trop spécifiques, les compléments alimentaires obscurs, le papier toilette, ou les articles hors sujet). Rédige un message WhatsApp court (80-100 mots) au format EXACT :
 
 💊 Bon plan Super-Pharm — Alia
 
@@ -250,7 +250,7 @@ Réponds uniquement avec le texte, sans JSON.""",
 
 {promotions_text}
 
-Выбери ТОЛЬКО ОДНУ акцию — самую полезную и релевантную для олим (товары повседневного спроса: гигиена, уход, товары для малышей, базовая бытовая химия — избегай слишком специфичных товаров, непонятных БАДов или нерелевантных позиций). Напиши короткое WhatsApp сообщение (80-100 слов) в точном формате :
+Выбери ТОЛЬКО ОДНУ акцию — самую полезную и релевантную для олим (товары повседневного спроса: гигиена, уход, товары для малышей, базовая бытовая химия — избегай слишком специфичных товаров, непонятных БАДов, туалетной бумаги или нерелевантных позиций). Напиши короткое WhatsApp сообщение (80-100 слов) в точном формате :
 
 💊 Выгодное предложение Super-Pharm — Alia
 
@@ -274,7 +274,7 @@ Voici la liste des promotions actuelles chez Shufersal (grande chaîne de superm
 
 {promotions_text}
 
-Choisis LA SEULE promotion la plus utile et pertinente pour des olim (produits alimentaires du quotidien, produits ménagers de base, hygiène — évite les produits trop spécifiques, l'alcool, ou les articles hors sujet). Rédige un message WhatsApp court (80-100 mots) au format EXACT :
+Choisis LA SEULE promotion la plus utile et pertinente pour des olim (produits alimentaires du quotidien, produits ménagers de base, hygiène — évite les produits trop spécifiques, l'alcool, le papier toilette, ou les articles hors sujet). Rédige un message WhatsApp court (80-100 mots) au format EXACT :
 
 🛒 Bon plan Shufersal — Alia
 
@@ -296,7 +296,7 @@ Réponds uniquement avec le texte, sans JSON.""",
 
 {promotions_text}
 
-Выбери ТОЛЬКО ОДНУ акцию — самую полезную и релевантную для олим (повседневные продукты питания, базовая бытовая химия, гигиена — избегай слишком специфичных товаров, алкоголя или нерелевантных позиций). Напиши короткое WhatsApp сообщение (80-100 слов) в точном формате :
+Выбери ТОЛЬКО ОДНУ акцию — самую полезную и релевантную для олим (повседневные продукты питания, базовая бытовая химия, гигиена — избегай слишком специфичных товаров, алкоголя, туалетной бумаги или нерелевантных позиций). Напиши короткое WhatsApp сообщение (80-100 слов) в точном формате :
 
 🛒 Выгодное предложение Shufersal — Alia
 
