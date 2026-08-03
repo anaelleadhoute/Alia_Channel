@@ -35,8 +35,6 @@ Rédige un message WhatsApp en français en suivant EXACTEMENT ce format :
 
 🚫 Ce post n'est pas sponsorisé.
 
-La vie en Israël est chère, surtout quand on est olé.
-
 Alia a cherché pour vous et a trouvé le meilleur prix du moment sur [nom du produit/service en 2-3 mots max].
 
 👉 {deal_link}
@@ -63,8 +61,6 @@ PROMPT_RU = """Ты редактор AL.IA Channel — медиа для рус�
 💙 Выгодное предложение от Alia
 
 🚫 Этот пост не спонсируется.
-
-Жизнь в Израиле дорогая, особенно для олим.
 
 Alia искала для вас и нашла лучшую цену на [название товара/услуги в 2-3 словах].
 
