@@ -17,7 +17,7 @@ Voici les articles d'actualité d'aujourd'hui ({today}) :
 
 {articles}
 
-Rédige un résumé des infos du jour en français destiné aux olim. Suis EXACTEMENT ce format :
+Rédige un résumé des infos du jour en français destiné aux olim. Traite les articles dans l'ordre donné ci-dessus (sécurité/politique en premier, société ensuite). Suis EXACTEMENT ce format :
 
 📰 Le Brief Alia
 
@@ -36,7 +36,7 @@ PROMPT_RU = """Ты редактор AL.IA Channel — медиа для рус�
 
 {articles}
 
-Напиши сводку новостей дня на русском для олим. Следуй ТОЧНО этому формату:
+Напиши сводку новостей дня на русском для олим. Излагай новости в указанном выше порядке (сначала безопасность/политика, затем общество). Следуй ТОЧНО этому формату:
 
 📰 Бриф Alia
 
@@ -87,7 +87,7 @@ async def generate_daily_digest(force: bool = False) -> dict:
             AND score >= 0.6
             AND category IN ('Sécurité', 'Politique', 'Société')
             AND used_in_digest_id IS NULL
-            ORDER BY score DESC, article_date DESC
+            ORDER BY CASE category WHEN 'Société' THEN 1 ELSE 0 END, score DESC, article_date DESC
             LIMIT 20
             """
         )
