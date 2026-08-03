@@ -306,6 +306,8 @@ Cette semaine, on a repéré une bonne affaire chez Shufersal !
 
 🛍️ [Nom du produit traduit/expliqué clairement en français] à seulement [prix] ₪.
 
+⏰ Offre valable jusqu'au [date de validité, si disponible].
+
 🔗 Voir toutes les offres : {url}
 
 🤖 Pour plus de bons plans, demandez à Alia.
@@ -328,6 +330,8 @@ Réponds uniquement avec le texte, sans JSON.""",
 На этой неделе мы заметили отличное предложение в Shufersal!
 
 🛍️ [Название товара понятно переведено на русский] всего за [цена] ₪.
+
+⏰ Акция действует до [дата окончания, если известна].
 
 🔗 Все акции : {url}
 
