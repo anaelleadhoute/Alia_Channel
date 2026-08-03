@@ -402,23 +402,26 @@ def scrape_shufersal() -> list[dict]:
             extra_http_headers={"Accept-Language": "he-IL,he;q=0.9"},
         )
         try:
-            page.goto(SHUFERSAL_URL, wait_until="networkidle", timeout=30000)
-            page.wait_for_timeout(2000)
+            page.goto(SHUFERSAL_URL, wait_until="domcontentloaded", timeout=30000)
+            page.wait_for_timeout(5000)
             # A couple of scrolls to load more tiles, paced per Crawl-delay: 10
             for _ in range(2):
                 page.mouse.wheel(0, 3000)
                 page.wait_for_timeout(10000)
 
-            tiles = page.query_selector_all('[class*="miglog-prod"], [class*="tileBlock"], .item.pack, [class*="prod"]')
-            for t in tiles[:60]:
-                text = t.inner_text().strip()
-                if not text or "₪" not in text:
-                    continue
-                lines = [l.strip() for l in text.split("\n") if l.strip()]
-                price_line = next((l for l in lines if "₪" in l), None)
-                name_line = next((l for l in lines if "₪" not in l and len(l) > 3), None)
-                if price_line and name_line:
-                    promotions.append({"source": "Shufersal", "title": name_line, "price": price_line, "valid_until": None})
+            seen = set()
+            for tile in page.query_selector_all("div.tile.miglog-promo"):
+                desc = tile.query_selector(".description")
+                title = desc.inner_text().strip() if desc else None
+                text = tile.inner_text()
+                price_m = re.search(r"ב-\s*(\d+(?:\.\d+)?)\s*₪", text)
+                price = price_m.group(0) if price_m else None
+                valid_m = re.search(r"תקף עד:?\s*([\d/]+)", text)
+                valid_until = valid_m.group(1) if valid_m else None
+                key = (title, price)
+                if title and price and key not in seen:
+                    seen.add(key)
+                    promotions.append({"source": "Shufersal", "title": title, "price": price, "valid_until": valid_until})
         except Exception as e:
             print(f"  ✗ Error scraping Shufersal: {e}")
         finally:
