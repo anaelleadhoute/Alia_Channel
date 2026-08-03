@@ -50,9 +50,6 @@ Beaucoup d'utilisateurs d'Alia nous demandent :
 🤖 Pour connaître la procédure adaptée à votre situation, demandez à Alia.
 https://wa.me/972549675013?text=Aide-moi
 
-📢 Rejoignez la communauté Alia:
-https://tinyurl.com/Alia-community
-
 Réponds uniquement avec le texte du guide, sans JSON, sans commentaire.""",
         "ru": """Ты редактор AL.IA Channel — медиа для русскоязычных олим в Израиле.
 
@@ -75,9 +72,6 @@ Réponds uniquement avec le texte du guide, sans JSON, sans commentaire.""",
 
 🤖 Чтобы узнать процедуру для вашей ситуации, спросите у Alia.
 https://wa.me/972549675013?text=Помоги
-
-Присоединяйтесь к сообществу Alia и получайте всё это каждую неделю :
-https://tinyurl.com/Alia-community-RU
 
 Отвечай только текстом гида, без JSON, без комментариев.""",
     },
@@ -102,9 +96,6 @@ Format EXACT :
 🤖 Pour plus d'informations, demandez à Alia.
 https://wa.me/972549675013?text=Aide-moi
 
-📢 Rejoignez la communauté Alia:
-https://tinyurl.com/Alia-community
-
 Réponds uniquement avec le texte, sans JSON.""",
         "ru": """Ты редактор AL.IA Channel — медиа для русскоязычных олим в Израиле.
 
@@ -125,9 +116,6 @@ Réponds uniquement avec le texte, sans JSON.""",
 
 🤖 Для получения дополнительной информации спросите у Alia.
 https://wa.me/972549675013?text=Помоги
-
-Присоединяйтесь к сообществу Alia и получайте всё это каждую неделю :
-https://tinyurl.com/Alia-community-RU
 
 Отвечай только текстом, без JSON.""",
     },
@@ -209,9 +197,6 @@ Sur ces 7 derniers jours, {families_count} familles d'Alia ont demandé une idé
 
 🔗 Plus d'infos : {url}
 
-🤖 Pour plus d'informations, demandez à Alia.
-https://wa.me/972549675013?text=Aide-moi
-
 📢 Rejoignez la communauté Alia:
 https://tinyurl.com/Alia-community
 
@@ -230,9 +215,6 @@ Réponds uniquement avec le texte, sans JSON.""",
 🎡 На этой неделе рекомендуем [название на русском], [краткое описание на русском, 1 предложение].
 
 🔗 Подробнее : {url}
-
-🤖 Для получения дополнительной информации спросите у Alia.
-https://wa.me/972549675013?text=Помоги
 
 Присоединяйтесь к сообществу Alia и получайте всё это каждую неделю :
 https://tinyurl.com/Alia-community-RU
@@ -258,9 +240,6 @@ Cette semaine, on a repéré une bonne affaire chez Super-Pharm !
 
 🔗 Voir toutes les offres : {url}
 
-🤖 Pour plus de bons plans, demandez à Alia.
-https://wa.me/972549675013?text=Aide-moi
-
 📢 Rejoignez la communauté Alia:
 https://tinyurl.com/Alia-community
 
@@ -282,9 +261,6 @@ Réponds uniquement avec le texte, sans JSON.""",
 ⏰ Акция действует до [дата окончания, если известна].
 
 🔗 Все акции : {url}
-
-🤖 Больше выгодных предложений — спросите у Alia.
-https://wa.me/972549675013?text=Помоги
 
 Присоединяйтесь к сообществу Alia и получайте всё это каждую неделю :
 https://tinyurl.com/Alia-community-RU
@@ -310,9 +286,6 @@ Cette semaine, on a repéré une bonne affaire chez Shufersal !
 
 🔗 Voir toutes les offres : {url}
 
-🤖 Pour plus de bons plans, demandez à Alia.
-https://wa.me/972549675013?text=Aide-moi
-
 📢 Rejoignez la communauté Alia:
 https://tinyurl.com/Alia-community
 
@@ -334,9 +307,6 @@ Réponds uniquement avec le texte, sans JSON.""",
 ⏰ Акция действует до [дата окончания, если известна].
 
 🔗 Все акции : {url}
-
-🤖 Больше выгодных предложений — спросите у Alia.
-https://wa.me/972549675013?text=Помоги
 
 Присоединяйтесь к сообществу Alia и получайте всё это каждую неделю :
 https://tinyurl.com/Alia-community-RU

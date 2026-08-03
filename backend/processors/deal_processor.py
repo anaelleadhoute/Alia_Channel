@@ -42,9 +42,6 @@ Alia a cherché pour vous et a trouvé le meilleur prix du moment sur [nom du pr
 📢 Rejoignez la communauté Alia:
 https://tinyurl.com/Alia-community
 
-🤖 Des questions ? Parlez à Alia :
-https://wa.me/972549675013?text=Aide-moi
-
 Réponds uniquement avec le texte du message, sans JSON, sans commentaire."""
 
 PROMPT_RU = """Ты редактор AL.IA Channel — медиа для русскоязычных олим в Израиле.
@@ -68,9 +65,6 @@ Alia искала для вас и нашла лучшую цену на [наз
 
 Присоединяйтесь к сообществу Alia и получайте всё это каждую неделю :
 https://tinyurl.com/Alia-community-RU
-
-🤖 Есть вопросы? Напишите Alia :
-https://wa.me/972549675013?text=Помоги
 
 Отвечай только текстом сообщения, без JSON, без комментариев."""
 

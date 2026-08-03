@@ -34,9 +34,6 @@ Format EXACT (sans réponses, sans rien ajouter avant ou après) :
 
 Pour connaître les réponses, parle à Alia 👉 {alia_link}
 
-📢 Rejoignez la communauté Alia:
-https://tinyurl.com/Alia-community
-
 Réponds uniquement avec le texte du message."""
 
 PROMPT_RU = """Ты эксперт по иммиграции и правам олим в Израиле.
@@ -54,9 +51,6 @@ PROMPT_RU = """Ты эксперт по иммиграции и правам о�
 ❓ [вопрос 3]
 
 Чтобы узнать ответы — напиши Alia 👉 {alia_link}
-
-Присоединяйтесь к сообществу Alia и получайте всё это каждую неделю :
-https://tinyurl.com/Alia-community-RU
 
 Отвечай только текстом сообщения."""
 

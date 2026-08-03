@@ -63,9 +63,6 @@ Sur ces 6 derniers jours, [nombre entre 2 et 6] utilisateurs d'Alia ont recherch
 📞 [numéro de téléphone]
 🔗 [profil]
 
-🤖 Pour trouver un médecin adapté à votre ville, spécialité ou caisse maladie, demandez à Alia.
-https://wa.me/972549675013?text=Aide-moi
-
 📢 Rejoignez la communauté Alia:
 https://tinyurl.com/Alia-community
 
@@ -95,9 +92,6 @@ def _build_ru_prompt(doctor: dict, lang_url: str | None = None) -> str:
 
 📞 [номер телефона]
 🔗 [профиль]
-
-🤖 Чтобы найти врача по городу, специальности или больничной кассе, спросите у Alia.
-https://wa.me/972549675013?text=Помоги
 
 Присоединяйтесь к сообществу Alia и получайте всё это каждую неделю :
 https://tinyurl.com/Alia-community-RU
