@@ -21,8 +21,6 @@ Rédige un résumé des infos du jour en français destiné aux olim. Suis EXACT
 
 📰 Le Brief Alia
 
-Voici les informations importantes de la journée:
-
 👇
 
 [3 à 5 news résumées, chacune sur une nouvelle ligne, avec un emoji pertinent au début]
@@ -43,8 +41,6 @@ PROMPT_RU = """Ты редактор AL.IA Channel — медиа для рус�
 Напиши сводку новостей дня на русском для олим. Следуй ТОЧНО этому формату:
 
 📰 Бриф Alia
-
-Вот важные новости дня:
 
 👇
 
