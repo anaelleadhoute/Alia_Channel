@@ -100,13 +100,14 @@ async def generate_weekly_faq(force: bool = False) -> dict:
         content_fr = fr_response.content[0].text.strip()
         content_ru = ru_response.content[0].text.strip()
 
+        week = f"{datetime.utcnow().isocalendar()[0]}-W{datetime.utcnow().isocalendar()[1]:02d}"
         async with get_db() as db:
             cursor = await db.execute(
                 """
-                INSERT INTO faqs (content_fr, content_ru, generated_at)
-                VALUES (?, ?, ?)
+                INSERT INTO faqs (week, content_fr, content_ru, generated_at)
+                VALUES (?, ?, ?, ?)
                 """,
-                (content_fr, content_ru, datetime.utcnow().isoformat()),
+                (week, content_fr, content_ru, datetime.utcnow().isoformat()),
             )
             await db.commit()
             faq_id = cursor.lastrowid
