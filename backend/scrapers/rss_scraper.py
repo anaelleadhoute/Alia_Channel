@@ -1,6 +1,7 @@
 import asyncio
 import hashlib
 import logging
+import re
 from datetime import datetime, timedelta, timezone
 from time import mktime
 
@@ -58,12 +59,27 @@ def _parse_feed(raw: str, source: dict) -> list[dict]:
     return articles
 
 
-def _parse_html_page(raw: str, source: dict) -> list[dict]:
+async def _fetch_article_published_at(client: httpx.AsyncClient, url: str) -> str | None:
+    """JPost article pages carry a JSON-LD datePublished field even though the tag/
+    category listing page doesn't show any date — fetch it so the age cutoff applies."""
+    try:
+        response = await client.get(url, timeout=10)
+        response.raise_for_status()
+        match = re.search(r'"datePublished"\s*:\s*"([^"]+)"', response.text)
+        if match:
+            dt = datetime.fromisoformat(match.group(1).replace("Z", "+00:00"))
+            return dt.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    except Exception as e:
+        logger.error(f"[scraper] Failed to fetch published date for {url}: {e}")
+    return None
+
+
+async def _parse_html_page(client: httpx.AsyncClient, raw: str, source: dict) -> list[dict]:
     """Server-rendered category/tag page with no RSS feed — pull headline links directly.
     Looks for h3/h4 tags whose child <a> points at an article page, matching the site's
     card layout (works for JPost tag pages like /middle-east/iran-news)."""
     soup = BeautifulSoup(raw, "html.parser")
-    articles = []
+    candidates = []
     seen = set()
 
     for heading in soup.find_all(["h3", "h4"]):
@@ -87,14 +103,22 @@ def _parse_html_page(raw: str, source: dict) -> list[dict]:
             if p:
                 summary = p.get_text(strip=True)
 
+        candidates.append({"url": url, "title": title, "summary": summary})
+
+    published_dates = await asyncio.gather(
+        *[_fetch_article_published_at(client, c["url"]) for c in candidates]
+    )
+
+    articles = []
+    for candidate, published_at in zip(candidates, published_dates):
         articles.append({
-            "guid": _make_guid(source["name"], url),
+            "guid": _make_guid(source["name"], candidate["url"]),
             "source": source["name"],
             "language": source["language"],
-            "url": url,
-            "title_raw": title,
-            "content_raw": summary,
-            "published_at": None,
+            "url": candidate["url"],
+            "title_raw": candidate["title"],
+            "content_raw": candidate["summary"],
+            "published_at": published_at,
         })
 
     return articles
@@ -105,7 +129,7 @@ async def _fetch_feed(client: httpx.AsyncClient, source: dict) -> list[dict]:
         response = await client.get(source["url"], timeout=15)
         response.raise_for_status()
         if source.get("type") == "html":
-            return _parse_html_page(response.text, source)
+            return await _parse_html_page(client, response.text, source)
         return _parse_feed(response.text, source)
     except Exception as e:
         logger.error(f"[scraper] Failed to fetch {source['name']}: {e}")
