@@ -246,7 +246,7 @@ async def send_pending_category(category: str):
     """Send pending item for digest, faq, doctor, or deal."""
     TABLE_MAP = {
         "digest": ("digests",       "digest_date"),
-        "faq":    ("faqs",          "week"),
+        "faq":    ("faqs",          None),
         "doctor": ("weekly_doctor", "week"),
         "deal":   ("deals",         None),
     }
