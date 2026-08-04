@@ -17,7 +17,7 @@ Voici les articles d'actualité d'aujourd'hui ({today}) :
 
 {articles}
 
-Rédige un résumé des infos du jour en français destiné aux olim. Traite les articles dans l'ordre donné ci-dessus (sécurité/politique en premier, société ensuite). Suis EXACTEMENT ce format :
+Rédige un résumé des infos du jour en français. Traite les articles dans l'ordre donné ci-dessus (sécurité/politique en premier, société ensuite). Livre uniquement les faits de chaque news, sans commentaire ni conseil destiné aux olim (pas de "les olim doivent...", pas d'explication de pourquoi c'est pertinent pour eux) — juste l'info. Suis EXACTEMENT ce format :
 
 📰 Le Brief Alia
 
@@ -36,7 +36,7 @@ PROMPT_RU = """Ты редактор AL.IA Channel — медиа для рус�
 
 {articles}
 
-Напиши сводку новостей дня на русском для олим. Излагай новости в указанном выше порядке (сначала безопасность/политика, затем общество). Следуй ТОЧНО этому формату:
+Напиши сводку новостей дня на русском. Излагай новости в указанном выше порядке (сначала безопасность/политика, затем общество). Передавай только факты каждой новости, без комментариев или советов для олим (никаких "олим следует...", никаких объяснений, почему это важно для них) — просто новость. Следуй ТОЧНО этому формату:
 
 📰 Бриф Alia
 
