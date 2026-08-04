@@ -19,6 +19,13 @@ SOURCES = [
         "type": "html",
         "language": "both",
     },
+    {
+        "name": "Jerusalem Post - Defense",
+        "url": "https://www.jpost.com/israel-news/defense-news",
+        "base_url": "https://www.jpost.com",
+        "type": "html",
+        "language": "both",
+    },
 ]
 
 # Kol Zchut — scraped separately on Sunday workflow
