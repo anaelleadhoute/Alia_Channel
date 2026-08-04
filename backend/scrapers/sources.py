@@ -12,6 +12,13 @@ SOURCES = [
         "type": "rss",
         "language": "both",
     },
+    {
+        "name": "Jerusalem Post - Iran",
+        "url": "https://www.jpost.com/middle-east/iran-news",
+        "base_url": "https://www.jpost.com",
+        "type": "html",
+        "language": "both",
+    },
 ]
 
 # Kol Zchut — scraped separately on Sunday workflow

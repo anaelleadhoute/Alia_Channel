@@ -6,6 +6,7 @@ from time import mktime
 
 import feedparser
 import httpx
+from bs4 import BeautifulSoup
 
 from db.database import get_db
 from scrapers.sources import SOURCES
@@ -57,10 +58,54 @@ def _parse_feed(raw: str, source: dict) -> list[dict]:
     return articles
 
 
+def _parse_html_page(raw: str, source: dict) -> list[dict]:
+    """Server-rendered category/tag page with no RSS feed — pull headline links directly.
+    Looks for h3/h4 tags whose child <a> points at an article page, matching the site's
+    card layout (works for JPost tag pages like /middle-east/iran-news)."""
+    soup = BeautifulSoup(raw, "html.parser")
+    articles = []
+    seen = set()
+
+    for heading in soup.find_all(["h3", "h4"]):
+        link = heading.find("a", href=True)
+        if not link or "/article-" not in link["href"]:
+            continue
+        href = link["href"]
+        if href in seen:
+            continue
+        seen.add(href)
+
+        url = href if href.startswith("http") else f"{source['base_url']}{href}"
+        title = heading.get_text(strip=True)
+        if not title:
+            continue
+
+        summary = ""
+        card = heading.find_parent(["article", "div"])
+        if card:
+            p = card.find("p")
+            if p:
+                summary = p.get_text(strip=True)
+
+        articles.append({
+            "guid": _make_guid(source["name"], url),
+            "source": source["name"],
+            "language": source["language"],
+            "url": url,
+            "title_raw": title,
+            "content_raw": summary,
+            "published_at": None,
+        })
+
+    return articles
+
+
 async def _fetch_feed(client: httpx.AsyncClient, source: dict) -> list[dict]:
     try:
         response = await client.get(source["url"], timeout=15)
         response.raise_for_status()
+        if source.get("type") == "html":
+            return _parse_html_page(response.text, source)
         return _parse_feed(response.text, source)
     except Exception as e:
         logger.error(f"[scraper] Failed to fetch {source['name']}: {e}")
