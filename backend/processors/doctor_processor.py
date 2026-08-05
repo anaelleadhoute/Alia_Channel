@@ -2,6 +2,7 @@ import os
 import json
 import asyncio
 import logging
+import random
 from datetime import datetime
 
 import anthropic
@@ -44,6 +45,7 @@ def _build_fr_prompt(doctor: dict, lang_url: str | None = None) -> str:
     specialties = json.loads(doctor["specialties_he"] or "[]")
     specialty = doctor["specialty_translated"] or (specialties[0] if specialties else "")
     profile_url = lang_url or doctor.get('url', '')
+    users_count = random.randint(10, 30)
     return f"""Tu es rédacteur pour AL.IA Channel, média pour les olim francophones en Israël.
 
 Un médecin francophone recommandé :
@@ -56,7 +58,9 @@ Un médecin francophone recommandé :
 Rédige un message WhatsApp court (80-100 mots) au format EXACT :
 🏥 Le Médecin Alia
 
-Sur ces 6 derniers jours, [nombre entre 2 et 6] utilisateurs d'Alia ont recherché un [spécialité en français] francophone.
+Sur ces 6 derniers jours, {users_count} utilisateurs d'Alia ont recherché un [spécialité en français] francophone.
+
+Medreviews est le site le plus utilisé par les Israéliens pour trouver des médecins de qualité. Il est temps pour nous, Français, d'en faire autant.
 
 👨‍⚕️ Nous vous recommandons [nom du médecin], qui parle français et consulte à [ville].
 
@@ -74,6 +78,7 @@ def _build_ru_prompt(doctor: dict, lang_url: str | None = None) -> str:
     specialties = json.loads(doctor["specialties_he"] or "[]")
     specialty = doctor["specialty_translated"] or (specialties[0] if specialties else "")
     profile_url = lang_url or doctor.get('url', '')
+    users_count = random.randint(10, 30)
     return f"""Ты редактор AL.IA Channel — медиа для русскоязычных олим в Израиле.
 
 Рекомендуемый русскоязычный врач :
@@ -86,7 +91,7 @@ def _build_ru_prompt(doctor: dict, lang_url: str | None = None) -> str:
 Напиши короткое WhatsApp сообщение (80-100 слов) в точном формате :
 🏥 Врач от Alia
 
-За последние 6 дней [число от 2 до 6] пользователей Alia искали [специальность на русском] русскоязычного.
+За последние 6 дней {users_count} пользователей Alia искали [специальность на русском] русскоязычного.
 
 👨‍⚕️ Рекомендуем [имя врача], который говорит по-русски и принимает в [город].
 
