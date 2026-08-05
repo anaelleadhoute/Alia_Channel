@@ -136,7 +136,7 @@ Satisfaction : {satisfaction}% très satisfaits
 
 [Commence par une phrase avec une emoji thématique qui présente ce professionnel de façon engageante]
 
-Grâce à notre partenariat avec Midrag, Alia peut désormais vous orienter vers un professionnel recommandé.
+Midrag est le site le plus utilisé par les Israéliens pour trouver des prestataires de qualité. Il est temps pour nous, Français, d'en faire autant.
 
 [Présente le prestataire : nom, note, ville, fiabilité en 1-2 lignes max]
 
