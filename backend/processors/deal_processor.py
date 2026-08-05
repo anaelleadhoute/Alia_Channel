@@ -37,6 +37,8 @@ Rédige un message WhatsApp en français en suivant EXACTEMENT ce format :
 
 Alia a cherché pour vous et a trouvé le meilleur prix du moment sur [nom du produit/service en 2-3 mots max].
 
+Chaque semaine, nous nous efforçons de trouver pour vous l'offre la plus avantageuse sur les sites israéliens.
+
 👉 {deal_link}
 
 📢 Rejoignez la communauté Alia:
