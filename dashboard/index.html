@@ -1464,6 +1464,21 @@ async function sendPendingDigest() {
 }
 
 const DAYS_FR = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+const DAYS_SHORT = ['Di','Lu','Ma','Me','Je','Ve','Sa'];
+
+function _dayChipStyle(active) {
+  return active
+    ? 'padding:4px 7px;border-radius:5px;font-size:11px;cursor:pointer;border:1px solid #1565c0;background:#1565c0;color:#fff;font-weight:600;'
+    : 'padding:4px 7px;border-radius:5px;font-size:11px;cursor:pointer;border:1px solid #ddd;background:#fff;color:#666;';
+}
+function _renderDayChipsHtml(jobKey, dayList) {
+  const allActive = dayList === null;
+  const chips = [
+    `<button type="button" onclick="setScheduleAllDays('${jobKey}')" style="${_dayChipStyle(allActive)}">Tous</button>`,
+    ...DAYS_SHORT.map((d, i) => `<button type="button" onclick="toggleScheduleDay('${jobKey}',${i})" style="${_dayChipStyle(!allActive && dayList.includes(i))}">${d}</button>`)
+  ];
+  return `<div id="daychips-${jobKey}" data-days="${dayList === null ? '' : dayList.join(',')}" style="display:inline-flex;gap:3px;flex-wrap:wrap;justify-content:center;max-width:180px;">${chips.join('')}</div>`;
+}
 
 // ── Schedule helpers ─────────────────────────────────────────────────────────
 let _schedulesCache = null;
@@ -1564,10 +1579,7 @@ async function loadAutomation() {
             <tr style="border-bottom:1px solid #f0f0f0;" id="row-${s.job_key}">
               <td style="padding:14px 20px;font-weight:600;">${s.label}</td>
               <td style="padding:14px 16px;text-align:center;">
-                <select multiple onchange="updateScheduleDays('${s.job_key}',this)" title="Ctrl/Cmd+clic pour choisir plusieurs jours (ex: 2x/semaine)" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;cursor:pointer;height:66px;min-width:100px;">
-                  <option value="null" ${dayList === null ? 'selected' : ''}>Chaque jour</option>
-                  ${DAYS_FR.map((d,i) => `<option value="${i}" ${dayList !== null && dayList.includes(i) ? 'selected' : ''}>${d}</option>`).join('')}
-                </select>
+                ${_renderDayChipsHtml(s.job_key, dayList)}
               </td>
               <td style="padding:14px 16px;text-align:center;">
                 <select onchange="updateSchedule('${s.job_key}','week_parity',this.value)" style="padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;cursor:pointer;">
@@ -1608,10 +1620,20 @@ async function loadAutomation() {
     </div>`;
 }
 
-async function updateScheduleDays(jobKey, selectEl) {
-  const selected = Array.from(selectEl.selectedOptions).map(o => o.value);
-  const value = (selected.length === 0 || selected.includes('null')) ? 'null' : selected.join(',');
-  await updateSchedule(jobKey, 'day_of_week', value);
+async function toggleScheduleDay(jobKey, dayIndex) {
+  const container = document.getElementById(`daychips-${jobKey}`);
+  const current = container.dataset.days ? container.dataset.days.split(',').map(Number) : [];
+  const idx = current.indexOf(dayIndex);
+  if (idx === -1) current.push(dayIndex); else current.splice(idx, 1);
+  current.sort((a, b) => a - b);
+  const dayList = current.length === 0 ? null : current;
+  container.outerHTML = _renderDayChipsHtml(jobKey, dayList);
+  await updateSchedule(jobKey, 'day_of_week', dayList === null ? 'null' : dayList.join(','));
+}
+
+async function setScheduleAllDays(jobKey) {
+  document.getElementById(`daychips-${jobKey}`).outerHTML = _renderDayChipsHtml(jobKey, null);
+  await updateSchedule(jobKey, 'day_of_week', 'null');
 }
 
 async function updateSchedule(jobKey, field, value) {
