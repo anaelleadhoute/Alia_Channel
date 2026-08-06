@@ -1473,13 +1473,18 @@ async function _loadSchedulesCache() {
   _schedulesCache = Array.isArray(data) ? data : (data.schedules || []);
   return _schedulesCache;
 }
+function _parseDayList(dow) {
+  if (dow === null || dow === undefined || dow === '') return null;
+  return String(dow).split(',').map(x => parseInt(x.trim())).filter(x => !isNaN(x));
+}
 function _nextRunDate(s) {
   if (!s || !s.enabled) return null;
   const now = new Date();
+  const days = _parseDayList(s.day_of_week);
   for (let d = 0; d <= 14; d++) {
     const c = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + d, s.hour_utc, s.minute_utc || 0, 0));
     if (c <= now) continue;
-    if (s.day_of_week !== null && s.day_of_week !== undefined && c.getUTCDay() !== s.day_of_week) continue;
+    if (days !== null && !days.includes(c.getUTCDay())) continue;
     if (s.week_parity !== null && s.week_parity !== undefined) {
       const jan1 = new Date(Date.UTC(c.getUTCFullYear(), 0, 1));
       const wn = Math.floor((c - jan1) / (7 * 86400000));
@@ -1549,7 +1554,8 @@ async function loadAutomation() {
         <tbody>
           ${data.filter(s => s.location !== 'mac' && !['generate_kol_zchut','generate_kids_events','generate_prestataire','generate_rights','send_deal','news_digest','telegram_deals'].includes(s.job_key)).map(s => {
             const hourIL = s.hour_utc;
-            const dayLabel = s.day_of_week === null ? 'Chaque jour' : DAYS_FR[s.day_of_week];
+            const dayList = _parseDayList(s.day_of_week);
+            const dayLabel = dayList === null ? 'Chaque jour' : dayList.map(d => DAYS_FR[d]).join(', ');
             const lastRun = s.last_run ? new Date(s.last_run).toLocaleString('fr-FR') : '—';
             const locBadge = s.location === 'mac'
               ? '<span style="background:#fff3e0;color:#e65100;padding:2px 8px;border-radius:10px;font-size:12px;">💻 Mac</span>'
@@ -1558,9 +1564,9 @@ async function loadAutomation() {
             <tr style="border-bottom:1px solid #f0f0f0;" id="row-${s.job_key}">
               <td style="padding:14px 20px;font-weight:600;">${s.label}</td>
               <td style="padding:14px 16px;text-align:center;">
-                <select onchange="updateSchedule('${s.job_key}','day_of_week',this.value)" style="padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;cursor:pointer;">
-                  <option value="null" ${s.day_of_week === null ? 'selected' : ''}>Chaque jour</option>
-                  ${DAYS_FR.map((d,i) => `<option value="${i}" ${s.day_of_week === i ? 'selected' : ''}>${d}</option>`).join('')}
+                <select multiple onchange="updateScheduleDays('${s.job_key}',this)" title="Ctrl/Cmd+clic pour choisir plusieurs jours (ex: 2x/semaine)" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;cursor:pointer;height:66px;min-width:100px;">
+                  <option value="null" ${dayList === null ? 'selected' : ''}>Chaque jour</option>
+                  ${DAYS_FR.map((d,i) => `<option value="${i}" ${dayList !== null && dayList.includes(i) ? 'selected' : ''}>${d}</option>`).join('')}
                 </select>
               </td>
               <td style="padding:14px 16px;text-align:center;">
@@ -1602,9 +1608,15 @@ async function loadAutomation() {
     </div>`;
 }
 
+async function updateScheduleDays(jobKey, selectEl) {
+  const selected = Array.from(selectEl.selectedOptions).map(o => o.value);
+  const value = (selected.length === 0 || selected.includes('null')) ? 'null' : selected.join(',');
+  await updateSchedule(jobKey, 'day_of_week', value);
+}
+
 async function updateSchedule(jobKey, field, value) {
   const body = {};
-  if (field === 'day_of_week') body[field] = value === 'null' ? null : parseInt(value);
+  if (field === 'day_of_week') body[field] = value === 'null' ? null : String(value);
   else if (field === 'week_parity') body[field] = value === 'null' ? null : parseInt(value);
   else if (field === 'hour_utc') body[field] = parseInt(value);
   else if (field === 'minute_utc') body[field] = parseInt(value);

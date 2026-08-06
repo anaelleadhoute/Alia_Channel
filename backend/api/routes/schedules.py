@@ -10,11 +10,19 @@ DAYS = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
 
 
 class ScheduleUpdate(BaseModel):
-    day_of_week: Optional[int] = None   # 0=Sun … 6=Sat, None=daily
+    day_of_week: Optional[str] = None   # "0".."6" (0=Sun), comma-separated for multiple days ("1,4"), None=daily
     hour_utc: Optional[int] = None      # stored as Israel hour in DB
     minute_utc: Optional[int] = None
     enabled: Optional[int] = None
     week_parity: Optional[int] = None   # None=every week, 0=even weeks, 1=odd weeks
+
+
+def _parse_day_list(dow) -> list[int] | None:
+    """day_of_week may be stored as a plain int (legacy single-day rows), or a
+    comma-separated string like "1,4" for jobs that run on multiple days per week."""
+    if dow is None or dow == "":
+        return None
+    return [int(d) for d in str(dow).split(",") if d.strip() != ""]
 
 
 @router.get("")
@@ -59,13 +67,13 @@ async def get_due_jobs(location: str = "server"):
     due = []
     for r in rows:
         r = dict(r)
-        dow = r["day_of_week"]
+        dow_list = _parse_day_list(r["day_of_week"])
         minute = r.get("minute_utc", 0) or 0
         week_parity = r.get("week_parity")
 
         # Due if within current 15-min window
         if abs(current_minute - minute) <= 7:
-            if dow is None or dow == current_dow_js:
+            if dow_list is None or current_dow_js in dow_list:
                 # Check biweekly parity if set
                 if week_parity is None or (current_iso_week % 2) == week_parity:
                     due.append(r)
