@@ -253,6 +253,21 @@ async def send_pending_category(category: str):
     if category not in TABLE_MAP:
         raise HTTPException(status_code=400, detail=f"Unknown category: {category}")
 
+    job_key_map = {
+        "digest": "send_news",
+        "faq": "send_faq",
+        "doctor": "send_doctor",
+        "deal": "send_deals",
+    }
+    async with get_db() as db:
+        cur = await db.execute(
+            "SELECT value FROM settings WHERE key = ?",
+            (f"auto_publish_job_{job_key_map[category]}",)
+        )
+        row = await cur.fetchone()
+        if row and row[0] == "false":
+            return {"status": "skipped", "reason": "auto-publish disabled for this job"}
+
     table, date_col = TABLE_MAP[category]
     week = f"{datetime.utcnow().isocalendar()[0]}-W{datetime.utcnow().isocalendar()[1]:02d}"
     today = date.today().strftime("%Y-%m-%d")
