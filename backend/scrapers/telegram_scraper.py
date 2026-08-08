@@ -44,16 +44,17 @@ Answer in JSON only:
   "deal_product": "product or service name if visible, else null"
 }}
 
-audience: always "both" for household/home products.
+audience: always "both" for household/home products, flights, and hotels.
 
-We ONLY publish deals about household and home products. Relevance scoring:
+We publish deals about household/home products, and flight or hotel deals. Relevance scoring:
 - Large home appliances (washing machine, fridge, dryer, oven, dishwasher, air conditioner) → score 10, is_relevant: true
 - Small kitchen/home appliances (coffee machine, vacuum, blender, microwave, etc.) → score 9, is_relevant: true
 - Electronics for the home (TV, router, speaker, smart home) → score 8, is_relevant: true
 - Home & furniture (bed, sofa, storage, mattress) → score 7, is_relevant: true
-- Anything else (flights, food, hotels, clothing, personal care, etc.) → score 1-3, is_relevant: false
+- Flights and hotel deals (real discounted fares/rates, not ads) → score 6, is_relevant: true
+- Anything else (food, clothing, personal care, gaming, unrelated ads, etc.) → score 1-3, is_relevant: false
 
-Score 7+ = worth publishing. Anything not related to household/home products = is_relevant: false."""
+Use the is_relevant value from the matching category above — don't derive it from the score alone. Anything not matching one of the categories above = is_relevant: false."""
 
 
 async def _get_last_seen_id(username: str) -> int:
