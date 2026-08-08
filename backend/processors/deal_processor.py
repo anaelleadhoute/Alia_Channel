@@ -37,7 +37,7 @@ Rédige un message WhatsApp en français en suivant EXACTEMENT ce format :
 
 Alia a cherché pour vous et a trouvé le meilleur prix du moment sur [nom du produit/service en 2-3 mots max].
 
-Chaque semaine, nous nous efforçons de trouver pour vous l'offre la plus avantageuse sur les sites israéliens.
+Chaque semaine, Alia recherche des bons plans accessibles à tous les Israéliens — il n'y a donc aucune raison que les olim n'y aient pas accès aussi.
 
 👉 {deal_link}
 
@@ -62,6 +62,8 @@ PROMPT_RU = """Ты редактор AL.IA Channel — медиа для рус�
 🚫 Этот пост не спонсируется.
 
 Alia искала для вас и нашла лучшую цену на [название товара/услуги в 2-3 словах].
+
+Каждую неделю Alia ищет выгодные предложения, доступные всем израильтянам — так что нет причин, по которым олим не могли бы ими воспользоваться.
 
 👉 {deal_link}
 
@@ -218,7 +220,8 @@ async def process_pending_deals() -> dict:
 
 
 async def pick_best_deal(deal_ids: list[int]) -> int | None:
-    """Ask Claude to pick the single best deal from a list of processed deals. Flights are low priority."""
+    """Ask Claude to pick the single best deal from a list of processed deals.
+    electromanager deals are prioritized; flights are low priority."""
     if not deal_ids:
         return None
     if len(deal_ids) == 1:
@@ -227,13 +230,13 @@ async def pick_best_deal(deal_ids: list[int]) -> int | None:
     async with get_db() as db:
         placeholders = ",".join("?" * len(deal_ids))
         cursor = await db.execute(
-            f"SELECT id, category, deal_product, deal_price, relevance_score FROM deals WHERE id IN ({placeholders})",
+            f"SELECT id, channel, category, deal_product, deal_price, relevance_score FROM deals WHERE id IN ({placeholders})",
             deal_ids,
         )
         rows = await cursor.fetchall()
 
     candidates = "\n".join(
-        f"{i+1}. [id={r['id']}] {r['category']} | {r['deal_product']} | {r['deal_price']} | score={r['relevance_score']}"
+        f"{i+1}. [id={r['id']}] channel={r['channel']} | {r['category']} | {r['deal_product']} | {r['deal_price']} | score={r['relevance_score']}"
         for i, r in enumerate(rows)
     )
 
@@ -244,6 +247,7 @@ Voici les deals disponibles cette semaine :
 
 Choisis UN SEUL deal à envoyer à la communauté. Critères :
 - Pertinence maximale pour les olim (produits du quotidien, bons pour familles)
+- Priorise les deals du channel "electromanager" quand il y en a un valable
 - Les vols (flights) sont basse priorité — ne les choisis que s'il n'y a rien de mieux
 - Le meilleur rapport qualité/prix et utilité
 
@@ -260,7 +264,10 @@ Réponds UNIQUEMENT avec le chiffre de l'id du deal choisi. Exemple : 42"""
             return chosen_id
     except Exception:
         pass
-    # Fallback: first non-flight deal, or first deal
+    # Fallback: prefer electromanager, then any non-flight deal, then first deal
+    for r in rows:
+        if r["channel"] == "electromanager":
+            return r["id"]
     for r in rows:
         if r["category"] != "flights":
             return r["id"]

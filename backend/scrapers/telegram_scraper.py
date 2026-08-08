@@ -18,6 +18,9 @@ TELEGRAM_CHANNELS = [
     {"username": "shufersaloffocial", "category": "supermarket"},
     {"username": "payngoil",          "category": "electronics"},
     {"username": "ivorycoil",         "category": "deals"},
+    {"username": "SecretFlights",     "category": "flights"},
+    {"username": "hotelscoil",        "category": "hotels"},
+    {"username": "electromanager",    "category": "electronics"},
 ]
 
 RELEVANCE_PROMPT = """You are a content curator for AL.IA Channel, a media platform for French-speaking and Russian-speaking olim (immigrants) in Israel.
