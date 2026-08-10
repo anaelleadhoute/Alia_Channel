@@ -116,24 +116,13 @@ async def _pick_doctor(lang: str, db) -> dict | None:
 
 
 async def generate_weekly_doctor(force: bool = False) -> dict:
-    week = f"{datetime.utcnow().isocalendar()[0]}-W{datetime.utcnow().isocalendar()[1]:02d}"
-
     async with get_db() as db:
-        existing = await db.execute("SELECT id FROM weekly_doctor WHERE week = ?", (week,))
-        row = await existing.fetchone()
-        if row and not force:
-            return {"status": "skipped", "week": week}
-        if row and force:
-            # Reset last_featured for current week's doctor so a different one gets picked
-            await db.execute(
-                "UPDATE doctors SET last_featured = NULL WHERE id = ("
-                "SELECT doctor_id FROM weekly_doctor WHERE week = ?)", (week,)
+        if not force:
+            unsent = await db.execute(
+                "SELECT id FROM weekly_doctor WHERE sent_wa_fr=0 AND sent_wa_ru=0 LIMIT 1"
             )
-            await db.execute(
-                "UPDATE weekly_doctor SET content_fr=NULL, content_ru=NULL, sent_wa_fr=0, sent_wa_ru=0 WHERE week=?",
-                (week,)
-            )
-            await db.commit()
+            if await unsent.fetchone():
+                return {"status": "skipped", "reason": "unsent doctor message already exists"}
 
         doctor_fr = await _pick_doctor("fr", db)
         doctor_ru = await _pick_doctor("ru", db)
@@ -172,28 +161,19 @@ async def generate_weekly_doctor(force: bool = False) -> dict:
 
         now = datetime.utcnow().isoformat()
         async with get_db() as db:
-            existing2 = await db.execute("SELECT id FROM weekly_doctor WHERE week = ?", (week,))
-            existing_row = await existing2.fetchone()
-            if existing_row:
-                await db.execute(
-                    "UPDATE weekly_doctor SET doctor_id=?, content_fr=?, content_ru=? WHERE week=?",
-                    (doctor_fr["id"] if doctor_fr else None, content_fr, content_ru, week),
-                )
-                weekly_id = existing_row["id"]
-            else:
-                cursor = await db.execute(
-                    "INSERT INTO weekly_doctor (week, doctor_id, content_fr, content_ru) VALUES (?,?,?,?)",
-                    (week, doctor_fr["id"] if doctor_fr else None, content_fr, content_ru),
-                )
-                weekly_id = cursor.lastrowid
+            cursor = await db.execute(
+                "INSERT INTO weekly_doctor (doctor_id, content_fr, content_ru) VALUES (?,?,?)",
+                (doctor_fr["id"] if doctor_fr else None, content_fr, content_ru),
+            )
+            weekly_id = cursor.lastrowid
             if doctor_fr:
                 await db.execute("UPDATE doctors SET last_featured = ? WHERE id = ?", (now, doctor_fr["id"]))
             if doctor_ru:
                 await db.execute("UPDATE doctors SET last_featured = ? WHERE id = ?", (now, doctor_ru["id"]))
             await db.commit()
 
-        logger.info(f"[doctor_processor] Generated FR={doctor_fr and doctor_fr['id']} RU={doctor_ru and doctor_ru['id']} week={week}")
-        return {"status": "generated", "week": week, "weekly_doctor_id": weekly_id}
+        logger.info(f"[doctor_processor] Generated FR={doctor_fr and doctor_fr['id']} RU={doctor_ru and doctor_ru['id']}")
+        return {"status": "generated", "weekly_doctor_id": weekly_id}
 
     except Exception as e:
         logger.error(f"[doctor_processor] Error: {e}")
