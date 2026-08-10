@@ -23,8 +23,10 @@ CATEGORY_LABELS = {
 PROMPT_FR = """Tu es rédacteur pour AL.IA Channel, un média pour les olim francophones en Israël.
 
 Voici un bon plan trouvé par Alia :
+Catégorie : {category_label}
 Produit/Service : {product}
 Prix : {price}
+Durée de validité de l'offre : {validity}
 Lien direct : {deal_link}
 
 Si le produit est un jeu vidéo, une console de jeux, du matériel gaming ou tout accessoire gaming (mais PAS de la nourriture, produits supermarché, ou électronique grand public) — réponds uniquement "SKIP" sans rien d'autre.
@@ -35,7 +37,7 @@ Rédige un message WhatsApp en français en suivant EXACTEMENT ce format :
 
 🚫 Ce post n'est pas sponsorisé.
 
-Alia a cherché pour vous et a trouvé le meilleur prix du moment sur [nom du produit/service en 2-3 mots max].
+Alia a cherché pour vous et a trouvé le meilleur prix du moment sur [nom du produit/service en 2-3 mots max]. Si la catégorie est vols ou hôtels, précise clairement le prix et la durée de validité de l'offre (nombre de jours ou date limite) dans cette phrase ; si l'info n'est pas disponible, ne l'invente pas.
 
 Chaque semaine, Alia recherche des bons plans accessibles à tous les Israéliens — il n'y a donc aucune raison que les olim n'y aient pas accès aussi.
 
@@ -49,8 +51,10 @@ Réponds uniquement avec le texte du message, sans JSON, sans commentaire."""
 PROMPT_RU = """Ты редактор AL.IA Channel — медиа для русскоязычных олим в Израиле.
 
 Вот акция, найденная Alia :
+Категория : {category_label}
 Товар/Услуга : {product}
 Цена : {price}
+Срок действия предложения : {validity}
 Прямая ссылка : {deal_link}
 
 Если товар — это видеоигра, игровая консоль, игровое оборудование или аксессуары для геймеров (но НЕ еда, продукты супермаркета или бытовая электроника) — ответь только "SKIP" и ничего больше.
@@ -61,7 +65,7 @@ PROMPT_RU = """Ты редактор AL.IA Channel — медиа для рус�
 
 🚫 Этот пост не спонсируется.
 
-Alia искала для вас и нашла лучшую цену на [название товара/услуги в 2-3 словах].
+Alia искала для вас и нашла лучшую цену на [название товара/услуги в 2-3 словах]. Если категория — авиабилеты или отели, чётко укажи цену и срок действия предложения (количество дней или крайнюю дату) в этой фразе; если информации нет, не придумывай её.
 
 Каждую неделю Alia ищет выгодные предложения, доступные всем израильтянам — так что нет причин, по которым олим не могли бы ими воспользоваться.
 
@@ -107,6 +111,7 @@ async def _generate_fr(deal: dict) -> str | None:
             category_label=label,
             product=deal.get("deal_product") or "N/A",
             price=deal.get("deal_price") or "N/A",
+            validity=deal.get("deal_validity") or "N/A",
             deal_link=_deal_link(deal),
         )}],
     )
@@ -124,6 +129,7 @@ async def _generate_ru(deal: dict) -> str | None:
             category_label=label,
             product=deal.get("deal_product") or "N/A",
             price=deal.get("deal_price") or "N/A",
+            validity=deal.get("deal_validity") or "N/A",
             deal_link=_deal_link(deal),
         )}],
     )
@@ -196,7 +202,7 @@ async def process_pending_deals() -> dict:
         cursor = await db.execute(
             """
             SELECT id, message_id, channel, category, deal_product, deal_price,
-                   deal_summary_he, raw_text, audience
+                   deal_validity, deal_summary_he, raw_text, audience
             FROM deals
             WHERE is_relevant = 1 AND ai_processed_at IS NULL
             ORDER BY relevance_score DESC

@@ -41,7 +41,8 @@ Answer in JSON only:
   "reason": "one sentence why relevant or not for olim in Israel (mention if expired)",
   "deal_summary_he": "short deal summary in Hebrew if extractable, else null",
   "deal_price": "price if visible, else null",
-  "deal_product": "product or service name if visible, else null"
+  "deal_product": "product or service name if visible, else null",
+  "deal_validity": "for flights/hotels deals: how many days the offer is valid for, or its expiry date, exactly as statable from the text (e.g. '3 days left', 'until Aug 15'), else null"
 }}
 
 audience: always "both" for household/home products, flights, and hotels.
@@ -202,9 +203,9 @@ async def _save_deal(deal: dict) -> None:
             INSERT OR IGNORE INTO deals (
                 message_id, channel, category,
                 relevance_score, is_relevant,
-                deal_product, deal_price, deal_summary_he,
+                deal_product, deal_price, deal_validity, deal_summary_he,
                 raw_text, images_json, audience, scraped_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 deal["message_id"],
@@ -214,6 +215,7 @@ async def _save_deal(deal: dict) -> None:
                 1 if deal.get("is_relevant") else 0,
                 deal.get("deal_product"),
                 deal.get("deal_price"),
+                deal.get("deal_validity"),
                 deal.get("deal_summary_he"),
                 deal.get("raw_text", ""),
                 str(deal.get("images", [])),

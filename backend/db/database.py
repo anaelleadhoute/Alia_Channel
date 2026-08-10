@@ -384,6 +384,7 @@ async def init_db():
             # Supermarket (Shufersal promotions) queue send job
             """INSERT OR IGNORE INTO schedules (job_key, label, day_of_week, hour_utc, minute_utc, enabled, location) VALUES
                 ('queue_send_supermarket', '🛒 Queue → Supermarket', 3, 12, 30, 1, 'server')""",
+            "ALTER TABLE deals ADD COLUMN deal_validity TEXT",
         ]:
             try:
                 await db.execute(migration)

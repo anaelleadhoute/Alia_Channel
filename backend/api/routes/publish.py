@@ -247,7 +247,7 @@ async def send_pending_category(category: str):
     TABLE_MAP = {
         "digest": ("digests",       "digest_date"),
         "faq":    ("faqs",          None),
-        "doctor": ("weekly_doctor", "week"),
+        "doctor": ("weekly_doctor", None),
         "deal":   ("deals",         None),
     }
     if category not in TABLE_MAP:
