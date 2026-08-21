@@ -385,6 +385,10 @@ async def init_db():
             """INSERT OR IGNORE INTO schedules (job_key, label, day_of_week, hour_utc, minute_utc, enabled, location) VALUES
                 ('queue_send_supermarket', '🛒 Queue → Supermarket', 3, 12, 30, 1, 'server')""",
             "ALTER TABLE deals ADD COLUMN deal_validity TEXT",
+            # Pharma category removed
+            "DELETE FROM schedules WHERE job_key = 'queue_send_pharma'",
+            "DELETE FROM content_queue WHERE category = 'pharma'",
+            "DELETE FROM settings WHERE key = 'auto_publish_job_queue_send_pharma'",
         ]:
             try:
                 await db.execute(migration)

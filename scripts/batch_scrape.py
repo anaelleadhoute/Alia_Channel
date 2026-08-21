@@ -12,9 +12,6 @@ Targets:
     droits      — 50 weeks from Kol Zchut (eligibility terms)
     prestataire — up to 50 weeks from Midrag (rotates through cities/services)
     kids        — 18 weeks from Karamel (one per link)
-    pharma      — 1 item per run from Super-Pharm promotions (AI picks the
-                  most relevant one). Must run from a non-Israeli-datacenter
-                  IP — blocked (HTTP 492) from the production server.
     supermarket — 1 item per run from Shufersal promotions (AI picks the
                   most relevant one). Needs Playwright (JS-rendered grid)
                   and only scrapes within robots.txt's Visit-time window
@@ -128,7 +125,6 @@ MIDRAG_URLS = [
     ("https://www.midrag.co.il/Search/Results?serviceId=206&cityId=121&areaId=5", "אשדוד"),
 ]
 
-SUPER_PHARM_URL = "https://shop.super-pharm.co.il/promotions"
 SHUFERSAL_URL = "https://www.shufersal.co.il/online/he/promo/A"
 
 
@@ -346,35 +342,6 @@ def batch_prestataire(dry_run: bool):
         browser.close()
 
 
-def scrape_super_pharm() -> list[dict]:
-    """Super-Pharm's promo grid is server-rendered — a plain GET is enough.
-    Must run from a non-Israeli-datacenter IP — the site returns HTTP 492
-    (WAF block) when hit from the production server."""
-    try:
-        resp = httpx.get(SUPER_PHARM_URL, headers=HEADERS, timeout=30, follow_redirects=True)
-        resp.raise_for_status()
-    except Exception as e:
-        print(f"  ✗ Error fetching Super-Pharm: {e}")
-        return []
-
-    soup = BeautifulSoup(resp.text, "html.parser")
-    seen = set()
-    promotions = []
-    for it in soup.find_all("a", attrs={"data-promotion-id": True}):
-        pid = it.get("data-promotion-id")
-        if pid in seen:
-            continue
-        seen.add(pid)
-        title = (it.get("data-promotion-title") or "").strip()
-        price_m = re.search(r"[\d.]+", it.get("data-promotion-details") or "")
-        price = price_m.group(0) if price_m else None
-        valid_m = re.search(r"בתוקף עד ([\d.]+)", it.get_text(" ", strip=True))
-        valid_until = valid_m.group(1) if valid_m else None
-        if title and price and not _is_toilet_paper(title):
-            promotions.append({"source": "Super-Pharm", "title": title, "price": price, "valid_until": valid_until})
-    return promotions
-
-
 def _shufersal_visit_window_ok() -> bool:
     """robots.txt: Visit-time 0400-0845 (UTC). Respect it — don't crawl outside the window."""
     from datetime import datetime, timezone
@@ -442,17 +409,6 @@ def _promotions_text(promotions: list[dict]) -> str:
     )
 
 
-def batch_pharma(dry_run: bool):
-    """Super-Pharm promotions; the AI picks the single most relevant one."""
-    print("\n=== PHARMA — Super-Pharm promotions ===")
-    promotions = scrape_super_pharm()
-    print(f"  Found {len(promotions)} promotions")
-    if not promotions:
-        print("  ✗ No promotions found")
-        return
-    post_to_queue("pharma", SUPER_PHARM_URL, {"promotions_text": _promotions_text(promotions), "url": SUPER_PHARM_URL}, dry_run)
-
-
 def batch_supermarket(dry_run: bool):
     """Shufersal promotions; the AI picks the single most relevant one."""
     print("\n=== SUPERMARKET — Shufersal promotions ===")
@@ -466,11 +422,11 @@ def batch_supermarket(dry_run: bool):
 
 def main():
     parser = argparse.ArgumentParser(description="Batch scrape content into the queue")
-    parser.add_argument("--category", choices=["guide", "droits", "prestataire", "kids", "pharma", "supermarket"], help="Only scrape this category")
+    parser.add_argument("--category", choices=["guide", "droits", "prestataire", "kids", "supermarket"], help="Only scrape this category")
     parser.add_argument("--dry-run", action="store_true", help="Print without posting to server")
     args = parser.parse_args()
 
-    cats = [args.category] if args.category else ["guide", "droits", "kids", "prestataire", "pharma", "supermarket"]
+    cats = [args.category] if args.category else ["guide", "droits", "kids", "prestataire", "supermarket"]
 
     print(f"Starting batch scrape: {', '.join(cats)}")
     if args.dry_run:
@@ -485,8 +441,6 @@ def main():
             batch_kids(args.dry_run)
         elif cat == "prestataire":
             batch_prestataire(args.dry_run)
-        elif cat == "pharma":
-            batch_pharma(args.dry_run)
         elif cat == "supermarket":
             batch_supermarket(args.dry_run)
 
