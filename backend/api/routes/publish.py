@@ -281,7 +281,7 @@ async def send_pending_category(category: str):
             )
         else:
             cursor = await db.execute(
-                f"SELECT id FROM {table} WHERE content_fr IS NOT NULL AND sent_wa_fr = 0 ORDER BY id DESC LIMIT 1"
+                f"SELECT id FROM {table} WHERE content_fr IS NOT NULL AND sent_wa_fr = 0 ORDER BY id ASC LIMIT 1"
             )
         rows = await cursor.fetchall()
 
