@@ -12,10 +12,6 @@ Targets:
     droits      — 50 weeks from Kol Zchut (eligibility terms)
     prestataire — up to 50 weeks from Midrag (rotates through cities/services)
     kids        — 18 weeks from Karamel (one per link)
-    supermarket — 1 item per run from Shufersal promotions (AI picks the
-                  most relevant one). Needs Playwright (JS-rendered grid)
-                  and only scrapes within robots.txt's Visit-time window
-                  (04:00-08:45 UTC) — a no-op outside that window.
 """
 
 import argparse
@@ -124,12 +120,6 @@ MIDRAG_URLS = [
     ("https://www.midrag.co.il/Search/Results?serviceId=119&cityId=237", "חולון-בת ים"),
     ("https://www.midrag.co.il/Search/Results?serviceId=206&cityId=121&areaId=5", "אשדוד"),
 ]
-
-SHUFERSAL_URL = "https://www.shufersal.co.il/online/he/promo/A"
-
-
-def _is_toilet_paper(title: str) -> bool:
-    return "טואלט" in title or "toilet" in title.lower()
 
 TARGET_CITIES = {
     "תל אביב", "תל-אביב",
@@ -342,91 +332,13 @@ def batch_prestataire(dry_run: bool):
         browser.close()
 
 
-def _shufersal_visit_window_ok() -> bool:
-    """robots.txt: Visit-time 0400-0845 (UTC). Respect it — don't crawl outside the window."""
-    from datetime import datetime, timezone
-    now_utc = datetime.now(timezone.utc)
-    start = now_utc.replace(hour=4, minute=0, second=0, microsecond=0)
-    end = now_utc.replace(hour=8, minute=45, second=0, microsecond=0)
-    return start <= now_utc <= end
-
-
-def scrape_shufersal() -> list[dict]:
-    """Shufersal's promo grid is loaded client-side (infinite scroll) — needs Playwright.
-    Only runs inside the site's robots.txt Visit-time window (04:00-08:45 UTC) and paces
-    itself between scrolls per its Crawl-delay: 10."""
-    if not _shufersal_visit_window_ok():
-        print("  ⏭ Shufersal — outside allowed crawl window (04:00-08:45 UTC per robots.txt), skipping")
-        return []
-
-    try:
-        from playwright.sync_api import sync_playwright
-    except ImportError:
-        print("  ⏭ Shufersal — skipped (playwright not installed)")
-        return []
-
-    promotions = []
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page(
-            user_agent=HEADERS["User-Agent"],
-            extra_http_headers={"Accept-Language": "he-IL,he;q=0.9"},
-        )
-        try:
-            page.goto(SHUFERSAL_URL, wait_until="domcontentloaded", timeout=30000)
-            page.wait_for_timeout(5000)
-            # A couple of scrolls to load more tiles, paced per Crawl-delay: 10
-            for _ in range(2):
-                page.mouse.wheel(0, 3000)
-                page.wait_for_timeout(10000)
-
-            seen = set()
-            for tile in page.query_selector_all("div.tile.miglog-promo"):
-                desc = tile.query_selector(".description")
-                title = desc.inner_text().strip() if desc else None
-                text = tile.inner_text()
-                price_m = re.search(r"ב-\s*(\d+(?:\.\d+)?)\s*₪", text)
-                price = price_m.group(0) if price_m else None
-                valid_m = re.search(r"תקף עד:?\s*([\d/]+)", text)
-                valid_until = valid_m.group(1) if valid_m else None
-                key = (title, price)
-                if title and price and key not in seen and not _is_toilet_paper(title):
-                    seen.add(key)
-                    promotions.append({"source": "Shufersal", "title": title, "price": price, "valid_until": valid_until})
-        except Exception as e:
-            print(f"  ✗ Error scraping Shufersal: {e}")
-        finally:
-            browser.close()
-
-    return promotions
-
-
-def _promotions_text(promotions: list[dict]) -> str:
-    return "\n".join(
-        f"- {p['title']} — {p['price']}" + (" ₪" if "₪" not in p['price'] else "")
-        + (f" (valable jusqu'au {p['valid_until']})" if p.get("valid_until") else "")
-        for p in promotions
-    )
-
-
-def batch_supermarket(dry_run: bool):
-    """Shufersal promotions; the AI picks the single most relevant one."""
-    print("\n=== SUPERMARKET — Shufersal promotions ===")
-    promotions = scrape_shufersal()
-    print(f"  Found {len(promotions)} promotions")
-    if not promotions:
-        print("  ✗ No promotions found")
-        return
-    post_to_queue("supermarket", SHUFERSAL_URL, {"promotions_text": _promotions_text(promotions), "url": SHUFERSAL_URL}, dry_run)
-
-
 def main():
     parser = argparse.ArgumentParser(description="Batch scrape content into the queue")
-    parser.add_argument("--category", choices=["guide", "droits", "prestataire", "kids", "supermarket"], help="Only scrape this category")
+    parser.add_argument("--category", choices=["guide", "droits", "prestataire", "kids"], help="Only scrape this category")
     parser.add_argument("--dry-run", action="store_true", help="Print without posting to server")
     args = parser.parse_args()
 
-    cats = [args.category] if args.category else ["guide", "droits", "kids", "prestataire", "supermarket"]
+    cats = [args.category] if args.category else ["guide", "droits", "kids", "prestataire"]
 
     print(f"Starting batch scrape: {', '.join(cats)}")
     if args.dry_run:
@@ -441,8 +353,6 @@ def main():
             batch_kids(args.dry_run)
         elif cat == "prestataire":
             batch_prestataire(args.dry_run)
-        elif cat == "supermarket":
-            batch_supermarket(args.dry_run)
 
     print("\n=== Batch scrape complete ===")
 

@@ -389,6 +389,10 @@ async def init_db():
             "DELETE FROM schedules WHERE job_key = 'queue_send_pharma'",
             "DELETE FROM content_queue WHERE category = 'pharma'",
             "DELETE FROM settings WHERE key = 'auto_publish_job_queue_send_pharma'",
+            # Supermarket category removed
+            "DELETE FROM schedules WHERE job_key = 'queue_send_supermarket'",
+            "DELETE FROM content_queue WHERE category = 'supermarket'",
+            "DELETE FROM settings WHERE key = 'auto_publish_job_queue_send_supermarket'",
         ]:
             try:
                 await db.execute(migration)
