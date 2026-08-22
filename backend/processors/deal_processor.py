@@ -278,3 +278,18 @@ Réponds UNIQUEMENT avec le chiffre de l'id du deal choisi. Exemple : 42"""
         if r["category"] != "flights":
             return r["id"]
     return rows[0]["id"]
+
+
+async def discard_deals(deal_ids: list[int]) -> None:
+    """Exclude deals from ever being picked as the next unsent one — used to drop
+    the runner-ups from a scrape run once pick_best_deal has chosen a winner, so
+    they don't pile up as a backlog waiting for future send-pending runs."""
+    if not deal_ids:
+        return
+    placeholders = ",".join("?" * len(deal_ids))
+    async with get_db() as db:
+        await db.execute(
+            f"UPDATE deals SET is_relevant = 0, status = 'rejected' WHERE id IN ({placeholders})",
+            deal_ids,
+        )
+        await db.commit()

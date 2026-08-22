@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from scrapers.rss_scraper import run_scraper
 from scrapers.telegram_scraper import run_telegram_scraper
-from processors.deal_processor import process_pending_deals, pick_best_deal
+from processors.deal_processor import process_pending_deals, pick_best_deal, discard_deals
 from processors.ai_processor import process_pending_articles
 from processors.digest_processor import generate_daily_digest
 from db.database import get_db
@@ -25,6 +25,8 @@ async def scrape_telegram_deals(force: bool = False):
     best_id = None
     if ai_result.get("deal_ids"):
         best_id = await pick_best_deal(ai_result["deal_ids"])
+        runner_ups = [d for d in ai_result["deal_ids"] if d != best_id]
+        await discard_deals(runner_ups)
     return {"scrape": scrape_result, "ai": ai_result, "best_deal_id": best_id}
 
 
