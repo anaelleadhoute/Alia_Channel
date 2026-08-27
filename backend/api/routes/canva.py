@@ -38,7 +38,8 @@ CANVA_TOKEN_URL = "https://api.canva.com/rest/v1/oauth/token"
 # Must exactly match what's enabled on the Integration's "Scopes" tab at
 # canva.com/developers, or the authorize request fails with invalid_scope.
 # asset:write is intentionally excluded — only asset:read is enabled there.
-CANVA_SCOPES = "design:content:read design:content:write brandtemplate:content:read brandtemplate:content:write brandtemplate:meta:read asset:read"
+# folder:read is required to list the "ALIA carrousels" folder contents.
+CANVA_SCOPES = "design:content:read design:content:write brandtemplate:content:read brandtemplate:content:write brandtemplate:meta:read asset:read folder:read"
 
 
 def _b64url(data: bytes) -> str:
