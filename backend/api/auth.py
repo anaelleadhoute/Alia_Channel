@@ -11,6 +11,8 @@ PUBLIC_EXACT = {
     ("GET", "/api/health"),
     ("POST", "/api/contests/submit"),
     ("POST", "/api/recommendations"),
+    ("GET", "/api/canva/oauth/start"),
+    ("GET", "/api/canva/oauth/callback"),
 }
 PUBLIC_PREFIXES = [
     ("GET", "/api/contests/form/"),
