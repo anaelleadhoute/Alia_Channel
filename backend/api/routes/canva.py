@@ -35,12 +35,10 @@ CANVA_REDIRECT_URI = "https://alia-channel.com/api/canva/oauth/callback"
 CANVA_AUTHORIZE_URL = "https://www.canva.com/api/oauth/authorize"
 CANVA_TOKEN_URL = "https://api.canva.com/rest/v1/oauth/token"
 
-# Autofill needs to read the Brand Template's data fields and write the filled
-# design; asset scopes let us pull the rendered export back out. Exact scope
-# names occasionally shift in Canva's docs — if the token exchange or a later
-# API call comes back "insufficient scope", adjust this list and redo the
-# /oauth/start flow.
-CANVA_SCOPES = "design:content:read design:content:write brandtemplate:content:read brandtemplate:meta:read asset:read asset:write"
+# Must exactly match what's enabled on the Integration's "Scopes" tab at
+# canva.com/developers, or the authorize request fails with invalid_scope.
+# asset:write is intentionally excluded — only asset:read is enabled there.
+CANVA_SCOPES = "design:content:read design:content:write brandtemplate:content:read brandtemplate:content:write brandtemplate:meta:read asset:read"
 
 
 def _b64url(data: bytes) -> str:
