@@ -307,8 +307,21 @@
 
   <!-- INSTAGRAM -->
   <div class="section" id="section-instagram">
+    <div class="manual-panel" style="margin-bottom:24px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <h2>📂 Depuis le dossier Canva "ALIA carrousels"</h2>
+        <button class="btn btn-primary" style="padding:6px 14px;font-size:13px;" onclick="loadCanvaCarousels()">🔄 Charger</button>
+      </div>
+      <p style="font-size:13px;color:#888;margin:0 0 16px;">Choisis un carrousel déjà designé sur Canva — ses pages sont exportées et publiées automatiquement, dans l'ordre.</p>
+
+      <label style="font-size:13px;font-weight:600;color:#666;display:block;margin-bottom:6px;">Légende (caption Instagram)</label>
+      <textarea id="canvaIgCaption" placeholder="Légende + hashtags…" style="width:100%;height:100px;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:14px;resize:vertical;font-family:inherit;margin-bottom:16px;box-sizing:border-box;"></textarea>
+
+      <div id="canvaCarouselsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px;"></div>
+    </div>
+
     <div class="manual-panel">
-      <h2>📸 Publier un carrousel Instagram</h2>
+      <h2>📸 Publier un carrousel Instagram (upload manuel)</h2>
       <p style="font-size:13px;color:#888;margin:0 0 16px;">Exporte ton carrousel depuis Canva (2 à 10 images, dans l'ordre voulu), puis sélectionne les fichiers ici. Les images sont publiées dans l'ordre choisi.</p>
 
       <input type="file" id="igImages" accept="image/*" multiple onchange="previewIgImages()" style="margin-bottom:14px;">
@@ -717,6 +730,7 @@ function switchTab(name) {
   if (name === 'events-kids') loadInlineQueue('kids');
   if (name === 'concours') loadConcours();
   if (name === 'automation') loadAutomation();
+  if (name === 'instagram') loadCanvaCarousels();
 }
 
 // ── Queue (all pending content) ──────────────────────────────────────────────
@@ -1382,7 +1396,60 @@ async function withLoading(btn, fn) {
   }
 }
 
-// ── Instagram carousel publish ────────────────────────────────────────────
+// ── Instagram carousel publish (from Canva folder) ────────────────────────
+async function loadCanvaCarousels() {
+  const grid = document.getElementById('canvaCarouselsGrid');
+  grid.innerHTML = '<div class="loading">Loading…</div>';
+  let data;
+  try {
+    const res = await fetch(`${API}/api/instagram/canva-carousels`);
+    data = await res.json();
+  } catch (e) {
+    grid.innerHTML = `<div style="color:#c62828;">❌ Erreur réseau</div>`;
+    return;
+  }
+  if (!data.ok) {
+    grid.innerHTML = `<div style="color:#c62828;">❌ ${data.error}</div>`;
+    return;
+  }
+  if (!data.items.length) {
+    grid.innerHTML = `<div style="color:#999;font-size:13px;">Aucun carrousel trouvé dans ce dossier.</div>`;
+    return;
+  }
+  grid.innerHTML = data.items.map(it => `
+    <div style="border:2px solid ${it.already_published ? '#c8e6c9' : '#eee'};border-radius:10px;padding:8px;text-align:center;background:${it.already_published ? '#f4fbf4' : '#fff'};">
+      <img src="${it.thumbnail_url || ''}" style="width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:6px;margin-bottom:6px;background:#f0f0f0;">
+      <div style="font-size:11px;font-weight:600;color:#444;margin-bottom:4px;line-height:1.3;">${it.title}</div>
+      <div style="font-size:10px;color:#999;margin-bottom:6px;">${it.page_count} pages${it.already_published ? ' · ✅ publié' : ''}</div>
+      <button class="btn btn-both" style="width:100%;padding:6px;font-size:12px;" onclick="publishFromCanva('${it.design_id}', this)">📤 Publier</button>
+    </div>
+  `).join('');
+}
+
+async function publishFromCanva(designId, btn) {
+  const caption = document.getElementById('canvaIgCaption').value;
+  await withLoading(btn, async () => {
+    const fd = new FormData();
+    fd.append('design_id', designId);
+    fd.append('caption', caption);
+    let data;
+    try {
+      const res = await fetch(`${API}/api/instagram/publish-from-canva`, { method: 'POST', body: fd });
+      data = await res.json();
+    } catch (e) {
+      toast('Erreur réseau lors de la publication', true);
+      return;
+    }
+    if (data.ok) {
+      toast('✅ Carrousel publié sur Instagram !');
+      loadCanvaCarousels();
+    } else {
+      toast(`Erreur: ${data.error || 'inconnue'}`, true);
+    }
+  });
+}
+
+// ── Instagram carousel publish (manual upload) ────────────────────────────
 let igFiles = [];
 
 function previewIgImages() {
