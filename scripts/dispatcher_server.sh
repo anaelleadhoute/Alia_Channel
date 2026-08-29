@@ -12,6 +12,9 @@ echo "[$(date -u '+%Y-%m-%d %H:%M')] Dispatcher running..." >> "$LOG"
 # Always check for due scheduled manual messages
 curl -s "${AUTH[@]}" -X POST "${BASE}/api/publish/fire-scheduled-manual" > /dev/null 2>&1
 
+# Always check for due scheduled Instagram carousels
+curl -s "${AUTH[@]}" -X POST "${BASE}/api/instagram/fire-scheduled" > /dev/null 2>&1
+
 DUE=$(curl -s "${AUTH[@]}" "${BASE}/api/schedules/due?location=server")
 JOBS=$(echo "$DUE" | python3 -c "
 import sys, json

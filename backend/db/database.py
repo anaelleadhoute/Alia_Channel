@@ -393,6 +393,18 @@ async def init_db():
             "DELETE FROM schedules WHERE job_key = 'queue_send_supermarket'",
             "DELETE FROM content_queue WHERE category = 'supermarket'",
             "DELETE FROM settings WHERE key = 'auto_publish_job_queue_send_supermarket'",
+            """CREATE TABLE IF NOT EXISTS scheduled_instagram_posts (
+                id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                design_id    TEXT NOT NULL,
+                design_title TEXT,
+                caption      TEXT,
+                send_at      TEXT NOT NULL,
+                sent         INTEGER DEFAULT 0,
+                media_id     TEXT,
+                permalink    TEXT,
+                error        TEXT,
+                created_at   DATETIME DEFAULT CURRENT_TIMESTAMP
+            )""",
         ]:
             try:
                 await db.execute(migration)

@@ -315,9 +315,25 @@
       <p style="font-size:13px;color:#888;margin:0 0 16px;">Choisis un carrousel déjà designé sur Canva — ses pages sont exportées et publiées automatiquement, dans l'ordre.</p>
 
       <label style="font-size:13px;font-weight:600;color:#666;display:block;margin-bottom:6px;">Légende (caption Instagram)</label>
-      <textarea id="canvaIgCaption" placeholder="Légende + hashtags…" style="width:100%;height:100px;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:14px;resize:vertical;font-family:inherit;margin-bottom:16px;box-sizing:border-box;"></textarea>
+      <textarea id="canvaIgCaption" placeholder="Légende + hashtags…" style="width:100%;height:100px;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:14px;resize:vertical;font-family:inherit;margin-bottom:14px;box-sizing:border-box;"></textarea>
+
+      <div style="margin-bottom:16px;">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;font-weight:600;color:#444;">
+          <input type="checkbox" id="canvaIgPlanifier" onchange="toggleCanvaIgSchedule(this.checked)" style="width:16px;height:16px;cursor:pointer;">
+          ⏰ Planifier la publication
+        </label>
+        <div id="canvaIgScheduleBox" style="display:none;margin-top:10px;background:#f8f9fa;border:1px solid #e0e0e0;border-radius:8px;padding:12px;">
+          <input type="datetime-local" id="canvaIgScheduleAt" style="border:1px solid #ddd;border-radius:6px;padding:8px 12px;font-size:14px;font-family:inherit;">
+          <span style="font-size:12px;color:#999;margin-left:8px;">Heure d'Israël</span>
+        </div>
+      </div>
 
       <div id="canvaCarouselsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px;"></div>
+    </div>
+
+    <div class="manual-panel" style="margin-bottom:24px;">
+      <h2>⏳ Carrousels planifiés</h2>
+      <div id="scheduledIgCards"><div class="loading">Loading…</div></div>
     </div>
 
     <div class="manual-panel">
@@ -730,7 +746,7 @@ function switchTab(name) {
   if (name === 'events-kids') loadInlineQueue('kids');
   if (name === 'concours') loadConcours();
   if (name === 'automation') loadAutomation();
-  if (name === 'instagram') loadCanvaCarousels();
+  if (name === 'instagram') { loadCanvaCarousels(); loadScheduledInstagram(); }
 }
 
 // ── Queue (all pending content) ──────────────────────────────────────────────
@@ -1397,6 +1413,12 @@ async function withLoading(btn, fn) {
 }
 
 // ── Instagram carousel publish (from Canva folder) ────────────────────────
+let canvaCarouselTitles = {};
+
+function toggleCanvaIgSchedule(checked) {
+  document.getElementById('canvaIgScheduleBox').style.display = checked ? 'block' : 'none';
+}
+
 async function loadCanvaCarousels() {
   const grid = document.getElementById('canvaCarouselsGrid');
   grid.innerHTML = '<div class="loading">Loading…</div>';
@@ -1416,6 +1438,8 @@ async function loadCanvaCarousels() {
     grid.innerHTML = `<div style="color:#999;font-size:13px;">Aucun carrousel trouvé dans ce dossier.</div>`;
     return;
   }
+  canvaCarouselTitles = {};
+  data.items.forEach(it => { canvaCarouselTitles[it.design_id] = it.title; });
   grid.innerHTML = data.items.map(it => `
     <div style="border:2px solid ${it.already_published ? '#c8e6c9' : '#eee'};border-radius:10px;padding:8px;text-align:center;background:${it.already_published ? '#f4fbf4' : '#fff'};">
       <img src="${it.thumbnail_url || ''}" style="width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:6px;margin-bottom:6px;background:#f0f0f0;">
@@ -1428,16 +1452,31 @@ async function loadCanvaCarousels() {
 
 async function publishFromCanva(designId, btn) {
   const caption = document.getElementById('canvaIgCaption').value;
+  const planifier = document.getElementById('canvaIgPlanifier').checked;
+  const scheduleAt = document.getElementById('canvaIgScheduleAt').value;
+
+  if (planifier && !scheduleAt) {
+    toast('Choisis une date/heure pour la publication planifiée', true);
+    return;
+  }
+
   await withLoading(btn, async () => {
     const fd = new FormData();
     fd.append('design_id', designId);
     fd.append('caption', caption);
+    fd.append('design_title', canvaCarouselTitles[designId] || '');
+    if (planifier) fd.append('scheduled_at', scheduleAt);
     let data;
     try {
       const res = await fetch(`${API}/api/instagram/publish-from-canva`, { method: 'POST', body: fd });
       data = await res.json();
     } catch (e) {
       toast('Erreur réseau lors de la publication', true);
+      return;
+    }
+    if (data.ok && data.scheduled) {
+      toast('⏰ Carrousel planifié !');
+      loadScheduledInstagram();
       return;
     }
     if (data.ok) {
@@ -1447,6 +1486,29 @@ async function publishFromCanva(designId, btn) {
       toast(`Erreur: ${data.error || 'inconnue'}`, true);
     }
   });
+}
+
+async function loadScheduledInstagram() {
+  const data = await fetch(`${API}/api/instagram/scheduled`).then(r => r.json()).catch(() => []);
+  const el = document.getElementById('scheduledIgCards');
+  if (!data.length) { el.innerHTML = '<div class="empty"><div class="icon">⏰</div>Aucun carrousel planifié</div>'; return; }
+  el.innerHTML = data.map(p => `
+    <div class="card" style="border-left:4px solid #e1306c;">
+      <div style="font-size:12px;color:#999;margin-bottom:6px;">⏰ ${new Date(p.send_at).toLocaleString('fr-FR')}</div>
+      <div style="margin-bottom:6px;"><strong>${p.design_title || p.design_id}</strong></div>
+      ${p.caption ? `<div style="font-size:13px;color:#666;">${p.caption.substring(0, 120)}${p.caption.length > 120 ? '…' : ''}</div>` : ''}
+      ${p.error ? `<div style="font-size:12px;color:#c62828;margin-top:6px;">❌ Dernière erreur : ${p.error}</div>` : ''}
+      <div style="margin-top:10px;">
+        <button class="btn btn-danger" onclick="cancelScheduledInstagram(${p.id})">🗑️ Annuler</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function cancelScheduledInstagram(id) {
+  await fetch(`${API}/api/instagram/scheduled/${id}`, {method: 'DELETE'});
+  toast('🗑️ Carrousel planifié annulé');
+  loadScheduledInstagram();
 }
 
 // ── Instagram carousel publish (manual upload) ────────────────────────────

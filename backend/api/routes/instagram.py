@@ -22,13 +22,16 @@ import json
 import os
 import time
 import uuid
+from datetime import datetime
 from pathlib import Path
 
 import httpx
+import pytz
 from fastapi import APIRouter, File, Form, UploadFile
 
 from api.routes.canva import get_valid_access_token
 from api.routes.settings import get_setting, set_setting
+from db.database import get_db
 
 router = APIRouter()
 
@@ -36,6 +39,7 @@ META_ACCESS_TOKEN = os.getenv("META_ACCESS_TOKEN", "")
 META_IG_ACCOUNT_ID = os.getenv("META_IG_ACCOUNT_ID", "")
 GRAPH_BASE = "https://graph.instagram.com/v21.0"
 PUBLIC_BASE_URL = "https://alia-channel.com"
+IL_TZ = pytz.timezone("Asia/Jerusalem")
 
 CANVA_API_BASE = "https://api.canva.com/rest/v1"
 CANVA_CAROUSEL_FOLDER_ID = "FAHSc8sf3pA"  # "ALIA carrousels" folder on Canva
@@ -62,6 +66,13 @@ def _save_bytes(content: bytes, ext: str = ".jpg") -> str:
     filename = f"{uuid.uuid4().hex}{ext}"
     (STATIC_DIR / filename).write_bytes(content)
     return f"{PUBLIC_BASE_URL}/instagram/{filename}"
+
+
+def _parse_il_datetime(value: str) -> datetime:
+    parsed = datetime.fromisoformat(value)
+    if parsed.tzinfo is None:
+        parsed = IL_TZ.localize(parsed)
+    return parsed
 
 
 async def _get_published_design_ids() -> list[str]:
@@ -229,12 +240,8 @@ async def _export_design_images(client: httpx.AsyncClient, token: str, design_id
     raise RuntimeError("Timed out waiting for Canva export to finish")
 
 
-@router.post("/publish-from-canva")
-async def publish_from_canva(design_id: str = Form(...), caption: str = Form("")):
-    """Direct flow: export a design already sitting in the Canva folder, then publish it."""
-    if not META_ACCESS_TOKEN or not META_IG_ACCOUNT_ID:
-        return {"ok": False, "error": "Instagram isn't configured (META_ACCESS_TOKEN / META_IG_ACCOUNT_ID missing)"}
-
+async def _export_and_publish(design_id: str, caption: str) -> dict:
+    """Export the design's current pages from Canva right now, then publish them."""
     try:
         canva_token = await get_valid_access_token()
     except RuntimeError as e:
@@ -267,3 +274,81 @@ async def publish_from_canva(design_id: str = Form(...), caption: str = Form("")
     if result.get("ok"):
         await _mark_design_published(design_id)
     return result
+
+
+@router.post("/publish-from-canva")
+async def publish_from_canva(
+    design_id: str = Form(...),
+    caption: str = Form(""),
+    design_title: str = Form(""),
+    scheduled_at: str = Form(None),
+):
+    """Direct flow: export a design already sitting in the Canva folder, then publish it.
+
+    If scheduled_at is a future datetime, the post is queued instead of published
+    immediately — /fire-scheduled (called by the cron dispatcher) re-exports the
+    design fresh at send time, so any edits made in Canva after scheduling are
+    picked up automatically.
+    """
+    if not META_ACCESS_TOKEN or not META_IG_ACCOUNT_ID:
+        return {"ok": False, "error": "Instagram isn't configured (META_ACCESS_TOKEN / META_IG_ACCOUNT_ID missing)"}
+
+    if scheduled_at:
+        send_time = _parse_il_datetime(scheduled_at)
+        if (send_time - datetime.now(IL_TZ)).total_seconds() > 0:
+            async with get_db() as db:
+                await db.execute(
+                    "INSERT INTO scheduled_instagram_posts (design_id, design_title, caption, send_at, sent) VALUES (?,?,?,?,0)",
+                    (design_id, design_title, caption, send_time.isoformat()),
+                )
+                await db.commit()
+            return {"ok": True, "scheduled": True, "send_at": send_time.isoformat()}
+
+    return await _export_and_publish(design_id, caption)
+
+
+@router.get("/scheduled")
+async def list_scheduled_instagram():
+    async with get_db() as db:
+        cursor = await db.execute("SELECT * FROM scheduled_instagram_posts WHERE sent = 0 ORDER BY send_at ASC")
+        rows = await cursor.fetchall()
+    return [dict(r) for r in rows]
+
+
+@router.delete("/scheduled/{post_id}")
+async def delete_scheduled_instagram(post_id: int):
+    async with get_db() as db:
+        await db.execute("DELETE FROM scheduled_instagram_posts WHERE id = ? AND sent = 0", (post_id,))
+        await db.commit()
+    return {"ok": True}
+
+
+@router.post("/fire-scheduled")
+async def fire_scheduled_instagram():
+    """Called every 15 min by the cron dispatcher, mirrors fire-scheduled-manual."""
+    now = datetime.now(IL_TZ)
+    async with get_db() as db:
+        cursor = await db.execute(
+            "SELECT * FROM scheduled_instagram_posts WHERE sent = 0 AND send_at <= ?", (now.isoformat(),)
+        )
+        rows = await cursor.fetchall()
+
+    fired = 0
+    for row in rows:
+        row = dict(row)
+        result = await _export_and_publish(row["design_id"], row["caption"] or "")
+        async with get_db() as db:
+            if result.get("ok"):
+                await db.execute(
+                    "UPDATE scheduled_instagram_posts SET sent = 1, media_id = ?, permalink = ? WHERE id = ?",
+                    (result.get("media_id"), result.get("permalink"), row["id"]),
+                )
+                fired += 1
+            else:
+                await db.execute(
+                    "UPDATE scheduled_instagram_posts SET error = ? WHERE id = ?",
+                    (result.get("error"), row["id"]),
+                )
+            await db.commit()
+
+    return {"ok": True, "fired": fired, "checked": len(rows)}
