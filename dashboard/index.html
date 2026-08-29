@@ -746,7 +746,7 @@ function switchTab(name) {
   if (name === 'events-kids') loadInlineQueue('kids');
   if (name === 'concours') loadConcours();
   if (name === 'automation') loadAutomation();
-  if (name === 'instagram') { loadCanvaCarousels(); loadScheduledInstagram(); }
+  if (name === 'instagram') { loadCanvaCarousels().then(loadScheduledInstagram); }
 }
 
 // ── Queue (all pending content) ──────────────────────────────────────────────
@@ -1494,15 +1494,21 @@ async function loadScheduledInstagram() {
   const data = await fetch(`${API}/api/instagram/scheduled`).then(r => r.json()).catch(() => []);
   const el = document.getElementById('scheduledIgCards');
   if (!data.length) { el.innerHTML = '<div class="empty"><div class="icon">⏰</div>Aucun carrousel planifié</div>'; return; }
-  el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px;">` + data.map(p => `
+  el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px;">` + data.map(p => {
+    // Prefer a live thumbnail from the freshly-loaded Canva folder (signed
+    // URLs expire after a few hours) — fall back to the stored snapshot.
+    const live = canvaCarouselInfo[p.design_id];
+    const thumb = (live && live.thumbnail_url) || p.thumbnail_url || '';
+    return `
     <div class="card" style="border-left:4px solid #e1306c;padding:8px;">
-      <img src="${p.thumbnail_url || ''}" style="width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:6px;margin-bottom:6px;background:#f0f0f0;">
+      <img src="${thumb}" style="width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:6px;margin-bottom:6px;background:#f0f0f0;">
       <div style="font-size:12px;color:#999;margin-bottom:6px;">⏰ ${new Date(p.send_at).toLocaleString('fr-FR')}</div>
       ${p.caption ? `<div style="font-size:12px;color:#666;margin-bottom:6px;">${p.caption.substring(0, 100)}${p.caption.length > 100 ? '…' : ''}</div>` : ''}
       ${p.error ? `<div style="font-size:12px;color:#c62828;margin-bottom:6px;">❌ ${p.error}</div>` : ''}
       <button class="btn btn-danger" style="width:100%;padding:6px;font-size:12px;" onclick="cancelScheduledInstagram(${p.id})">🗑️ Annuler</button>
     </div>
-  `).join('') + `</div>`;
+  `;
+  }).join('') + `</div>`;
 }
 
 async function cancelScheduledInstagram(id) {
