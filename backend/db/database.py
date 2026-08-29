@@ -405,6 +405,7 @@ async def init_db():
                 error        TEXT,
                 created_at   DATETIME DEFAULT CURRENT_TIMESTAMP
             )""",
+            "ALTER TABLE scheduled_instagram_posts ADD COLUMN thumbnail_url TEXT",
         ]:
             try:
                 await db.execute(migration)

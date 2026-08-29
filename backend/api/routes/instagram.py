@@ -281,6 +281,7 @@ async def publish_from_canva(
     design_id: str = Form(...),
     caption: str = Form(""),
     design_title: str = Form(""),
+    thumbnail_url: str = Form(""),
     scheduled_at: str = Form(None),
 ):
     """Direct flow: export a design already sitting in the Canva folder, then publish it.
@@ -298,8 +299,8 @@ async def publish_from_canva(
         if (send_time - datetime.now(IL_TZ)).total_seconds() > 0:
             async with get_db() as db:
                 await db.execute(
-                    "INSERT INTO scheduled_instagram_posts (design_id, design_title, caption, send_at, sent) VALUES (?,?,?,?,0)",
-                    (design_id, design_title, caption, send_time.isoformat()),
+                    "INSERT INTO scheduled_instagram_posts (design_id, design_title, caption, send_at, sent, thumbnail_url) VALUES (?,?,?,?,0,?)",
+                    (design_id, design_title, caption, send_time.isoformat(), thumbnail_url),
                 )
                 await db.commit()
             return {"ok": True, "scheduled": True, "send_at": send_time.isoformat()}
