@@ -46,7 +46,7 @@ async def list_deals(category: str | None = None, limit: int = 50):
                        audience, status, sent_wa_fr, sent_wa_ru, scraped_at
                 FROM deals
                 WHERE is_relevant = 1 AND category = ?
-                ORDER BY relevance_score DESC, scraped_at DESC
+                ORDER BY scraped_at DESC
                 LIMIT ?
                 """,
                 (category, limit),
@@ -60,7 +60,7 @@ async def list_deals(category: str | None = None, limit: int = 50):
                        audience, status, sent_wa_fr, sent_wa_ru, scraped_at
                 FROM deals
                 WHERE is_relevant = 1
-                ORDER BY relevance_score DESC, scraped_at DESC
+                ORDER BY scraped_at DESC
                 LIMIT ?
                 """,
                 (limit,),
