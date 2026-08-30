@@ -18,6 +18,7 @@ Instagram side ("API setup with Instagram login" flow, i.e. graph.instagram.com)
   3. POST /{ig-id}/media_publish (creation_id=carousel id)                -> published media id
 """
 import asyncio
+import base64
 import json
 import os
 import time
@@ -52,7 +53,7 @@ anthropic_client = anthropic.AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY
 
 IG_CAPTION_PROMPT = """Tu es rédacteur pour AL.IA Channel, un média Instagram pour les olim francophones en Israël.
 
-Voici le sujet du carrousel Instagram (déjà designé sur Canva) : {title}
+Voici la première page d'un carrousel Instagram déjà designé sur Canva (image ci-jointe). Lis le texte visible sur cette image pour comprendre le sujet du carrousel.
 
 Rédige une légende Instagram en français pour ce carrousel :
 - Commence par un hook accrocheur en une phrase, qui donne envie de swiper le carrousel
@@ -197,13 +198,35 @@ async def publish_carousel(images: list[UploadFile] = File(...), caption: str = 
 
 
 @router.post("/generate-caption")
-async def generate_caption(design_title: str = Form(...)):
-    """AI-generated Instagram caption for a carousel — the slide design itself
-    stays fully manual in Canva, only this caption text is automated."""
+async def generate_caption(design_id: str = Form(...)):
+    """AI-generated Instagram caption, read directly off the carousel's first
+    slide (via vision) rather than the Canva file's title — the slide design
+    itself stays fully manual in Canva, only this caption text is automated."""
+    try:
+        canva_token = await get_valid_access_token()
+    except RuntimeError as e:
+        return {"ok": False, "error": str(e)}
+
+    async with httpx.AsyncClient(timeout=60) as client:
+        try:
+            urls = await _export_design_images(client, canva_token, design_id, pages=[1])
+        except RuntimeError as e:
+            return {"ok": False, "error": str(e)}
+        img_resp = await client.get(urls[0])
+        image_b64 = base64.b64encode(img_resp.content).decode()
+
     response = await anthropic_client.messages.create(
         model="claude-haiku-4-5-20251001",
         max_tokens=400,
-        messages=[{"role": "user", "content": IG_CAPTION_PROMPT.format(title=design_title)}],
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": image_b64}},
+                    {"type": "text", "text": IG_CAPTION_PROMPT},
+                ],
+            }
+        ],
     )
     caption = response.content[0].text.strip()
     return {"ok": True, "caption": caption}
@@ -246,11 +269,16 @@ async def list_canva_carousels():
     return {"ok": True, "items": items}
 
 
-async def _export_design_images(client: httpx.AsyncClient, token: str, design_id: str) -> list[str]:
+async def _export_design_images(
+    client: httpx.AsyncClient, token: str, design_id: str, pages: list[int] | None = None
+) -> list[str]:
+    fmt = {"type": "jpg", "quality": 85}
+    if pages:
+        fmt["pages"] = pages
     resp = await client.post(
         f"{CANVA_API_BASE}/exports",
         headers={"Authorization": f"Bearer {token}"},
-        json={"design_id": design_id, "format": {"type": "jpg", "quality": 85}},
+        json={"design_id": design_id, "format": fmt},
     )
     data = resp.json()
     job = data.get("job")
@@ -350,6 +378,16 @@ async def list_scheduled_instagram():
 async def delete_scheduled_instagram(post_id: int):
     async with get_db() as db:
         await db.execute("DELETE FROM scheduled_instagram_posts WHERE id = ? AND sent = 0", (post_id,))
+        await db.commit()
+    return {"ok": True}
+
+
+@router.patch("/scheduled/{post_id}")
+async def update_scheduled_instagram(post_id: int, caption: str = Form(...)):
+    async with get_db() as db:
+        await db.execute(
+            "UPDATE scheduled_instagram_posts SET caption = ? WHERE id = ? AND sent = 0", (caption, post_id)
+        )
         await db.commit()
     return {"ok": True}
 
