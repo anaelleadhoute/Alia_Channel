@@ -25,6 +25,7 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 
+import anthropic
 import httpx
 import pytz
 from fastapi import APIRouter, File, Form, UploadFile
@@ -46,6 +47,22 @@ CANVA_CAROUSEL_FOLDER_ID = "FAHSc8sf3pA"  # "ALIA carrousels" folder on Canva
 
 STATIC_DIR = Path("/app/static/instagram")
 STATIC_DIR.mkdir(parents=True, exist_ok=True)
+
+anthropic_client = anthropic.AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+
+IG_CAPTION_PROMPT = """Tu es rédacteur pour AL.IA Channel, un média Instagram pour les olim francophones en Israël.
+
+Voici le sujet du carrousel Instagram (déjà designé sur Canva) : {title}
+
+Rédige une légende Instagram en français pour ce carrousel :
+- Commence par un hook accrocheur en une phrase, qui donne envie de swiper le carrousel
+- 2-3 phrases qui donnent un aperçu utile du contenu, sans tout dévoiler
+- Une phrase d'appel à l'action (swiper jusqu'au bout, enregistrer le post, le partager avec quelqu'un que ça peut aider)
+- Termine par 5 à 8 hashtags pertinents (mélange de hashtags sur l'alya, Israël, olim, et le sujet précis)
+
+Ton : chaleureux, utile, communautaire — jamais commercial ou "vendeur". Émojis avec modération (2 à 4 max).
+
+Réponds uniquement avec le texte de la légende, sans JSON, sans commentaire."""
 
 MIN_IMAGES = 2
 MAX_IMAGES = 10
@@ -177,6 +194,19 @@ async def publish_carousel(images: list[UploadFile] = File(...), caption: str = 
             return await _publish_carousel_from_urls(client, saved_urls, caption)
         except RuntimeError as e:
             return {"ok": False, "error": str(e)}
+
+
+@router.post("/generate-caption")
+async def generate_caption(design_title: str = Form(...)):
+    """AI-generated Instagram caption for a carousel — the slide design itself
+    stays fully manual in Canva, only this caption text is automated."""
+    response = await anthropic_client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=400,
+        messages=[{"role": "user", "content": IG_CAPTION_PROMPT.format(title=design_title)}],
+    )
+    caption = response.content[0].text.strip()
+    return {"ok": True, "caption": caption}
 
 
 @router.get("/canva-carousels")
