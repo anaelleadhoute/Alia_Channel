@@ -65,7 +65,7 @@ Ton : chaleureux, utile, communautaire — jamais commercial ou "vendeur". Émoj
 
 Réponds uniquement avec le texte de la légende, sans JSON, sans commentaire."""
 
-MIN_IMAGES = 2
+MIN_IMAGES = 2  # minimum for a *carousel* specifically — 1 image publishes as a plain photo instead
 MAX_IMAGES = 10
 MAX_UPLOAD_AGE_SECONDS = 24 * 3600  # housekeeping: drop stale uploads on each publish
 
@@ -190,14 +190,58 @@ async def _publish_carousel_from_urls(client: httpx.AsyncClient, image_urls: lis
     return {"ok": True, "media_id": media_id, "permalink": permalink}
 
 
+async def _publish_single_photo_from_url(client: httpx.AsyncClient, image_url: str, caption: str) -> dict:
+    """Some Canva designs (announcements, milestone graphics) are genuinely
+    one page, not a carousel draft — publish those as a plain photo post."""
+    resp = await client.post(
+        f"{GRAPH_BASE}/{META_IG_ACCOUNT_ID}/media",
+        data={"image_url": image_url, "caption": caption, "access_token": META_ACCESS_TOKEN},
+    )
+    data = resp.json()
+    if "id" not in data:
+        return {"ok": False, "error": f"Failed to create media container: {data}"}
+    creation_id = data["id"]
+
+    await _wait_until_finished(client, creation_id)
+
+    resp = await client.post(
+        f"{GRAPH_BASE}/{META_IG_ACCOUNT_ID}/media_publish",
+        data={"creation_id": creation_id, "access_token": META_ACCESS_TOKEN},
+    )
+    data = resp.json()
+    if "id" not in data:
+        return {"ok": False, "error": f"Failed to publish: {data}"}
+
+    media_id = data["id"]
+    permalink = None
+    try:
+        resp = await client.get(
+            f"{GRAPH_BASE}/{media_id}", params={"fields": "permalink", "access_token": META_ACCESS_TOKEN}
+        )
+        permalink = resp.json().get("permalink")
+    except Exception:
+        pass
+
+    return {"ok": True, "media_id": media_id, "permalink": permalink}
+
+
+async def _publish_from_urls(client: httpx.AsyncClient, image_urls: list[str], caption: str) -> dict:
+    """Publish as a single photo (1 image) or a carousel (2-MAX_IMAGES)."""
+    if len(image_urls) == 1:
+        return await _publish_single_photo_from_url(client, image_urls[0], caption)
+    if len(image_urls) > MAX_IMAGES:
+        return {"ok": False, "error": f"Trop d'images ({len(image_urls)}) — Instagram accepte au maximum {MAX_IMAGES}."}
+    return await _publish_carousel_from_urls(client, image_urls, caption)
+
+
 @router.post("/publish")
 async def publish_carousel(images: list[UploadFile] = File(...), caption: str = Form("")):
     """Manual flow: admin uploads already-exported images from Canva."""
     if not META_ACCESS_TOKEN or not META_IG_ACCOUNT_ID:
         return {"ok": False, "error": "Instagram isn't configured (META_ACCESS_TOKEN / META_IG_ACCOUNT_ID missing)"}
 
-    if len(images) < MIN_IMAGES or len(images) > MAX_IMAGES:
-        return {"ok": False, "error": f"A carousel needs between {MIN_IMAGES} and {MAX_IMAGES} images (got {len(images)})"}
+    if len(images) < 1 or len(images) > MAX_IMAGES:
+        return {"ok": False, "error": f"Entre 1 et {MAX_IMAGES} images (got {len(images)})"}
 
     _cleanup_old_uploads()
 
@@ -208,7 +252,7 @@ async def publish_carousel(images: list[UploadFile] = File(...), caption: str = 
 
     async with httpx.AsyncClient(timeout=60) as client:
         try:
-            return await _publish_carousel_from_urls(client, saved_urls, caption)
+            return await _publish_from_urls(client, saved_urls, caption)
         except RuntimeError as e:
             return {"ok": False, "error": str(e)}
 
@@ -329,10 +373,10 @@ async def _export_and_publish(design_id: str, caption: str) -> dict:
         except RuntimeError as e:
             return {"ok": False, "error": str(e)}
 
-        if len(export_urls) < MIN_IMAGES or len(export_urls) > MAX_IMAGES:
+        if len(export_urls) < 1 or len(export_urls) > MAX_IMAGES:
             return {
                 "ok": False,
-                "error": f"Ce carrousel a {len(export_urls)} pages — Instagram accepte entre {MIN_IMAGES} et {MAX_IMAGES}.",
+                "error": f"Ce design a {len(export_urls)} pages — Instagram accepte au maximum {MAX_IMAGES}.",
             }
 
         saved_urls = []
@@ -341,7 +385,7 @@ async def _export_and_publish(design_id: str, caption: str) -> dict:
             saved_urls.append(_save_bytes(resp.content, ".jpg"))
 
         try:
-            result = await _publish_carousel_from_urls(client, saved_urls, caption)
+            result = await _publish_from_urls(client, saved_urls, caption)
         except RuntimeError as e:
             return {"ok": False, "error": str(e)}
 
