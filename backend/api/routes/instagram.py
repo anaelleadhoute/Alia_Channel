@@ -123,6 +123,13 @@ async def _wait_until_finished(client: httpx.AsyncClient, creation_id: str, max_
 
 
 async def _publish_carousel_from_urls(client: httpx.AsyncClient, image_urls: list[str], caption: str) -> dict:
+    if len(image_urls) < MIN_IMAGES:
+        return {
+            "ok": False,
+            "error": f"Only {len(image_urls)} image(s) to publish — refusing to post as a single image "
+                     f"instead of a carousel (need at least {MIN_IMAGES}).",
+        }
+
     child_ids = []
     for url in image_urls:
         resp = await client.post(
@@ -133,6 +140,15 @@ async def _publish_carousel_from_urls(client: httpx.AsyncClient, image_urls: lis
         if "id" not in data:
             return {"ok": False, "error": f"Failed to create item container: {data}"}
         child_ids.append(data["id"])
+
+    # Belt-and-suspenders: re-check after the loop too, in case some future
+    # change makes it possible to fall through without early-returning above.
+    if len(child_ids) < MIN_IMAGES:
+        return {
+            "ok": False,
+            "error": f"Only {len(child_ids)} item container(s) succeeded — refusing to publish a "
+                     f"single-image carousel (need at least {MIN_IMAGES}).",
+        }
 
     for cid in child_ids:
         await _wait_until_finished(client, cid)
@@ -398,26 +414,46 @@ async def fire_scheduled_instagram():
     now = datetime.now(IL_TZ)
     async with get_db() as db:
         cursor = await db.execute(
-            "SELECT * FROM scheduled_instagram_posts WHERE sent = 0 AND send_at <= ?", (now.isoformat(),)
+            "SELECT id FROM scheduled_instagram_posts WHERE sent = 0 AND send_at <= ?", (now.isoformat(),)
         )
-        rows = await cursor.fetchall()
+        due_ids = [r["id"] for r in await cursor.fetchall()]
 
     fired = 0
-    for row in rows:
-        row = dict(row)
+    checked = 0
+    for post_id in due_ids:
+        # Atomically claim the row (sent: 0 -> -1) so a concurrent call — a
+        # manual retry overlapping the next cron tick, or two adjacent ticks
+        # if a slow multi-image publish runs past 15 min — can't grab the
+        # same row twice and publish it more than once.
+        async with get_db() as db:
+            cursor = await db.execute(
+                "UPDATE scheduled_instagram_posts SET sent = -1 WHERE id = ? AND sent = 0", (post_id,)
+            )
+            await db.commit()
+            claimed = cursor.rowcount == 1
+
+        if not claimed:
+            continue
+        checked += 1
+
+        async with get_db() as db:
+            cursor = await db.execute("SELECT * FROM scheduled_instagram_posts WHERE id = ?", (post_id,))
+            row = dict(await cursor.fetchone())
+
         result = await _export_and_publish(row["design_id"], row["caption"] or "")
         async with get_db() as db:
             if result.get("ok"):
                 await db.execute(
                     "UPDATE scheduled_instagram_posts SET sent = 1, media_id = ?, permalink = ? WHERE id = ?",
-                    (result.get("media_id"), result.get("permalink"), row["id"]),
+                    (result.get("media_id"), result.get("permalink"), post_id),
                 )
                 fired += 1
             else:
+                # Release the claim so it's retried on a later tick instead of stuck at -1.
                 await db.execute(
-                    "UPDATE scheduled_instagram_posts SET error = ? WHERE id = ?",
-                    (result.get("error"), row["id"]),
+                    "UPDATE scheduled_instagram_posts SET sent = 0, error = ? WHERE id = ?",
+                    (result.get("error"), post_id),
                 )
             await db.commit()
 
-    return {"ok": True, "fired": fired, "checked": len(rows)}
+    return {"ok": True, "fired": fired, "checked": checked}
