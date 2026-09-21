@@ -33,6 +33,9 @@ curl_checked "${BASE}/api/publish/fire-scheduled-manual" -X POST > /dev/null
 # Always check for due scheduled Instagram carousels
 curl_checked "${BASE}/api/instagram/fire-scheduled" -X POST > /dev/null
 
+# Always check for due scheduled HeyGen Reels
+curl_checked "${BASE}/api/heygen/fire-scheduled" -X POST > /dev/null
+
 DUE=$(curl_checked "${BASE}/api/schedules/due?location=server")
 if [ $? -ne 0 ]; then
     exit 1

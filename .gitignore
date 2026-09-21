@@ -5,6 +5,9 @@ __pycache__/
 *.pyc
 .DS_Store
 .claude/settings.local.json
+heygen-video-log.jsonl
+.heygen/
 alia_avatar.png
 dashboard/config.js
 backend/static/instagram/
+backend/static/heygen/

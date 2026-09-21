@@ -406,6 +406,19 @@ async def init_db():
                 created_at   DATETIME DEFAULT CURRENT_TIMESTAMP
             )""",
             "ALTER TABLE scheduled_instagram_posts ADD COLUMN thumbnail_url TEXT",
+            """CREATE TABLE IF NOT EXISTS scheduled_heygen_posts (
+                id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                video_id     TEXT NOT NULL,
+                video_title  TEXT,
+                caption      TEXT,
+                send_at      TEXT NOT NULL,
+                sent         INTEGER DEFAULT 0,
+                media_id     TEXT,
+                permalink    TEXT,
+                error        TEXT,
+                thumbnail_url TEXT,
+                created_at   DATETIME DEFAULT CURRENT_TIMESTAMP
+            )""",
         ]:
             try:
                 await db.execute(migration)

@@ -187,6 +187,7 @@
   <button class="tab" onclick="switchTab('concours')">🎉 Concours</button>
 <button class="tab" onclick="switchTab('community-recs')">⭐ Recommandations</button>
   <button class="tab" onclick="switchTab('instagram')">📸 Instagram</button>
+  <button class="tab" onclick="switchTab('heygen')">🎥 HeyGen</button>
   <button class="tab" onclick="switchTab('send')">✏️ Send</button>
 </div>
 
@@ -350,6 +351,38 @@
         <button class="btn btn-both" id="igPublishBtn" onclick="publishInstagram()">📤 Publier sur Instagram</button>
       </div>
       <div id="igResult" style="margin-top:14px;font-size:13px;"></div>
+    </div>
+  </div>
+
+  <!-- HEYGEN -->
+  <div class="section" id="section-heygen">
+    <div class="manual-panel" style="margin-bottom:24px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <h2>🎥 Vidéos HeyGen</h2>
+        <button class="btn btn-primary" style="padding:6px 14px;font-size:13px;" onclick="loadHeygenVideos()">🔄 Charger</button>
+      </div>
+      <p style="font-size:13px;color:#888;margin:0 0 16px;">Choisis une vidéo déjà générée sur HeyGen — elle est publiée automatiquement sur Instagram en Reel.</p>
+
+      <label style="font-size:13px;font-weight:600;color:#666;display:block;margin-bottom:6px;">Légende (caption Instagram)</label>
+      <textarea id="heygenCaption" placeholder="Légende + hashtags…" style="width:100%;height:100px;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:14px;resize:vertical;font-family:inherit;margin-bottom:14px;box-sizing:border-box;"></textarea>
+
+      <div style="margin-bottom:16px;">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;font-weight:600;color:#444;">
+          <input type="checkbox" id="heygenPlanifier" onchange="toggleHeygenSchedule(this.checked)" style="width:16px;height:16px;cursor:pointer;">
+          ⏰ Planifier la publication
+        </label>
+        <div id="heygenScheduleBox" style="display:none;margin-top:10px;background:#f8f9fa;border:1px solid #e0e0e0;border-radius:8px;padding:12px;">
+          <input type="datetime-local" id="heygenScheduleAt" style="border:1px solid #ddd;border-radius:6px;padding:8px 12px;font-size:14px;font-family:inherit;">
+          <span style="font-size:12px;color:#999;margin-left:8px;">Heure d'Israël</span>
+        </div>
+      </div>
+
+      <div id="heygenVideosGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px;"></div>
+    </div>
+
+    <div class="manual-panel">
+      <h2>⏳ Reels planifiés</h2>
+      <div id="scheduledHeygenCards"><div class="loading">Loading…</div></div>
     </div>
   </div>
 
@@ -747,6 +780,7 @@ function switchTab(name) {
   if (name === 'concours') loadConcours();
   if (name === 'automation') loadAutomation();
   if (name === 'instagram') { loadCanvaCarousels().then(loadScheduledInstagram); }
+  if (name === 'heygen') { loadHeygenVideos().then(loadScheduledHeygen); }
 }
 
 // ── Queue (all pending content) ──────────────────────────────────────────────
@@ -1545,6 +1579,109 @@ async function cancelScheduledInstagram(id) {
   await fetch(`${API}/api/instagram/scheduled/${id}`, {method: 'DELETE'});
   toast('🗑️ Carrousel planifié annulé');
   loadScheduledInstagram();
+}
+
+// ── HeyGen video publish (to Instagram Reels) ──────────────────────────────
+let heygenVideoInfo = {};
+
+function toggleHeygenSchedule(checked) {
+  document.getElementById('heygenScheduleBox').style.display = checked ? 'block' : 'none';
+}
+
+async function loadHeygenVideos() {
+  const grid = document.getElementById('heygenVideosGrid');
+  grid.innerHTML = '<div class="loading">Loading…</div>';
+  let data;
+  try {
+    const res = await fetch(`${API}/api/heygen/videos`);
+    data = await res.json();
+  } catch (e) {
+    grid.innerHTML = `<div style="color:#c62828;">❌ Erreur réseau</div>`;
+    return;
+  }
+  if (!data.ok) {
+    grid.innerHTML = `<div style="color:#c62828;">❌ ${data.error}</div>`;
+    return;
+  }
+  if (!data.items.length) {
+    grid.innerHTML = `<div style="color:#999;font-size:13px;">Aucune vidéo terminée trouvée sur HeyGen.</div>`;
+    return;
+  }
+  heygenVideoInfo = {};
+  data.items.forEach(it => { heygenVideoInfo[it.video_id] = { title: it.title, thumbnail_url: it.thumbnail_url }; });
+  grid.innerHTML = data.items.map(it => `
+    <div style="border:2px solid ${it.already_published ? '#c8e6c9' : '#eee'};border-radius:10px;padding:8px;text-align:center;background:${it.already_published ? '#f4fbf4' : '#fff'};">
+      <img src="${it.thumbnail_url || ''}" style="width:100%;aspect-ratio:9/16;object-fit:cover;border-radius:6px;margin-bottom:6px;background:#f0f0f0;">
+      <div style="font-size:11px;font-weight:600;color:#444;margin-bottom:4px;line-height:1.3;">${it.title}</div>
+      <div style="font-size:10px;color:#999;margin-bottom:6px;">${it.duration ? Math.round(it.duration) + 's' : ''}${it.already_published ? ' · ✅ publié' : ''}</div>
+      <button class="btn btn-both" style="width:100%;padding:6px;font-size:12px;" onclick="publishHeygenVideo('${it.video_id}', this)">📤 Publier</button>
+    </div>
+  `).join('');
+}
+
+async function publishHeygenVideo(videoId, btn) {
+  const caption = document.getElementById('heygenCaption').value;
+  const planifier = document.getElementById('heygenPlanifier').checked;
+  const scheduleAt = document.getElementById('heygenScheduleAt').value;
+
+  if (planifier && !scheduleAt) {
+    toast('Choisis une date/heure pour la publication planifiée', true);
+    return;
+  }
+
+  await withLoading(btn, async () => {
+    const info = heygenVideoInfo[videoId] || {};
+    const fd = new FormData();
+    fd.append('video_id', videoId);
+    fd.append('caption', caption);
+    fd.append('video_title', info.title || '');
+    fd.append('thumbnail_url', info.thumbnail_url || '');
+    if (planifier) fd.append('scheduled_at', scheduleAt);
+    let data;
+    try {
+      const res = await fetch(`${API}/api/heygen/publish`, { method: 'POST', body: fd });
+      data = await res.json();
+    } catch (e) {
+      toast('Erreur réseau lors de la publication', true);
+      return;
+    }
+    if (data.ok && data.scheduled) {
+      toast('⏰ Vidéo planifiée !');
+      loadScheduledHeygen();
+      return;
+    }
+    if (data.ok) {
+      toast('✅ Reel publié sur Instagram !');
+      loadHeygenVideos();
+    } else {
+      toast(`Erreur: ${data.error || 'inconnue'}`, true);
+    }
+  });
+}
+
+async function loadScheduledHeygen() {
+  const data = await fetch(`${API}/api/heygen/scheduled`).then(r => r.json()).catch(() => []);
+  const el = document.getElementById('scheduledHeygenCards');
+  if (!data.length) { el.innerHTML = '<div class="empty"><div class="icon">⏰</div>Aucun Reel planifié</div>'; return; }
+  el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px;">` + data.map(p => {
+    const live = heygenVideoInfo[p.video_id];
+    const thumb = (live && live.thumbnail_url) || p.thumbnail_url || '';
+    return `
+    <div class="card" style="border-left:4px solid #e1306c;padding:8px;">
+      <img src="${thumb}" style="width:100%;aspect-ratio:9/16;object-fit:cover;border-radius:6px;margin-bottom:6px;background:#f0f0f0;">
+      <div style="font-size:12px;color:#999;margin-bottom:6px;">⏰ ${new Date(p.send_at).toLocaleString('fr-FR')}</div>
+      ${p.caption ? `<div style="font-size:12px;color:#666;margin-bottom:6px;">${p.caption.substring(0, 100)}${p.caption.length > 100 ? '…' : ''}</div>` : ''}
+      ${p.error ? `<div style="font-size:12px;color:#c62828;margin-bottom:6px;">❌ ${p.error}</div>` : ''}
+      <button class="btn btn-danger" style="width:100%;padding:6px;font-size:12px;" onclick="cancelScheduledHeygen(${p.id})">🗑️ Annuler</button>
+    </div>
+  `;
+  }).join('') + `</div>`;
+}
+
+async function cancelScheduledHeygen(id) {
+  await fetch(`${API}/api/heygen/scheduled/${id}`, {method: 'DELETE'});
+  toast('🗑️ Reel planifié annulé');
+  loadScheduledHeygen();
 }
 
 // ── Instagram carousel publish (manual upload) ────────────────────────────
