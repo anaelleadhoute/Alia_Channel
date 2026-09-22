@@ -33,8 +33,18 @@ router = APIRouter()
 
 HEYGEN_API_KEY = os.getenv("HEYGEN_API_KEY", "")
 HEYGEN_API_BASE = "https://api.heygen.com"
-HEYGEN_FOLDER_ID = "a019fbcd82ad420d92599f0da54ca1ab"  # "ALIA" folder on app.heygen.com/projects
 PUBLIC_BASE_URL = "https://alia-channel.com"
+
+# HeyGen's folder_id field on GET /v3/videos is unreliable — videos moved into
+# the "ALIA" folder (app.heygen.com/projects?folder=a019fbcd82ad420d92599f0da54ca1ab)
+# via the UI don't always get it populated via the API. Maintaining an explicit
+# allowlist instead. Only plain Avatar Videos belong here — HeyGen's "Video
+# Agent Session" items (interactive chat avatars) are a different resource
+# entirely and aren't fetchable/publishable this way.
+HEYGEN_VIDEO_IDS = [
+    "08c773dca3e37a6e623dd62038a701a6",  # Alia - Hook WhatsApp hébreu
+    "deca3c128eba4762a2b08a03b2e6e6c7",  # Aliyah: Ne Galère Plus
+]
 
 anthropic_client = anthropic.AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
@@ -122,37 +132,34 @@ async def _publish_reel_from_url(client: httpx.AsyncClient, video_url: str, capt
 
 @router.get("/videos")
 async def list_heygen_videos():
-    """List completed videos from the HeyGen account for the dashboard picker."""
+    """List the allowlisted videos (HEYGEN_VIDEO_IDS) for the dashboard picker."""
     if not HEYGEN_API_KEY:
         return {"ok": False, "error": "HeyGen isn't configured (HEYGEN_API_KEY missing)"}
 
-    async with httpx.AsyncClient(timeout=30) as client:
-        resp = await client.get(
-            f"{HEYGEN_API_BASE}/v3/videos",
-            headers={"x-api-key": HEYGEN_API_KEY},
-            params={"limit": 50, "folder_id": HEYGEN_FOLDER_ID},
-        )
-    if resp.status_code != 200:
-        return {"ok": False, "error": f"HeyGen video list failed: {resp.text}"}
-
-    body = resp.json()
-    rows = body.get("data", body if isinstance(body, list) else [])
-
     published = set(await _get_published_video_ids())
     items = []
-    for v in rows:
-        if v.get("status") != "completed":
-            continue
-        items.append(
-            {
-                "video_id": v["id"],
-                "title": v.get("title") or v["id"],
-                "thumbnail_url": v.get("thumbnail_url"),
-                "duration": v.get("duration"),
-                "created_at": v.get("created_at"),
-                "already_published": v["id"] in published,
-            }
-        )
+    async with httpx.AsyncClient(timeout=30) as client:
+        for video_id in HEYGEN_VIDEO_IDS:
+            resp = await client.get(
+                f"{HEYGEN_API_BASE}/v3/videos/{video_id}",
+                headers={"x-api-key": HEYGEN_API_KEY},
+            )
+            if resp.status_code != 200:
+                continue
+            body = resp.json()
+            v = body.get("data", body) if isinstance(body, dict) else {}
+            if v.get("status") != "completed":
+                continue
+            items.append(
+                {
+                    "video_id": v["id"],
+                    "title": v.get("title") or v["id"],
+                    "thumbnail_url": v.get("thumbnail_url"),
+                    "duration": v.get("duration"),
+                    "created_at": v.get("created_at"),
+                    "already_published": v["id"] in published,
+                }
+            )
     items.sort(key=lambda x: x["created_at"] or 0, reverse=True)
     return {"ok": True, "items": items}
 
