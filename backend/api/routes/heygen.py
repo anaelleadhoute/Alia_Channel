@@ -21,6 +21,7 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 
+import anthropic
 import httpx
 from fastapi import APIRouter, Form
 
@@ -32,7 +33,24 @@ router = APIRouter()
 
 HEYGEN_API_KEY = os.getenv("HEYGEN_API_KEY", "")
 HEYGEN_API_BASE = "https://api.heygen.com"
+HEYGEN_FOLDER_ID = "a019fbcd82ad420d92599f0da54ca1ab"  # "ALIA" folder on app.heygen.com/projects
 PUBLIC_BASE_URL = "https://alia-channel.com"
+
+anthropic_client = anthropic.AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+
+HEYGEN_CAPTION_PROMPT = """Tu es rédacteur pour AL.IA Channel, un média Instagram pour les olim francophones en Israël.
+
+Voici le titre d'une vidéo (avatar qui parle) déjà créée sur HeyGen : {title}
+
+Rédige une légende Instagram en français pour ce Reel :
+- Commence par un hook accrocheur en une phrase, qui donne envie de regarder la vidéo jusqu'au bout
+- 2-3 phrases qui donnent un aperçu utile du contenu, sans tout dévoiler
+- Une phrase d'appel à l'action (regarder jusqu'au bout, enregistrer le post, le partager avec quelqu'un que ça peut aider)
+- Termine par 5 à 8 hashtags pertinents (mélange de hashtags sur l'alya, Israël, olim, et le sujet précis)
+
+Ton : chaleureux, utile, communautaire — jamais commercial ou "vendeur". Émojis avec modération (2 à 4 max).
+
+Réponds uniquement avec le texte de la légende, sans JSON, sans commentaire."""
 
 STATIC_DIR = Path("/app/static/heygen")
 STATIC_DIR.mkdir(parents=True, exist_ok=True)
@@ -112,7 +130,7 @@ async def list_heygen_videos():
         resp = await client.get(
             f"{HEYGEN_API_BASE}/v3/videos",
             headers={"x-api-key": HEYGEN_API_KEY},
-            params={"limit": 50},
+            params={"limit": 50, "folder_id": HEYGEN_FOLDER_ID},
         )
     if resp.status_code != 200:
         return {"ok": False, "error": f"HeyGen video list failed: {resp.text}"}
@@ -169,6 +187,25 @@ async def _fetch_and_publish_heygen(video_id: str, caption: str) -> dict:
     if result.get("ok"):
         await _mark_video_published(video_id)
     return result
+
+
+@router.post("/generate-caption")
+async def generate_caption(video_title: str = Form(...)):
+    """AI-generated Instagram caption from the video's HeyGen title.
+
+    Unlike the Canva carousels (which had 40+ drafts sharing the same
+    generic title, so we read the actual slide instead), these HeyGen
+    titles come from a curated folder and are genuinely descriptive
+    ("5 Erreurs des Olim en Israël"), so the title itself is a reliable
+    signal — no need to fetch/analyze a video frame.
+    """
+    response = await anthropic_client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=400,
+        messages=[{"role": "user", "content": HEYGEN_CAPTION_PROMPT.format(title=video_title)}],
+    )
+    caption = response.content[0].text.strip()
+    return {"ok": True, "caption": caption}
 
 
 @router.post("/publish")
