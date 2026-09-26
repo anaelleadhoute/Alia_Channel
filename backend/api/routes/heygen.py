@@ -37,13 +37,19 @@ PUBLIC_BASE_URL = "https://alia-channel.com"
 
 # HeyGen's folder_id field on GET /v3/videos is unreliable — videos moved into
 # the "ALIA" folder (app.heygen.com/projects?folder=a019fbcd82ad420d92599f0da54ca1ab)
-# via the UI don't always get it populated via the API. Maintaining an explicit
-# allowlist instead. Only plain Avatar Videos belong here — HeyGen's "Video
-# Agent Session" items (interactive chat avatars) are a different resource
-# entirely and aren't fetchable/publishable this way.
+# via the UI don't always get it populated via the API (Video Agent renders never
+# carry it). Maintaining an explicit allowlist instead. Use the video ID of a
+# rendered video (app.heygen.com/videos/<id>), not a Video Agent session ID —
+# each Agent session produces many draft renders, pick the final one.
 HEYGEN_VIDEO_IDS = [
     "08c773dca3e37a6e623dd62038a701a6",  # Alia - Hook WhatsApp hébreu
     "deca3c128eba4762a2b08a03b2e6e6c7",  # Aliyah: Ne Galère Plus
+    "803317785bae4a5f890dbe4d71cd0ab7",  # Alia Tip: Rav-Kav Geographic Profile
+    "1fbc133d80e04cca9b340ba5d112ace2",  # Astuces bancaires en Israël pour les nouveaux arrivants
+    "38e49a2019c24ae1add9d7c1d4f45b71",  # Aimer deux endroits à la fois
+    "b12ce495e02540c2baa1f59dc33cba3b",  # Le deuil silencieux de l'alya
+    "36ef0e1df98843ecb1b2047654d8231e",  # Super-Pharm: Votre Astuce Économie
+    "43d4bd6e34c14e638dbf193d7f11325d",  # ALIA — Comprendre un message vocal en hébreu
 ]
 
 anthropic_client = anthropic.AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
